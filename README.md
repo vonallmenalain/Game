@@ -1,17 +1,15 @@
-# Matrix Foundry Prototype
+# Matrix Foundry Prototype (Browser-Only)
 
-Erster technischer Entwurf für ein Browsergame im Stil von Produktions-/Automatisierungsspielen.
+Diese Version läuft ohne lokalen Dev-Server und ohne Hintergrundprozess.
 
-## Enthalten
+## Start (Phase 1)
 
-- TypeScript Datenmodell (`src/game/types.ts`)
-- Rezept-Content (`src/game/content.ts`)
-- Tick-basierte Simulationsengine (`src/game/engine.ts`)
-- UI-Strukturplan für React (`src/ui/README.md`)
+1. `index.html` per Doppelklick im Browser öffnen.
+2. Spielen.
+3. Save/Load/Reset nutzen (Speicherung via `localStorage`).
 
-## Schnellstart
+## Hinweise
 
-```bash
-npm install
-npm run check
-```
+- Spielstand ist lokal im Browser unter dem Key `matrix-foundry-save` gespeichert.
+- Keine externe Datenbank nötig für Phase 1.
+- Optional kann später Firebase für Cloud-Saves ergänzt werden.
