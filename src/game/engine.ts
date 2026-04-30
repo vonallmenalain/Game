@@ -1,99 +1,75 @@
-import { RECIPE_BY_ID, RESOURCE_IDS } from "./content";
-import { Building, GameState, ResourceId } from "./types";
+import { BUILDING_BY_TYPE } from "./buildings";
+import { RECIPES, RECIPE_BY_ID } from "./recipes";
+import { TECHS } from "./techs";
+import { BuildingType, GameState, Stack } from "./types";
 
-const DEFAULT_TICK_RATE = 4;
+const BASE_MINING_RATE = 0.5;
 
-export function createInventory(): Record<ResourceId, number> {
-  return RESOURCE_IDS.reduce((acc, id) => {
-    acc[id] = 0;
-    return acc;
-  }, {} as Record<ResourceId, number>);
+const hasStacks = (inv: GameState["inventory"], stacks: Stack[]) => stacks.every((s) => inv[s.id] >= s.amount);
+const consume = (inv: GameState["inventory"], stacks: Stack[]) => stacks.forEach((s) => (inv[s.id] -= s.amount));
+const produce = (inv: GameState["inventory"], stacks: Stack[]) => stacks.forEach((s) => (inv[s.id] += s.amount));
+
+export function getTechStatus(state: GameState, techId: string) {
+  if (state.researchedTechs.includes(techId)) return "researched";
+  const tech = TECHS.find((t) => t.id === techId)!;
+  return tech.requires.every((r) => state.researchedTechs.includes(r)) ? "available" : "locked";
 }
 
-export function createInitialState(): GameState {
-  return {
-    time: 0,
-    researchPoints: 0,
-    inventory: createInventory(),
-    power: {
-      produced: 8,
-      required: 0
-    },
-    buildings: [
-      { id: "miner_iron_1", type: "miner", recipeId: "mine_iron", progress: 0, efficiency: 1, powered: true },
-      { id: "miner_copper_1", type: "miner", recipeId: "mine_copper", progress: 0, efficiency: 1, powered: true },
-      { id: "miner_silicon_1", type: "miner", recipeId: "mine_silicon", progress: 0, efficiency: 1, powered: true },
-      { id: "miner_coal_1", type: "miner", recipeId: "mine_coal", progress: 0, efficiency: 1, powered: true },
-      { id: "smelter_iron_1", type: "smelter", recipeId: "smelt_iron", progress: 0, efficiency: 1, powered: true },
-      { id: "assembler_tool_1", type: "assembler", recipeId: "molding_tool", progress: 0, efficiency: 1, powered: true },
-      { id: "matrix_lab_1", type: "matrix_lab", recipeId: "red_matrix", progress: 0, efficiency: 1, powered: true }
-    ]
-  };
-}
+export function tick(state: GameState, dt: number): GameState {
+  const next: GameState = structuredClone(state);
+  next.time += dt;
+  next.power.produced = next.buildings.reduce((s, b) => s + (BUILDING_BY_TYPE[b.type].powerProduction ?? 0), 0);
+  next.power.required = next.buildings.reduce((s, b) => s + BUILDING_BY_TYPE[b.type].powerUse, 0);
+  next.power.efficiency = next.power.required > 0 ? Math.min(1, next.power.produced / next.power.required) : 1;
 
-function mine(building: Building, inventory: Record<ResourceId, number>, deltaSeconds: number): void {
-  const amount = 0.8 * building.efficiency * deltaSeconds;
-  if (building.id.includes("iron")) inventory.iron_ore += amount;
-  if (building.id.includes("copper")) inventory.copper_ore += amount;
-  if (building.id.includes("silicon")) inventory.silicon_ore += amount;
-  if (building.id.includes("coal")) inventory.coal += amount;
-}
-
-function hasInputs(inventory: Record<ResourceId, number>, inputs: { id: ResourceId; amount: number }[]): boolean {
-  return inputs.every((input) => inventory[input.id] >= input.amount);
-}
-
-function consumeInputs(inventory: Record<ResourceId, number>, inputs: { id: ResourceId; amount: number }[]): void {
-  for (const input of inputs) inventory[input.id] -= input.amount;
-}
-
-function produceOutputs(inventory: Record<ResourceId, number>, outputs: { id: ResourceId; amount: number }[]): void {
-  for (const output of outputs) inventory[output.id] += output.amount;
-}
-
-export function tick(state: GameState, deltaSeconds = 1 / DEFAULT_TICK_RATE): GameState {
-  const next: GameState = {
-    ...state,
-    time: state.time + deltaSeconds,
-    inventory: { ...state.inventory },
-    buildings: state.buildings.map((building) => ({ ...building }))
-  };
-
-  next.power.required = next.buildings.length;
-  const globalEfficiency = Math.min(1, next.power.produced / Math.max(1, next.power.required));
-
-  for (const building of next.buildings) {
-    building.efficiency = globalEfficiency;
-    building.powered = globalEfficiency > 0;
-
-    if (building.type === "miner") {
-      mine(building, next.inventory, deltaSeconds);
+  for (const b of next.buildings) {
+    if (b.type === "coal_generator") continue;
+    if (b.type === "miner") {
+      if (!b.minerTarget) continue;
+      next.inventory[b.minerTarget] += BASE_MINING_RATE * next.modifiers.miningRate * dt * next.power.efficiency;
+      b.status = next.power.efficiency < 1 ? "low_power" : "running";
       continue;
     }
-
-    if (!building.recipeId) continue;
-    const recipe = RECIPE_BY_ID.get(building.recipeId);
-    if (!recipe) continue;
-
-    if (building.progress <= 0 && !hasInputs(next.inventory, recipe.inputs)) {
-      continue;
+    if (!b.recipeId) { b.status = "no_recipe"; continue; }
+    const r = RECIPE_BY_ID[b.recipeId];
+    if (!r || !next.unlockedRecipes.includes(r.id)) { b.status = "no_recipe"; continue; }
+    const speedMod = b.type === "smelter" ? next.modifiers.smelterSpeed : 1;
+    if (b.progress <= 0) {
+      if (!hasStacks(next.inventory, r.inputs)) { b.status = "waiting"; continue; }
+      consume(next.inventory, r.inputs); b.progress = r.duration;
     }
-
-    if (building.progress <= 0) {
-      consumeInputs(next.inventory, recipe.inputs);
-      building.progress = recipe.duration;
-    }
-
-    building.progress -= deltaSeconds * building.efficiency;
-
-    if (building.progress <= 0) {
-      produceOutputs(next.inventory, recipe.outputs);
-      if (recipe.outputs.some((output) => output.id === "red_matrix" || output.id === "blue_matrix")) {
-        next.researchPoints += recipe.outputs.reduce((sum, output) => sum + output.amount, 0);
-      }
-      building.progress = 0;
+    b.progress -= dt * next.power.efficiency * speedMod;
+    b.status = next.power.efficiency < 1 ? "low_power" : "running";
+    if (b.progress <= 0) {
+      produce(next.inventory, r.outputs);
+      if (r.id === "red_matrix") { next.inventory.research_red += 5; next.inventory.research_points += 5; }
+      if (r.id === "blue_matrix") { next.inventory.research_blue += 12; next.inventory.research_points += 12; }
+      if (r.id === "yellow_matrix") next.inventory.research_points += 30;
+      next.eventLog.unshift(`${r.name} +${r.outputs[0].amount} produziert`);
     }
   }
-
+  next.eventLog = next.eventLog.slice(0, 10);
   return next;
 }
+
+export function buyBuilding(state: GameState, type: BuildingType): GameState {
+  const def = BUILDING_BY_TYPE[type];
+  if (!state.unlockedBuildings.includes(type) || !hasStacks(state.inventory, def.cost)) return state;
+  const next = structuredClone(state); consume(next.inventory, def.cost);
+  next.buildings.push({ id: `${type}_${next.buildings.length + 1}`, type, progress: 0, status: "no_recipe", minerTarget: type==="miner"?"iron_ore":undefined });
+  next.eventLog.unshift(`${def.name} gebaut`); return next;
+}
+
+export function researchTech(state: GameState, techId: string): GameState {
+  const tech = TECHS.find((t) => t.id === techId); if (!tech || getTechStatus(state, techId) !== "available" || state.inventory.research_points < tech.cost) return state;
+  const next = structuredClone(state); next.inventory.research_points -= tech.cost; next.researchedTechs.push(techId);
+  if (techId === "automation_1") next.unlockedBuildings.push("matrix_press");
+  if (techId === "mining_1") next.modifiers.miningRate *= 1.25;
+  if (techId === "smelting_1") next.modifiers.smelterSpeed *= 1.2;
+  if (techId === "matrix_1") next.unlockedRecipes.push("red_matrix");
+  if (techId === "silicon_processing") { next.unlockedMiningTargets.push("silicon_ore"); next.unlockedRecipes.push("silicon_ingot", "silicon_wafer"); }
+  if (techId === "logic_systems") next.unlockedRecipes.push("logic_chip", "blue_matrix");
+  next.eventLog.unshift(`${tech.name} erforscht`); return next;
+}
+
+export const recipesByBuilding = (type: BuildingType, unlocked: string[]) => RECIPES.filter(r=>r.building===type && unlocked.includes(r.id));
