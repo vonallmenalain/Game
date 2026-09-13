@@ -53,6 +53,24 @@ describe('Nachsimulation', () => {
     expect(getStore(s, 'schienen')).toBe(0);
   });
 
+  it('nennt Zugewinne und eine neue Lok', () => {
+    const s = midGame();
+    research(s, 'stahlwerk', 'schwere_dampflok');
+    grant(s, { dampfkessel: 6, stahl: 60, nieten: 120, zahnrad: 40 });
+    const report = simulateOffline(s, 600);
+    expect(report.newLoco).toBe('schwere_dampflok');
+    expect(report.projectsDone).toContain('schwere_dampflok');
+    const koks = report.gained.find((g) => g.item === 'koks');
+    expect(koks?.amount).toBeGreaterThan(0);
+    for (let i = 1; i < report.gained.length; i += 1) expect(report.gained[i - 1]!.amount).toBeGreaterThanOrEqual(report.gained[i]!.amount);
+    expect(report.gained.every((g) => g.amount > 0)).toBe(true);
+  });
+
+  it('meldet keine neue Lok, wenn sich nichts geändert hat', () => {
+    const s = midGame();
+    expect(simulateOffline(s, 600).newLoco).toBeNull();
+  });
+
   it('holt erst ab einer Minute nach', () => {
     expect(needsCatchUp(30)).toBe(false);
     expect(needsCatchUp(60)).toBe(true);

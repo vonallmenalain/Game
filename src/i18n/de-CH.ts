@@ -1,6 +1,7 @@
 import { BIOME_BY_ID, ITEM_BY_ID, LOCO_BY_ID, OBSTACLE_BY_ID, PROJECT_BY_ID, TECH_BY_ID } from '../engine/data';
-import type { LogEntry, Warning } from '../engine/types';
-import { formatDecimal } from '../lib/format';
+import type { ItemId, LogEntry, Warning } from '../engine/types';
+import type { OfflineWarning } from '../engine/offline';
+import { formatDecimal, formatDuration } from '../lib/format';
 
 function itemName(id: string): string {
   return ITEM_BY_ID[id]?.name ?? id;
@@ -39,6 +40,21 @@ export function formatLog(entry: LogEntry): string {
     }
     case 'stand_ende':
       return 'Ende des ersten Stands. Die Wüste wartet.';
+    default:
+      return '';
+  }
+}
+
+/** Warnung aus der Abwesenheit, mit dem Zeitpunkt seit dem Weggehen */
+export function formatOfflineWarning(warning: OfflineWarning, fuel: ItemId): string {
+  const when = formatDuration(warning.at);
+  switch (warning.code) {
+    case 'schienen':
+      return `Nach ${when} waren die Schienen alle. Der Zug blieb stehen.`;
+    case 'brennstoff':
+      return `Nach ${when} war ${itemName(fuel)} alle. Der Kessel ging aus.`;
+    case 'hindernis':
+      return `Nach ${when} stand der Zug vor einem Hindernis.`;
     default:
       return '';
   }
