@@ -1,7 +1,7 @@
 <script lang="ts">
   import { WAGONS, TECH_BY_ID, buildWagon, canAfford, currentLoco, getStore, isWagonTypeUnlocked, machineSlots, wagonBuildCost, wagonOfType } from '../../engine';
   import { game } from '../game.svelte';
-  import { WAGON_COLOR, itemName, machineName } from '../labels';
+  import { itemName, machineName } from '../labels';
   import Vehicle from './Vehicle.svelte';
 
   const free = $derived(currentLoco(game.state).slots - game.state.wagons.length);
@@ -26,7 +26,7 @@
     {@const cost = wagonBuildCost(w.type)}
     {@const affordable = canAfford(game.state, cost)}
     <div class="card entry" class:locked={!unlocked}>
-      <span class="silhouette"><Vehicle kind={w.type} color={WAGON_COLOR[w.type]} rolling={false} /></span>
+      <span class="silhouette"><Vehicle kind={w.type} /></span>
       <div class="text">
         <div class="title">{w.name} <span class="muted small">mit {machineName(w.type)}</span></div>
         {#if unlocked}

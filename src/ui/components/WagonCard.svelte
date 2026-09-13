@@ -2,7 +2,7 @@
   import { RECIPE_BY_ID, WAGON_BY_TYPE, crank, getStore, hasSelfLoader, machineRatePerMinute, machineSlots, type WagonState } from '../../engine';
   import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { WAGON_COLOR, machineName, statusText, statusTone } from '../labels';
+  import { machineName, statusText, statusTone } from '../labels';
   import ItemChip from './ItemChip.svelte';
   import Vehicle from './Vehicle.svelte';
 
@@ -34,7 +34,7 @@
 
 <div class="wagon" class:offen={open}>
   <button type="button" class="main" aria-expanded={open} onclick={() => ontoggle?.()}>
-    <span class="silhouette"><Vehicle kind={wagon.type} color={WAGON_COLOR[wagon.type]} rolling={false} /></span>
+    <span class="silhouette"><Vehicle kind={wagon.type} /></span>
     <span class="text">
       <span class="title">
         {def?.name ?? wagon.type} <span class="muted">Stufe {wagon.level}</span>

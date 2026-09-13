@@ -238,3 +238,24 @@ a:focus-visible {
     transition: none;
   }
 }
+
+/* Lok: Farben der Zeichnung, im Dunkeln einen Ton heller, damit sie sich abhebt */
+:root {
+  --lok-body: #27423a;
+  --lok-boiler: #1d2126;
+  --lok-frame: #8a3128;
+  --lok-wheel: #a8382c;
+  --lok-brass: #d0a44a;
+  --lok-glass: #9cc0d3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --lok-body: #35564b;
+    --lok-boiler: #2a3037;
+    --lok-frame: #9a3a30;
+    --lok-wheel: #b84437;
+    --lok-brass: #e0b45a;
+    --lok-glass: #b4d4e6;
+  }
+}

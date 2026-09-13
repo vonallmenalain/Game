@@ -23,6 +23,8 @@ Prototyp in Arbeit, nach dem Bauplan in Abschnitt 15 des Konzepts.
 
 Der erste spielbare Stand ist damit fertig: drei Biome, zwei Bauprojekte, dreissig Waren, Offline-Nachholen und Sicherung als Datei.
 
+Seither: Die Bühne zeigt Lok und Wagen als detaillierte Zeichnungen nach echten Vorbildern, mit drehenden Rädern und Gestänge, steht auf jedem Bildschirm ausser «Mehr» fest oben und fährt mit einer Kamera an jedes Fahrzeug heran, das man antippt.
+
 ## Entwicklung
 
 ```sh

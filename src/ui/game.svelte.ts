@@ -1,7 +1,9 @@
 import {
   BALANCE,
   createInitialState,
+  currentLoco,
   flowPerMinute,
+  machineSlots,
   needsCatchUp,
   serialize,
   simulateOffline,
@@ -14,6 +16,8 @@ import { account, wasSignedIn } from '../cloud/account.svelte';
 import { describeError } from './labels';
 import { clearSave, loadSave, storeSave } from './persist';
 import { buzz, playMilestone } from './sound';
+import { stageFocus, type StageFocus } from './stage/focus';
+import type { Tab } from './tabs';
 
 const TICK = BALANCE.tickSeconds;
 /** So viel Zeit holt ein einzelnes Bild höchstens auf, etwa nach einem gedrosselten Tab */
@@ -58,6 +62,10 @@ class Game {
   rates: Record<string, number> = $derived(flowPerMinute(this.state));
   toast = $state<{ text: string; id: number } | null>(null);
   detail = $state<DetailKind>({ kind: 'none' });
+  /** Das Register in der Leiste unten. Die Bühne richtet ihren Ausschnitt danach. */
+  tab = $state<Tab>('zug');
+  /** Was die Bühne gerade zeigt: den Zug, die Lok oder einen Wagen. Folgt aus Register und Detail. */
+  focus: StageFocus = $derived(stageFocus(this.tab, this.detail, this.state));
   loaded = $state(false);
   /** Läuft die Nachsimulation gerade als Bildschirm? */
   returning = $state(false);
@@ -156,6 +164,41 @@ class Game {
 
   dismissReport(): void {
     this.report = null;
+  }
+
+  openTab(tab: Tab): void {
+    this.tab = tab;
+  }
+
+  /**
+   * Lok antippen: Die Kamera fährt an sie heran und die Strecke geht auf, denn dort
+   * steht, was die Lok angeht. Ist sie schon im Bild, nennt sie ihre Daten.
+   */
+  tapLoco(): void {
+    if (this.tab === 'strecke') {
+      const loco = currentLoco(this.state);
+      this.showToast(`${loco.name}: zieht ${loco.slots} Wagen, ${machineSlots(this.state)} Maschinen je Wagen, ${loco.speedKmh} km/h`);
+      return;
+    }
+    this.tab = 'strecke';
+  }
+
+  /**
+   * Wagen antippen: Auf dem Zug-Bildschirm klappt er auf und die Kamera fährt heran,
+   * nochmals antippen klappt ihn zu und der ganze Zug kommt zurück. Von jedem anderen
+   * Register geht es zum Zug, mit diesem Wagen aufgeklappt.
+   */
+  tapWagon(id: number): void {
+    const offen = this.tab === 'zug' && this.detail.kind === 'wagen' && this.detail.id === id;
+    this.detail = offen ? { kind: 'none' } : { kind: 'wagen', id };
+    this.tab = 'zug';
+  }
+
+  /** Platzhalter antippen: Zum Zug, mit «Wagen anhängen» aufgeklappt. */
+  tapSlot(): void {
+    const offen = this.tab === 'zug' && this.detail.kind === 'bauen';
+    this.detail = offen ? { kind: 'none' } : { kind: 'bauen' };
+    this.tab = 'zug';
   }
 
   start(): void {
