@@ -214,6 +214,7 @@ Nach den ersten Minuten ist nichts davon Pflicht. Die Werkbank bleibt nützlich,
 - Jede Ware hat eine Kapazität von 200 Stück, plus 200 pro Regal im Lagerwagen. Blaupausen zählen wie Waren.
 - Ist die Kapazität einer Ware erreicht, blockiert die Maschine, die sie herstellt. Das ist der Grund, zurückzukommen, und der Grund für Regale.
 - Baustellen (Abschnitt 9) ziehen Material aus dem Lager, sobald es da ist. Die Kapazität begrenzt also nie ein Bauprojekt.
+- **Saldo je Ware.** Der Lagerbildschirm rechnet für jede Ware zusammen, was der Zug gerade herstellt und verbraucht: alle Maschinen, die laufen können, die Werkbank, und die fahrende Lok mit Schienen und Brennstoff. Nicht mitgezählt wird, was gerade nicht laufen kann: eine Erntemaschine ohne Kurbel, eine Maschine mit vollem Ausgabelager, eine pausierte Maschine. Fehlen einer Maschine nur Zutaten, zählt sie weiter: Dann zeigt genau dieses Minus, dass die Kette mehr verlangt, als sie liefert.
 
 ## 7. Produktion
 
@@ -457,7 +458,7 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 |---|---|
 | Wagen-Detail (Bottom Sheet) | Liste der Maschinen im Wagen, je Zeile ihr Auftrag als Fluss, ihre Rate pro Minute und ihr Status. Rechts der Pausenknopf, der nur den Auftrag wegnimmt. Antippen klappt die Auftragswahl auf, mit Ausgabe pro Minute je Rezept, und darin steht das Ausbauen mit Rückfrage. Darunter «Maschine bauen» mit Preis, Stufe mit Kosten und Knopf, kurze Wege, Reihenfolge, Abkoppeln |
 | Werkstatt (eigener Bildschirm) | Kohle schaufeln und die Werkbank stehen fest oben, nur die Rezepte darunter scrollen. Die Werkbank zeigt den laufenden Auftrag mit Fortschritt, Ausstoss pro Minute und die Warteschlange, gleiche Aufträge zusammengezogen («Koks ×5»). Jedes Rezept in der Liste nennt Dauer und Ausstoss («2 s · 30/min»), damit sich Handarbeit und Wagen vergleichen lassen. Ihr Bereich hat eine feste Höhe, damit die Liste nicht springt, wenn Aufträge dazukommen: Man kann denselben Knopf mehrmals antippen, ohne ihn zu suchen |
-| Lager | Alle Waren nach Stufe, Bestand von Kapazität, Nettorate pro Minute mit Vorzeichen. Volle und leere Waren stehen oben |
+| Lager | Alle Waren nach Stufe, Bestand von Kapazität, Nettorate pro Minute mit Vorzeichen. Die Rate ist der Saldo von jetzt, aus allem gerechnet, was gerade läuft, nicht der Durchschnitt der letzten Minute: Wer eine Maschine pausiert, sieht die Zahl sofort umspringen. Volle und leere Waren stehen oben |
 | Forschung | Technologien nach Stufe, Kosten in Blaupausen, laufende Forschung mit Balken, Voraussetzungen als Text |
 | Strecke | Streckenkarte mit Biomen, Hindernissen, Position. Offene Baustellen mit Stückliste und Balken. Lok mit Upgrade-Projekt. Fahrtenbuch |
 | Rückkehr-Bericht (Modal) | Siehe Abschnitt 10 |
@@ -469,7 +470,8 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 - Was nicht geht, sagt warum: «Braucht 6 Zahnrad, du hast 2.»
 - Zahlen im Format der Schweiz: `1'200`, `7,5/min`.
 - Rot ist nur für Blockaden, Messing nur für Fortschritt und Meilensteine.
-- Wo produziert wird, steht auch der Ausstoss pro Minute: je Maschine, je Ware im Wagen, je Rezept in der Werkstatt. Ohne diese Zahl lässt sich keine Kette abstimmen.
+- Wo produziert wird, steht auch der Ausstoss pro Minute: je Maschine, je Ware im Wagen, je Rezept in der Werkstatt, im Lager als Saldo je Ware. Ohne diese Zahl lässt sich keine Kette abstimmen.
+- Jede Rate ist der Stand von jetzt, gerechnet aus dem, was eingestellt ist, und nie ein Durchschnitt über die Vergangenheit. Eine Änderung muss sofort sichtbar sein, sonst traut man der Zahl nicht.
 - Was bezahltes Material vernichtet, fragt zurück und liegt nicht neben einem harmlosen Knopf. Drosseln muss immer einfacher sein als Abreissen.
 
 ## 13. Grafik und Ton

@@ -2,7 +2,7 @@ export * from './types';
 export { BALANCE } from './balance';
 export * from './data';
 export * from './state';
-export { tick, machineSpeed, machineRatePerMinute, wagonBaseSpeed, workbenchStalled, harvestRatePerMinute, isOnSite, missingInputs } from './tick';
+export { tick, machineSpeed, machineRatePerMinute, flowPerMinute, wagonBaseSpeed, workbenchStalled, harvestRatePerMinute, isOnSite, missingInputs } from './tick';
 export * from './actions';
 export * from './craft';
 export { simulateOffline, needsCatchUp } from './offline';

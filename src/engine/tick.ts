@@ -181,6 +181,60 @@ export function machineRatePerMinute(state: GameState, w: WagonState, m: Machine
   return (out.amount / r.seconds) * 60 * machineSpeed(state, w, m);
 }
 
+/**
+ * Was der Zug pro Minute bewegt, je Ware Herstellung minus Verbrauch. Gerechnet aus
+ * dem, was gerade eingestellt ist, nicht gemessen über die letzte Minute: So schlägt
+ * jede Änderung sofort durch, und die Zahl zittert nicht im Takt der Rezepte.
+ *
+ * Was nicht laufen kann, zählt nicht: eine Erntemaschine ohne Kurbel und eine Maschine,
+ * deren Ausgabelager voll ist. Fehlen dagegen nur Zutaten, zählt die Maschine weiter.
+ * Genau dann zeigt das Minus, dass die Kette mehr verlangt, als sie liefert.
+ */
+export function flowPerMinute(state: GameState): Record<ItemId, number> {
+  const flow: Record<ItemId, number> = {};
+  const add = (item: ItemId, amount: number) => {
+    flow[item] = (flow[item] ?? 0) + amount;
+  };
+  const cap = storeCap(state);
+  const selfLoader = hasSelfLoader(state);
+
+  for (const w of state.wagons) {
+    if (w.type === 'ernte') {
+      if (!selfLoader && w.crankUntil <= state.playedSeconds) continue;
+      for (const m of w.machines) {
+        if (!m.resource || getStore(state, m.resource) >= cap) continue;
+        add(m.resource, harvestRatePerMinute(state, w, m.resource));
+      }
+      continue;
+    }
+    for (const m of w.machines) {
+      const r = m.recipe ? RECIPE_BY_ID[m.recipe] : undefined;
+      if (!r || !hasOutputRoom(state, r, cap)) continue;
+      const cyclesPerMinute = (60 / r.seconds) * machineSpeed(state, w, m);
+      for (const o of r.outputs) add(o.item, o.amount * cyclesPerMinute);
+      for (const i of r.inputs) add(i.item, -i.amount * cyclesPerMinute);
+    }
+  }
+
+  // Die Werkbank arbeitet einen Auftrag mit einfachem Tempo
+  const head = state.workbench.queue[0] ? RECIPE_BY_ID[state.workbench.queue[0]] : undefined;
+  if (head && hasOutputRoom(state, head, cap)) {
+    const cyclesPerMinute = 60 / head.seconds;
+    for (const o of head.outputs) add(o.item, o.amount * cyclesPerMinute);
+    for (const i of head.inputs) add(i.item, -i.amount * cyclesPerMinute);
+  }
+
+  // Die Fahrt frisst Schienen und Brennstoff
+  if (state.stop === 'faehrt') {
+    const lk = currentLoco(state);
+    const kmPerMinute = lk.speedKmh / 60;
+    add('schienen', -kmPerMinute * BALANCE.railsPerKm);
+    add(lk.fuel, -kmPerMinute * lk.fuelPerKm);
+  }
+
+  return flow;
+}
+
 interface CycleHolder {
   progress: number;
   cycleActive: boolean;

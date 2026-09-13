@@ -20,7 +20,7 @@
 </script>
 
 <section class="store">
-  <p class="muted small">Kapazität je Ware: {formatCount(cap)}. Die Rate ist der Saldo der letzten Minute.</p>
+  <p class="muted small">Kapazität je Ware: {formatCount(cap)}. Die Rate ist der Saldo von jetzt: alles, was gerade läuft, Herstellung minus Verbrauch.</p>
   {#each groups as group (group.tier)}
     <h3 class="section-title">{TIER_NAME[group.tier]}</h3>
     <div class="rows">
