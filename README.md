@@ -13,7 +13,7 @@ Prototyp in Arbeit, nach dem Bauplan in Abschnitt 15 des Konzepts.
 | 1 Brainstorming | Fünf Richtungen verglichen, der Zug gewählt | erledigt |
 | 2 Konzept | [docs/konzept.md](docs/konzept.md) | erledigt |
 | 3 Prototyp, Phase 0 | Projektgerüst: Vite, Svelte 5, TypeScript, Vitest, PWA, Netlify, CI | erledigt |
-| 3 Prototyp, Phase 1 | Engine mit Daten, Tick, Speichern und Tests | offen |
+| 3 Prototyp, Phase 1 | Engine mit Daten, Tick, Aktionen, Nachsimulation, Speichern, Autospieler und Tests | erledigt |
 | 3 Prototyp, Phasen 2 bis 5 | Bedienung, Rückkehr, Bühne, Spieltest | offen |
 
 ## Entwicklung
@@ -25,6 +25,8 @@ npm run check    # Typprüfung mit svelte-check
 npm test         # Tests mit Vitest
 npm run build    # Produktionsbuild nach dist/
 ```
+
+Die Engine liegt in `src/engine` und läuft ohne Browser. `npx vitest run src/engine/autoplay.test.ts` spielt den ersten Stand mit dem Autospieler durch und zeigt, wann Wald, Schlucht, Brücke und Tunnel erreicht werden.
 
 Die App ist eine Progressive Web App: installierbar, offline lauffähig, Updates per Hinweis in der App. Gehostet wird auf Netlify, der Build läuft mit `netlify.toml`.
 

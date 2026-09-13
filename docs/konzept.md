@@ -160,6 +160,7 @@ Brennstoff wird nur beim Fahren verbraucht und automatisch aus dem Lager genomme
 - Ein Kilometer Strecke verbraucht 100 Schienen.
 - Der Zug fährt, solange Schienen und Brennstoff im Lager sind, höchstens mit dem Tempo der Lok. Bei 12 km/h sind das 20 Schienen und 6 Kohle pro Minute.
 - Der Zug hält vor einem Hindernis, bis das Bauprojekt fertig ist. Er hält auch ohne Schienen oder ohne Brennstoff. Wagen produzieren im Stand weiter.
+- Ohne mindestens ein Stück Brennstoff im Lager fährt der Zug nicht an. Der Verbrauch wird über die Strecke aufsummiert und bei jedem vollen Stück abgebucht.
 - Beim Erreichen eines Bioms erscheint ein Fahrtenbuch-Eintrag, die neuen Rohstoffe werden freigeschaltet, und die Landschaft wechselt.
 
 ### 6.3 Die Wagen
@@ -184,12 +185,14 @@ Regeln:
 - **Umkoppeln** (Reihenfolge ändern) ist per Ziehen möglich.
 - **Nachbarschaftsbonus.** Verbraucht ein Wagen ein Produkt, das der Wagen direkt vor ihm (Richtung Lok) herstellt oder erntet, arbeitet er 10 Prozent schneller. Das ist die einzige Regel, die von der Reihenfolge abhängt. Sie belohnt eine sinnvoll sortierte Kette, ohne etwas zu blockieren.
 - **Status.** Ein Wagen ist entweder aktiv, wartet auf Eingabe (Zutat fehlt), oder blockiert (Lager für sein Produkt voll). Der Status ist in der Liste sofort erkennbar.
+- **Knappe Zutaten.** Wagen werden in Zugreihenfolge bedient: Wer weiter vorne hängt und gerade frei ist, bekommt zuerst. Ein schneller Verbraucher weiter hinten kann einem langsamen weiter vorne trotzdem Zutaten wegnehmen, weil er öfter frei ist. Das ist gewollt, der Engpass ist am Status ablesbar und mit Umkoppeln oder einem zweiten Wagen lösbar.
+- **Weiche Kapazität.** Ein Wagen startet keinen Zyklus, wenn seine Ausgabe am Limit ist. Ein laufender Zyklus liefert aber noch ab, darum kann das Lager um eine Rezeptausgabe überlaufen.
 
 ### 6.4 Die Werkstatt
 
 Direkt hinter der Lok hängt die Werkstatt. Sie belegt keinen Wagenplatz und kann nicht abgekoppelt werden. Sie ist das Werkzeug der Handarbeit:
 
-- **Werkbank.** Jedes freigeschaltete Rezept kann hier von Hand gebaut werden, ohne den passenden Wagen. Aufträge werden in eine Warteschlange von höchstens 10 gestellt und mit einfachem Tempo abgearbeitet. Damit baut man den ersten Werkwagen, bevor es einen Werkwagen gibt.
+- **Werkbank.** Jedes freigeschaltete Rezept kann hier von Hand gebaut werden, ohne den passenden Wagen. Aufträge werden in eine Warteschlange von höchstens 10 gestellt und mit einfachem Tempo abgearbeitet. Damit baut man den ersten Werkwagen, bevor es einen Werkwagen gibt. Die Warteschlange blockiert nicht: Der erste Auftrag, dessen Zutaten da sind, kommt dran, auch wenn ein früherer noch wartet.
 - **Handkurbel.** Vor der Technologie Selbstlader erntet ein Erntewagen nur, wenn man kurbelt: Jeder Tipp gibt 5 Sekunden Ernte. Danach läuft er von selbst, und der Tipp bleibt als kleiner Bonus.
 - **Kohle schaufeln.** Ein Tipp auf den Tender gibt 1 Kohle. Das ist der allererste Handgriff im Spiel.
 
@@ -386,6 +389,17 @@ Zielbild für den ersten spielbaren Stand. Aktive Zeit, Wartezeiten kommen dazu.
 | 6 bis 8 h | Ausklang | Berg bis km 48, Walztechnik, Erntetechnik II | Wüstenstrecke als Ausblick, Ende des Stands |
 
 Die Zahlen sind Zielwerte. Ob sie stimmen, zeigt erst der Spieltest, dafür gibt es die Balancing-Datei und die Simulationstests in Abschnitt 14.
+
+**Messlatte aus Phase 1.** Der Autospieler (`src/engine/sim/autoplay.ts`) spielt den ersten Stand mit einer einfachen, dauernd aktiven Strategie und ohne Wartezeiten durch. Mit den Startwerten ergibt das:
+
+| Ereignis | Ziel | Autospieler |
+|---|---|---|
+| Wald | 30 bis 60 min | 1 h 17 min |
+| Schlucht erreicht | 1 bis 2,5 h | 2 h 37 min |
+| Brücke fertig | 2,5 bis 4 h | 3 h 26 min |
+| Tunnel fertig | 4 bis 6 h | 7 h 25 min |
+
+Die Brücke liegt im Ziel, das Tal und vor allem der Berg sind langsamer als geplant. Das wird in Phase 5 balanciert, die Messlatte läuft als Test bei jedem Build mit (`npx vitest run src/engine/autoplay.test.ts` zeigt den Zeitplan).
 
 ## 12. Oberfläche
 
