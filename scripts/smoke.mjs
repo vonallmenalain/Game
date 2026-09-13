@@ -128,16 +128,29 @@ try {
   await page.waitForTimeout(300);
   const nachPause = (await page.locator('.maschine').nth(1).innerText()).replace(/\s+/g, ' ');
   const pausiert = (await page.locator('.maschine').count()) === maschinenNachher && /pausiert/.test(nachPause);
-  await page.getByRole('button', { name: 'Schliessen' }).click();
+
+  // Die Bühne bleibt sichtbar, während der Wagen ausgeklappt ist
+  const buehne = await page.locator('section.stage').boundingBox();
+  const buehneFrei = Boolean(buehne && buehne.y >= 0 && buehne.height > 100);
+  // Nochmals auf den Wagen tippen klappt ihn wieder zu
+  await page.getByRole('button', { name: /Erntewagen/ }).first().click();
+  await page.waitForTimeout(300);
+  const zugeklappt = (await page.locator('.ausklapp').count()) === 0;
 
   // Auf der Wagenkarte muss die zweite Maschine sichtbar werden
-  const karte = (await page.locator('.card.wagon').first().innerText()).replace(/\s+/g, ' ');
+  const karte = (await page.locator('.wagon').first().innerText()).replace(/\s+/g, ' ');
   const karteZeigtMaschinen = /2\/\d+/.test(karte);
 
   await page.locator('section.list button.add').click();
   await page.waitForTimeout(300);
   await page.screenshot({ path: shot('05-bauen.png') });
-  await page.getByRole('button', { name: 'Schliessen' }).click();
+  // Nichts darf über den Rand hinausragen, auch nicht ausgeklappt
+  const ausklappPasst = await page.evaluate(() => {
+    const el = document.querySelector('.ausklapp');
+    return el ? el.scrollWidth <= el.clientWidth + 1 : false;
+  });
+  await page.locator('section.list button.add').click();
+  await page.waitForTimeout(200);
 
   // Forschung: Mehrere Technologien lassen sich hintereinander einreihen
   await page.getByRole('button', { name: 'Forschung', exact: true }).click();
@@ -320,7 +333,7 @@ try {
       }),
   );
   // Aus zwei Erntewagen wird ein Erntewagen mit zwei Maschinen, die Stufe ist die höhere
-  const zugNachMigration = (await page.locator('.card.wagon').first().innerText()).replace(/\s+/g, ' ');
+  const zugNachMigration = (await page.locator('.wagon').first().innerText()).replace(/\s+/g, ' ');
   const migriert =
     /12,3 km/.test(nachMigration) &&
     schluessel.includes('loco/save') &&
@@ -331,11 +344,11 @@ try {
   const offline = cloudRequests.length === 0 && !firebaseGeladen;
   const alleScrollen = Object.values(scrollbar).every(Boolean) && leisteSichtbar;
   const kette = kettenKnopf === '+2' && /Koks/.test(queue) && /Eisenbarren/.test(queue);
-  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, beschriftet, zutatName, ergebnisName, maschinenGebaut, pausiert, nachPause, karte, eingereiht, forschung, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, zugNachMigration, scrollbar, leisteSichtbar }, null, 2));
+  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, beschriftet, zutatName, ergebnisName, maschinenGebaut, pausiert, nachPause, buehneFrei, zugeklappt, ausklappPasst, karte, eingereiht, forschung, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, zugNachMigration, scrollbar, leisteSichtbar }, null, 2));
   // Erfolgskriterium aus Abschnitt 15.3 des Konzepts: unter zwei Sekunden bis zum ersten Bild
   const schnell = ladezeit < 2000;
-  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen || !beschriftet || !maschinenGebaut || !karteZeigtMaschinen || !pausiert || !eingereiht) {
-    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen, beschriftet, maschinenGebaut, karteZeigtMaschinen, pausiert, eingereiht });
+  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen || !beschriftet || !maschinenGebaut || !karteZeigtMaschinen || !pausiert || !eingereiht || !buehneFrei || !zugeklappt || !ausklappPasst) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen, beschriftet, maschinenGebaut, karteZeigtMaschinen, pausiert, eingereiht, buehneFrei, zugeklappt, ausklappPasst });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');

@@ -120,17 +120,20 @@
           </button>
         </div>
         <RecipeFlow recipe={r.id} />
-        {#if plan.missing.length > 0}
-          <p class="hinweis warn">Es fehlt {plan.missing.map((m) => `${m.amount} ${itemName(m.item)}`).join(' und ')}. Das musst du ernten.</p>
-        {:else if plan.orders > frei}
-          <p class="hinweis warn">Braucht {plan.orders} Plätze in der Warteschlange, frei sind {frei}.</p>
-        {:else if plan.steps.length > 1}
-          <p class="hinweis">Baut zuerst {plan.steps.slice(0, -1).map((s) => RECIPE_BY_ID[s.recipe]?.name ?? s.recipe).join(', ')}.</p>
-        {:else if voll}
-          <p class="hinweis warn">Das Lager für {r.outputs.map((o) => itemName(o.item)).join(', ')} ist voll.</p>
-        {:else if zutaten.length === 0}
-          <p class="hinweis">Braucht nichts, ausser Zeit.</p>
-        {/if}
+        <!-- Die Meldung steht immer da, auch leer: Sonst springt die Liste, sobald ein Lager volläuft. -->
+        <p class="meldung" class:warn={plan.missing.length > 0 || plan.orders > frei || voll}>
+          {#if plan.missing.length > 0}
+            Es fehlt {plan.missing.map((m) => `${m.amount} ${itemName(m.item)}`).join(' und ')}. Das musst du ernten.
+          {:else if plan.orders > frei}
+            Braucht {plan.orders} Plätze in der Warteschlange, frei sind {frei}.
+          {:else if plan.steps.length > 1}
+            Baut zuerst {plan.steps.slice(0, -1).map((s) => RECIPE_BY_ID[s.recipe]?.name ?? s.recipe).join(', ')}.
+          {:else if voll}
+            Das Lager für {r.outputs.map((o) => itemName(o.item)).join(', ')} ist voll.
+          {:else if zutaten.length === 0}
+            Braucht nichts, ausser Zeit.
+          {/if}
+        </p>
       </div>
     {/each}
   {/each}
@@ -314,13 +317,4 @@
     font-size: 12px;
   }
 
-  .hinweis {
-    margin: 0;
-    font-size: 12.5px;
-    color: var(--ink-2);
-  }
-
-  .hinweis.warn {
-    color: var(--warn);
-  }
 </style>

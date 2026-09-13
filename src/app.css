@@ -172,6 +172,23 @@ a:focus-visible {
   color: var(--ink-2);
 }
 
+/*
+ * Meldungen kommen und gehen mit dem Spielstand: «Lager voll», «wartet auf Koks».
+ * Ihr Platz bleibt darum immer reserviert, sonst springt die Liste unter dem Finger.
+ * Wer eine Meldung einblendet, nimmt diese Klasse und rendert sie auch leer.
+ */
+.meldung {
+  min-height: 1.4em;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.meldung.warn {
+  color: var(--warn);
+}
+
 .section-title {
   font-family: var(--display);
   font-size: 22px;

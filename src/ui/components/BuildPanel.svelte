@@ -10,7 +10,7 @@
   function build(type: (typeof WAGONS)[number]['type']) {
     if (game.run(buildWagon(game.state, type))) {
       const w = game.state.wagons[game.state.wagons.length - 1];
-      game.sheet = w ? { kind: 'wagen', id: w.id } : { kind: 'none' };
+      game.detail = w ? { kind: 'wagen', id: w.id } : { kind: 'none' };
     }
   }
 </script>
@@ -62,14 +62,24 @@
     flex: none;
     display: grid;
     place-items: center;
-    width: 58px;
-    height: 44px;
+    width: 46px;
+    height: 36px;
+    overflow: hidden;
   }
 
+  /* Die Liste steht jetzt ausgeklappt in der Wagenliste und hat weniger Breite:
+     Der Knopf rutscht darum notfalls auf eine eigene Zeile, statt hinauszuragen. */
   .entry {
     display: flex;
     align-items: center;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 10px 12px;
+  }
+
+  .entry .btn {
+    flex: none;
+    margin-left: auto;
   }
 
   .entry.locked {
@@ -78,7 +88,7 @@
 
   .text {
     flex: 1;
-    min-width: 0;
+    min-width: 140px;
   }
 
   .title {

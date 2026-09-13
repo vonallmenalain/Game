@@ -449,22 +449,22 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 +----------------------------------+
 ```
 
-- Der **Zugstreifen** ist die Bühne: Lok und Wagen als Silhouetten, Landschaft im Parallax, Räder drehen sich nur, wenn der Zug fährt. Antippen eines Wagens öffnet ihn. Der Streifen ist nie höher als ein Drittel des Bildschirms. Er trägt auch den Kilometerstand, den Fahrzustand und das nächste Ereignis, darum entfällt auf diesem Bildschirm die Statuszeile.
+- Der **Zugstreifen** ist die Bühne: Lok und Wagen als Silhouetten, Landschaft im Parallax, Räder drehen sich nur, wenn der Zug fährt. Antippen eines Wagens klappt ihn in der Liste darunter auf, nochmals antippen klappt ihn zu. Die Bühne bleibt dabei immer sichtbar: Auf dem Zug-Bildschirm legt sich nichts darüber, kein Sheet und kein Dialog. Der Streifen ist nie höher als ein Drittel des Bildschirms. Er trägt auch den Kilometerstand, den Fahrzustand und das nächste Ereignis, darum entfällt auf diesem Bildschirm die Statuszeile.
 - Die Bühne ist eine Illustration, keine massstabsgetreue Karte. Die Landschaft zieht mit gefühlter Geschwindigkeit vorbei, nicht mit den echten 12 km/h, sonst stünde das Bild still. Ein Hindernis erscheint, sobald der Zug davorsteht, und der Zug rückt ein Stück zurück, um Platz dafür zu machen.
-- Die **Wagenliste** ist die Arbeitsfläche: Reihenfolge wie im Zug, belegte von freien Maschinenplätzen, was der Wagen ausstösst als Glyphen mit Stückzahl und **Rate je Ware** («Koks ×2, 72/min»), darunter der Status und die Rate des ganzen Wagens. Die Rate je Ware ist die Zahl zum Abstimmen: Liefert der Schmelzwagen 39/min Eisenbarren und frisst der Walzwagen 40/min, sieht man den Engpass, ohne zu rechnen. Umkoppeln geht im Wagen-Detail mit «Nach vorne» und «Nach hinten», Ziehen kommt mit der Bühne in Phase 4.
+- Die **Wagenliste** ist die Arbeitsfläche. Ein Wagen klappt an Ort auf, die anderen rücken nach unten, und ein zweiter Tipp auf die Karte klappt ihn wieder zu. «Wagen anhängen» klappt genauso auf. Sie zeigt Reihenfolge wie im Zug, belegte von freien Maschinenplätzen, was der Wagen ausstösst als Glyphen mit Stückzahl und **Rate je Ware** («Koks ×2, 72/min»), darunter der Status und die Rate des ganzen Wagens. Die Rate je Ware ist die Zahl zum Abstimmen: Liefert der Schmelzwagen 39/min Eisenbarren und frisst der Walzwagen 40/min, sieht man den Engpass, ohne zu rechnen. Umkoppeln geht im Wagen-Detail mit «Nach vorne» und «Nach hinten», Ziehen kommt mit der Bühne in Phase 4.
 - Die **Leiste unten** hat sechs Ziele: Zug, Werkstatt, Lager, Forschung, Strecke, Mehr. Ein Punkt an einem Ziel bedeutet: Dort wartet etwas (Forschung fertig, Baustelle fertig, Lager voll).
 
 ### 12.2 Weitere Bildschirme
 
 | Bildschirm | Inhalt |
 |---|---|
-| Wagen-Detail (Bottom Sheet) | Liste der Maschinen im Wagen, je Zeile ihr Auftrag als Fluss, ihre Rate pro Minute und ihr Status. Rechts der Pausenknopf, der nur den Auftrag wegnimmt. Antippen klappt die Auftragswahl auf, mit Ausgabe pro Minute je Rezept, und darin steht das Ausbauen mit Rückfrage. Darunter «Maschine bauen» mit Preis, Stufe mit Kosten und Knopf, kurze Wege, Reihenfolge, Abkoppeln |
+| Wagen-Detail (klappt in der Liste auf) | Liste der Maschinen im Wagen, je Zeile ihr Auftrag als Fluss, ihre Rate pro Minute und ihr Status. Rechts der Pausenknopf, der nur den Auftrag wegnimmt. Antippen klappt die Auftragswahl auf, mit Ausgabe pro Minute je Rezept, und darin steht das Ausbauen mit Rückfrage. Darunter «Maschine bauen» mit Preis, Stufe mit Kosten und Knopf, kurze Wege, Reihenfolge, Abkoppeln |
 | Werkstatt (eigener Bildschirm) | Kohle schaufeln und die Werkbank stehen fest oben, nur die Rezepte darunter scrollen. Die Werkbank zeigt den laufenden Auftrag mit Fortschritt, Ausstoss pro Minute und die Warteschlange, gleiche Aufträge zusammengezogen («Koks ×5»). Jedes Rezept in der Liste nennt Dauer und Ausstoss («2 s · 30/min»), damit sich Handarbeit und Wagen vergleichen lassen. Ihr Bereich hat eine feste Höhe, damit die Liste nicht springt, wenn Aufträge dazukommen: Man kann denselben Knopf mehrmals antippen, ohne ihn zu suchen |
 | Lager | Alle Waren nach Stufe, Bestand von Kapazität, Nettorate pro Minute mit Vorzeichen. Die Rate ist der Saldo von jetzt, aus allem gerechnet, was gerade läuft, nicht der Durchschnitt der letzten Minute: Wer eine Maschine pausiert, sieht die Zahl sofort umspringen. Volle und leere Waren stehen oben |
 | Forschung | Technologien nach Stufe, Kosten in Blaupausen, laufende Forschung mit Balken und darunter die Warteschlange mit Restzeit je Eintrag und Gesamtzeit. Der Knopf heisst «Forschen», solange nichts läuft, danach «Einreihen». Was eingereiht ist, steht in der Liste als «eingereiht» und zählt als Voraussetzung für alles, was danach kommt |
 | Strecke | Streckenkarte mit Biomen, Hindernissen, Position. Offene Baustellen mit Stückliste und Balken. Lok mit Upgrade-Projekt. Fahrtenbuch |
 | Rückkehr-Bericht (Modal) | Siehe Abschnitt 10 |
-| Mehr | Spielstand exportieren und importieren, Neustart, Ton, Über das Spiel |
+| Mehr | Spielstand und Konto, Neustart, Ton, Über das Spiel |
 
 ### 12.3 Regeln für Rückmeldung
 
@@ -580,7 +580,7 @@ interface GameState {
 - Mit Konto zusätzlich alle zwei Minuten und beim Wechsel in den Hintergrund in die Cloud. Verglichen wird beim Anmelden die gespielte Zeit, nicht die Uhrzeit: Ist die Cloud mehr als eine Minute weiter, fragt das Spiel nach und zeigt beide Stände; ist das Gerät weiter, lädt es ungefragt hoch. Ohne Konto läuft alles wie bisher rein lokal.
 - Ein Schlüssel `loco/save` in IndexedDB (Stände aus der Zeit als «Linie Null» werden beim Laden übernommen), dazu eine Kopie des letzten funktionierenden Stands als Rückfall.
 - `version` im Spielstand, Migrationen als Liste von Funktionen.
-- Export als JSON-Datei über Teilen (Web Share, wo vorhanden) oder Download, Import über Dateiauswahl mit Rückfrage, die Kilometerstand und Spielzeit der Datei zeigt. Der Bildschirm «Mehr» erinnert nach sieben Tagen ohne Export daran, sichtbar auch als Punkt an der Leiste unten.
+- Keine Sicherung als Datei. Der Stand liegt auf dem Gerät und mit Konto in der Cloud; ein zweiter Weg mit eigener Dateiauswahl, eigener Rückfrage und eigener Erinnerung war mehr Oberfläche, als er wert war.
 
 ### 14.5 Tests
 
@@ -612,10 +612,10 @@ interface GameState {
 | Loks | Dampflok, Schwere Dampflok |
 | Technologien | 19 |
 | Offline | Deckel 8 h, Nachtschicht I 12 h, Rückkehr-Bericht |
-| Speichern | lokal, Export und Import |
+| Speichern | lokal, mit Konto zusätzlich in der Cloud |
 | Oberfläche | alle Bildschirme aus Abschnitt 12, Zugstreifen mit einfacher Animation |
 
-Nicht enthalten: Aussenposten, Frachtaufträge, Prestige, Push, Cloud-Save, Ton (ausser Meilenstein), Wagenpuffer, Forschungs-Warteschlange.
+Nicht enthalten: Aussenposten, Frachtaufträge, Prestige, Push, Ton (ausser Meilenstein), Wagenpuffer.
 
 ### 15.2 Bauplan
 
@@ -624,7 +624,7 @@ Nicht enthalten: Aussenposten, Frachtaufträge, Prestige, Push, Cloud-Save, Ton 
 | 0 Fundament | Vite, Svelte, TypeScript, Vitest, PWA-Grundgerüst, Netlify-Deploy | Eine leere Seite ist installierbar und läuft offline |
 | 1 Engine | Daten, Zustand, Tick, Speichern, alle Tests aus 14.5 | Das Sackgassen-Skript erreicht den Tunnel ohne Oberfläche |
 | 2 Bedienung | Wagenliste, Wagen-Detail, Werkstatt, Lager, Forschung, Strecke mit Baustellen | Der erste Stand ist mit Buchstabenmarken statt Icons durchspielbar |
-| 3 Rückkehr | Nachsimulation, Rückkehr-Bericht, Warnungen, Export und Import | Eine Nacht offline liefert einen korrekten Bericht |
+| 3 Rückkehr | Nachsimulation, Rückkehr-Bericht, Warnungen | Eine Nacht offline liefert einen korrekten Bericht |
 | 4 Bühne | Zugstreifen mit Biomen, Parallax, Bauwerke, Meilenstein-Moment, Lokwechsel | Die Brücke wächst sichtbar, der Zug fährt drüber |
 | 5 Spieltest | Balancing, Icons, Texte, Ton beim Meilenstein | Zwei Testpersonen erreichen den Tunnel an einem Abend plus einer Nacht |
 
@@ -661,7 +661,7 @@ In dieser Reihenfolge, jede Stufe erst, wenn die vorherige im Spieltest trägt.
 | 8 Wagenplätze fühlen sich eng statt spannend an | Wert ist ein Parameter. Alternative: Werkstatt kann ein zweites Rezept fahren |
 | Die Werkbank macht Wagen überflüssig | Warteschlange 10, einfaches Tempo, kein Nachbarschaftsbonus, keine Stufen |
 | Baustellen saugen das Lager leer und stoppen den Wagenbau | Pausieren pro Baustelle. Falls das nicht reicht: Reserve pro Ware einstellbar |
-| Safari löscht Daten nach sieben Tagen | Export-Erinnerung, Rückfallkopie, und mit Konto der Spielstand in der Cloud |
+| Safari löscht Daten nach sieben Tagen | Rückfallkopie, und mit Konto der Spielstand in der Cloud. Wer ohne Konto spielt, verliert den Stand: Das ist der Preis dafür, dass es keine Sicherung als Datei mehr gibt |
 | Der Zugstreifen kostet mehr Zeit als die ganze Engine | Phase 4 kommt nach der spielbaren Version. Der Stand ist auch mit Buchstabenmarken und stehendem Zug spielbar |
 | Der Vor-Ort-Bonus wird nicht bemerkt | Im Erntemenü als «vor Ort, mal 1,5» beschriften. Falls wirkungslos: streichen |
 

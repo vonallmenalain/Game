@@ -3,12 +3,10 @@
   import { canResearch, TECHS, isTechDone } from './engine';
   import { game } from './ui/game.svelte';
   import type { Tab } from './ui/tabs';
-  import BuildSheet from './ui/components/BuildSheet.svelte';
   import MorePanel from './ui/components/MorePanel.svelte';
   import ReturnReport from './ui/components/ReturnReport.svelte';
   import ReturnScreen from './ui/components/ReturnScreen.svelte';
   import ResearchPanel from './ui/components/ResearchPanel.svelte';
-  import Sheet from './ui/components/Sheet.svelte';
   import StatusLine from './ui/components/StatusLine.svelte';
   import StorePanel from './ui/components/StorePanel.svelte';
   import TabBar from './ui/components/TabBar.svelte';
@@ -16,7 +14,6 @@
   import TrackPanel from './ui/components/TrackPanel.svelte';
   import Stage from './ui/components/Stage.svelte';
   import WagonList from './ui/components/WagonList.svelte';
-  import WagonSheet from './ui/components/WagonSheet.svelte';
   import WorkshopPanel from './ui/components/WorkshopPanel.svelte';
 
   let tab = $state<Tab>('zug');
@@ -39,10 +36,9 @@
     const projectDone = s.log.some((e) => e.kind === 'projekt' && s.playedSeconds - e.at < 120);
     const storeFull = s.warnings.some((w) => w.code === 'lager_voll');
     const wagonWaiting = s.warnings.some((w) => w.code === 'zutat_fehlt' || w.code === 'handkurbel');
-    return { forschung: researchReady, strecke: projectDone, lager: storeFull, zug: wagonWaiting, mehr: game.exportOverdue } as Partial<Record<Tab, boolean>>;
+    return { forschung: researchReady, strecke: projectDone, lager: storeFull, zug: wagonWaiting } as Partial<Record<Tab, boolean>>;
   });
 
-  const sheetTitle = $derived(game.sheet.kind === 'wagen' ? 'Wagen' : game.sheet.kind === 'bauen' ? 'Wagen anhängen' : '');
 </script>
 
 {#if game.returning}
@@ -82,15 +78,6 @@
     <TabBar active={tab} {dots} onchange={(t) => (tab = t)} />
   </div>
 
-  <Sheet open={game.sheet.kind !== 'none'} title={sheetTitle} onclose={() => (game.sheet = { kind: 'none' })}>
-    {#if game.sheet.kind === 'wagen'}
-      {#key game.sheet.id}
-        <WagonSheet id={game.sheet.id} />
-      {/key}
-    {:else if game.sheet.kind === 'bauen'}
-      <BuildSheet />
-    {/if}
-  </Sheet>
   {#if game.report}
     <ReturnReport report={game.report} />
   {/if}

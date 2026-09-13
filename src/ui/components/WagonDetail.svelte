@@ -33,10 +33,9 @@
   } from '../../engine';
   import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { WAGON_COLOR, itemName, machineName, machineStatusText, stackText, statusText, statusTone } from '../labels';
+  import { itemName, machineName, machineStatusText, stackText, statusTone } from '../labels';
   import ItemChip from './ItemChip.svelte';
   import RecipeFlow from './RecipeFlow.svelte';
-  import Vehicle from './Vehicle.svelte';
 
   let { id }: { id: number } = $props();
 
@@ -100,20 +99,12 @@
       confirmDetach = true;
       return;
     }
-    if (game.run(detachWagon(game.state, wagon.id))) game.sheet = { kind: 'none' };
+    if (game.run(detachWagon(game.state, wagon.id))) game.detail = { kind: 'none' };
   }
 </script>
 
 {#if wagon && def}
-  <div class="head">
-    <span class="silhouette"><Vehicle kind={wagon.type} color={WAGON_COLOR[wagon.type]} rolling={false} /></span>
-    <div>
-      <div class="title">{def.name} <span class="muted">Stufe {wagon.level}</span></div>
-      <div class="tone-{statusTone(wagon)}">{statusText(game.state, wagon)}</div>
-    </div>
-  </div>
-
-  <p class="eyebrow">{machineName(wagon.type)} · {wagon.machines.length} von {machineSlots(game.state)}</p>
+  <p class="eyebrow erste">{machineName(wagon.type)} · {wagon.machines.length} von {machineSlots(game.state)}</p>
 
   <div class="maschinen">
     {#each wagon.machines as m, i (m.id)}
@@ -182,9 +173,10 @@
                     <span class="muted small mono">{rateText(m, r.id)}</span>
                   </span>
                   <RecipeFlow recipe={r.id} />
-                  {#if fehlt.length > 0}
-                    <span class="small tone-warn">Kein {fehlt.map((z) => itemName(z.item)).join(', kein ')} im Lager.</span>
-                  {/if}
+                  <!-- Platz bleibt reserviert, sonst springt die Auswahl unter dem Finger -->
+                  <span class="meldung" class:warn={fehlt.length > 0}>
+                    {#if fehlt.length > 0}Kein {fehlt.map((z) => itemName(z.item)).join(', kein ')} im Lager.{/if}
+                  </span>
                 </button>
               {/each}
             {/if}
@@ -251,25 +243,8 @@
 {/if}
 
 <style>
-  .silhouette {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 62px;
-    height: 48px;
-  }
-
-  .head {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-
-  .title {
-    font-family: var(--display);
-    font-size: 22px;
-    font-weight: 600;
+  .erste {
+    margin-top: 0;
   }
 
   .maschinen {
