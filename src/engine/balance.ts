@@ -26,6 +26,8 @@ export const BALANCE = {
   onSiteBonus: 1.5,
   /** Höchstens so viele Aufträge in der Werkbank. Genug für eine tiefe Kette wie ein Fahrgestell. */
   workbenchQueueMax: 30,
+  /** So viele Forschungen warten höchstens hinter der laufenden */
+  researchQueueMax: 5,
   /** Forschungstempo ohne Konstruktionsbüro */
   workbenchResearchFactor: 0.5,
   /** Sekunden Ernte je Tipp auf die Handkurbel */

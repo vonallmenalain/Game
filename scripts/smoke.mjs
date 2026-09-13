@@ -103,7 +103,7 @@ try {
           get.onerror = () => reject(get.error);
         };
       }),
-    { zahnrad: 40, bretter: 60 },
+    { zahnrad: 40, bretter: 60, bp_eisen: 20 },
   );
   await page.reload();
   await page.getByRole('group', { name: 'Wagen des Zuges' }).waitFor({ timeout: 15000 });
@@ -139,7 +139,19 @@ try {
   await page.screenshot({ path: shot('05-bauen.png') });
   await page.getByRole('button', { name: 'Schliessen' }).click();
 
+  // Forschung: Mehrere Technologien lassen sich hintereinander einreihen
   await page.getByRole('button', { name: 'Forschung', exact: true }).click();
+  await page.waitForTimeout(300);
+  const techEintrag = (name) =>
+    page.locator('.entry').filter({ has: page.locator('.title', { hasText: new RegExp(`^${name}`) }) }).first();
+  const ersterKnopf = (await techEintrag('Selbstlader').getByRole('button').innerText()).trim();
+  await techEintrag('Selbstlader').getByRole('button').click();
+  await page.waitForTimeout(200);
+  const zweiterKnopf = (await techEintrag('Schmelzwagen').getByRole('button').innerText()).trim();
+  await techEintrag('Schmelzwagen').getByRole('button').click();
+  await page.waitForTimeout(300);
+  const forschung = (await page.locator('.card.running').innerText()).replace(/\s+/g, ' ');
+  const eingereiht = ersterKnopf === 'Forschen' && zweiterKnopf === 'Einreihen' && /DANACH · 1 VON \d+/i.test(forschung) && /Schmelzwagen/.test(forschung);
   await page.screenshot({ path: shot('06-forschung.png') });
   await page.getByRole('button', { name: 'Strecke', exact: true }).click();
   await page.screenshot({ path: shot('07-strecke.png'), fullPage: true });
@@ -319,11 +331,11 @@ try {
   const offline = cloudRequests.length === 0 && !firebaseGeladen;
   const alleScrollen = Object.values(scrollbar).every(Boolean) && leisteSichtbar;
   const kette = kettenKnopf === '+2' && /Koks/.test(queue) && /Eisenbarren/.test(queue);
-  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, beschriftet, zutatName, ergebnisName, maschinenGebaut, pausiert, nachPause, karte, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, zugNachMigration, scrollbar, leisteSichtbar }, null, 2));
+  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, beschriftet, zutatName, ergebnisName, maschinenGebaut, pausiert, nachPause, karte, eingereiht, forschung, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, zugNachMigration, scrollbar, leisteSichtbar }, null, 2));
   // Erfolgskriterium aus Abschnitt 15.3 des Konzepts: unter zwei Sekunden bis zum ersten Bild
   const schnell = ladezeit < 2000;
-  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen || !beschriftet || !maschinenGebaut || !karteZeigtMaschinen || !pausiert) {
-    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen, beschriftet, maschinenGebaut, karteZeigtMaschinen, pausiert });
+  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen || !beschriftet || !maschinenGebaut || !karteZeigtMaschinen || !pausiert || !eingereiht) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen, beschriftet, maschinenGebaut, karteZeigtMaschinen, pausiert, eingereiht });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');

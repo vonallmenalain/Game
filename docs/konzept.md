@@ -193,7 +193,7 @@ Regeln:
 - **Umkoppeln** (Reihenfolge ändern) ist möglich, ändert aber nur das Bild: Die Produktion hängt nicht mehr von der Reihenfolge ab.
 - **Kurze Wege.** Stellt eine Maschine im selben Wagen eine Zutat für eine andere her, arbeitet die andere 10 Prozent schneller. Wer Koks und Eisenbarren in denselben Schmelzwagen stellt, bekommt den Bonus geschenkt. Das ist der Nachfolger des Nachbarschaftsbonus und belohnt jetzt, wie man einen Wagen belegt, statt wie man den Zug sortiert.
 - **Handkurbel.** Sie sitzt am Wagen, nicht an der Maschine: Ein Tipp treibt alle Erntemaschinen darin an.
-- **Status.** Jede Maschine ist aktiv, wartet auf eine Zutat, ist blockiert (Lager voll) oder pausiert. Neben dem Status steht immer, wie viel sie pro Minute liefert. Der Wagen fasst zusammen: «5 Maschinen laufen» oder «2 von 5 laufen · 3 pausiert».
+- **Status.** Jede Maschine ist aktiv, wartet auf eine Zutat, ist blockiert (Lager voll) oder pausiert. Neben dem Status steht immer, wie viel sie gerade pro Minute liefert: null, sobald sie nicht arbeiten kann. Der Wagen fasst zusammen: «5 Maschinen laufen» oder «2 von 5 laufen · 3 pausiert».
 - **Knappe Zutaten.** Maschinen werden in Zugreihenfolge bedient, im Wagen von vorne nach hinten. Wer zuerst frei ist, bekommt zuerst. Das ist gewollt, der Engpass ist am Status ablesbar und mit einer Maschine mehr lösbar.
 - **Weiche Kapazität.** Eine Maschine startet keinen Zyklus, wenn ihre Ausgabe am Limit ist. Ein laufender Zyklus liefert aber noch ab, darum kann das Lager um eine Rezeptausgabe überlaufen.
 
@@ -304,7 +304,9 @@ Alle Zahlen in diesem Konzept sind Startwerte. Sie liegen im Code in einer einzi
 
 ## 8. Forschung
 
-Forschung kostet Blaupausen und Zeit. Die Blaupausen werden beim Start bezahlt, dann läuft die Forschung im Konstruktionsbüro. Ohne Büro forscht die Werkstatt, mit halbem Tempo. Es läuft immer nur eine Forschung, eine Warteschlange kommt später.
+Forschung kostet Blaupausen und Zeit. Die Blaupausen werden beim Einreihen bezahlt, dann läuft die Forschung im Konstruktionsbüro. Ohne Büro forscht die Werkstatt, mit halbem Tempo.
+
+Es arbeitet immer nur eine Forschung, aber hinter ihr warten bis zu fünf weitere. Eingereiht wird alles, wofür die Blaupausen da sind; eine Voraussetzung darf selbst noch in der Warteschlange stehen, so plant man eine ganze Kette auf einmal. Biome und Bauprojekte müssen dagegen schon erreicht sein, denn darauf wartet die Forschung nicht. Wird eine Forschung fertig, rückt die nächste sofort nach, auch über Nacht. Wer eine wartende Forschung wieder herausnimmt, bekommt ihre Blaupausen zurück; was hinter ihr steht und auf ihr aufbaut, kommt mit heraus. Die laufende Forschung bleibt stehen, ihr Fortschritt wäre sonst verloren.
 
 | Technologie | Kosten | Dauer | Voraussetzung | Wirkung |
 |---|---|---|---|---|
@@ -459,7 +461,7 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 | Wagen-Detail (Bottom Sheet) | Liste der Maschinen im Wagen, je Zeile ihr Auftrag als Fluss, ihre Rate pro Minute und ihr Status. Rechts der Pausenknopf, der nur den Auftrag wegnimmt. Antippen klappt die Auftragswahl auf, mit Ausgabe pro Minute je Rezept, und darin steht das Ausbauen mit Rückfrage. Darunter «Maschine bauen» mit Preis, Stufe mit Kosten und Knopf, kurze Wege, Reihenfolge, Abkoppeln |
 | Werkstatt (eigener Bildschirm) | Kohle schaufeln und die Werkbank stehen fest oben, nur die Rezepte darunter scrollen. Die Werkbank zeigt den laufenden Auftrag mit Fortschritt, Ausstoss pro Minute und die Warteschlange, gleiche Aufträge zusammengezogen («Koks ×5»). Jedes Rezept in der Liste nennt Dauer und Ausstoss («2 s · 30/min»), damit sich Handarbeit und Wagen vergleichen lassen. Ihr Bereich hat eine feste Höhe, damit die Liste nicht springt, wenn Aufträge dazukommen: Man kann denselben Knopf mehrmals antippen, ohne ihn zu suchen |
 | Lager | Alle Waren nach Stufe, Bestand von Kapazität, Nettorate pro Minute mit Vorzeichen. Die Rate ist der Saldo von jetzt, aus allem gerechnet, was gerade läuft, nicht der Durchschnitt der letzten Minute: Wer eine Maschine pausiert, sieht die Zahl sofort umspringen. Volle und leere Waren stehen oben |
-| Forschung | Technologien nach Stufe, Kosten in Blaupausen, laufende Forschung mit Balken, Voraussetzungen als Text |
+| Forschung | Technologien nach Stufe, Kosten in Blaupausen, laufende Forschung mit Balken und darunter die Warteschlange mit Restzeit je Eintrag und Gesamtzeit. Der Knopf heisst «Forschen», solange nichts läuft, danach «Einreihen». Was eingereiht ist, steht in der Liste als «eingereiht» und zählt als Voraussetzung für alles, was danach kommt |
 | Strecke | Streckenkarte mit Biomen, Hindernissen, Position. Offene Baustellen mit Stückliste und Balken. Lok mit Upgrade-Projekt. Fahrtenbuch |
 | Rückkehr-Bericht (Modal) | Siehe Abschnitt 10 |
 | Mehr | Spielstand exportieren und importieren, Neustart, Ton, Über das Spiel |
@@ -471,7 +473,7 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 - Zahlen im Format der Schweiz: `1'200`, `7,5/min`.
 - Rot ist nur für Blockaden, Messing nur für Fortschritt und Meilensteine.
 - Wo produziert wird, steht auch der Ausstoss pro Minute: je Maschine, je Ware im Wagen, je Rezept in der Werkstatt, im Lager als Saldo je Ware. Ohne diese Zahl lässt sich keine Kette abstimmen.
-- Jede Rate ist der Stand von jetzt, gerechnet aus dem, was eingestellt ist, und nie ein Durchschnitt über die Vergangenheit. Eine Änderung muss sofort sichtbar sein, sonst traut man der Zahl nicht.
+- Jede Rate ist der Stand von jetzt, gerechnet aus dem, was eingestellt ist, und nie ein Durchschnitt über die Vergangenheit. Eine Änderung muss sofort sichtbar sein, sonst traut man der Zahl nicht. Was gerade nicht laufen kann, zeigt null: eine Erntemaschine ohne Kurbel, eine Maschine mit vollem Ausgabelager, eine pausierte Maschine, eine Werkbank ohne Zutaten. Die einzige Ausnahme sind Angebote, also die Rezeptauswahl im Wagen und die Rezeptliste der Werkstatt: Dort steht, was die Maschine leisten würde, denn genau danach wählt man aus.
 - Was bezahltes Material vernichtet, fragt zurück und liegt nicht neben einem harmlosen Knopf. Drosseln muss immer einfacher sein als Abreissen.
 
 ## 13. Grafik und Ton

@@ -13,6 +13,7 @@
     queueCraftChain,
     shovelCoal,
     storeCap,
+    workbenchStalled,
     type ProductionWagonType,
   } from '../../engine';
   import { formatRate } from '../../lib/format';
@@ -25,8 +26,11 @@
 
   const queue = $derived(game.state.workbench.queue);
   const head = $derived(queue[0] ? RECIPE_BY_ID[queue[0]] : undefined);
-  /** Die Werkbank arbeitet mit einfachem Tempo: Ausstoss ist Ausgabe je Rezeptdauer. */
-  const bankRate = $derived(head ? ((head.outputs[0]?.amount ?? 0) / head.seconds) * 60 : 0);
+  /**
+   * Die Werkbank arbeitet mit einfachem Tempo: Ausstoss ist Ausgabe je Rezeptdauer.
+   * Wartet sie auf Zutaten oder ist das Lager voll, liefert sie gerade nichts.
+   */
+  const bankRate = $derived(head && !workbenchStalled(game.state) && !outputBlocked(game.state, head.id) ? ((head.outputs[0]?.amount ?? 0) / head.seconds) * 60 : 0);
   const progress = $derived(head ? game.state.workbench.progress / head.seconds : 0);
   const frei = $derived(BALANCE.workbenchQueueMax - queue.length);
 

@@ -1,4 +1,4 @@
-import { BALANCE, ITEM_BY_ID, RECIPE_BY_ID, TECH_BY_ID, BIOME_BY_ID, PROJECT_BY_ID, WAGON_BY_TYPE, missingInputs, type ActionResult, type GameState, type MachineState, type Stack, type TechDef, type WagonState, type WagonStatus, type WagonType } from '../engine';
+import { BALANCE, ITEM_BY_ID, RECIPE_BY_ID, TECH_BY_ID, BIOME_BY_ID, PROJECT_BY_ID, WAGON_BY_TYPE, missingInputs, plannedTechs, type ActionResult, type GameState, type MachineState, type Stack, type TechDef, type WagonState, type WagonStatus, type WagonType } from '../engine';
 
 /** CSS-Variable je Wagentyp, definiert in app.css */
 export const WAGON_COLOR: Record<WagonType, string> = {
@@ -140,10 +140,14 @@ export function statusTone(what: { status: WagonStatus }): 'good' | 'warn' | 'mu
   return 'warn';
 }
 
-/** Voraussetzungen einer Technologie als Text, leer wenn keine offen sind */
+/**
+ * Voraussetzungen einer Technologie als Text, leer wenn keine offen sind. Was schon
+ * eingereiht ist, zählt als erledigt: Es ist bezahlt und kommt vor dieser hier dran.
+ */
 export function techRequirementText(state: GameState, tech: TechDef): string {
   const parts: string[] = [];
-  for (const req of tech.requires) if (!state.techs.done.includes(req)) parts.push(TECH_BY_ID[req]?.name ?? req);
+  const geplant = plannedTechs(state);
+  for (const req of tech.requires) if (!state.techs.done.includes(req) && !geplant.includes(req)) parts.push(TECH_BY_ID[req]?.name ?? req);
   if (tech.requiresBiome && !state.discoveredBiomes.includes(tech.requiresBiome)) parts.push(`${BIOME_BY_ID[tech.requiresBiome]?.name ?? tech.requiresBiome} entdecken`);
   if (tech.requiresProject && !state.projects[tech.requiresProject]?.done) parts.push(`${PROJECT_BY_ID[tech.requiresProject]?.name ?? tech.requiresProject} fertigstellen`);
   return parts.join(', ');

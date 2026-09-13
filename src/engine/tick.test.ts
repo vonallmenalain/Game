@@ -112,8 +112,15 @@ describe('Ausstoss je Maschine', () => {
   it('rechnet Ernte und Rezept in Stück pro Minute, ohne Auftrag null', () => {
     const s = createInitialState();
     const ernte = s.wagons[0]!;
+    // Ohne Kurbel steht die Maschine, die Zahl sagt das auch
+    expect(machineRatePerMinute(s, ernte, ernte.machines[0]!)).toBe(0);
+    research(s, 'selbstlader');
     // Eisenerz im Tal: 30 mal 1,5 vor Ort
     expect(machineRatePerMinute(s, ernte, ernte.machines[0]!)).toBeCloseTo(45);
+    // Volles Lager heisst null, egal wie schnell die Maschine wäre
+    s.store['eisenerz'] = storeCap(s);
+    expect(machineRatePerMinute(s, ernte, ernte.machines[0]!)).toBe(0);
+    s.store['eisenerz'] = 0;
 
     const schmelz = addWagon(s, 'schmelz', { recipe: 'koks' });
     // Koks: 1 Stück je 2 Sekunden
