@@ -17,7 +17,7 @@ import {
   takeFromStore,
   wagonTypeMultiplier,
 } from './state';
-import type { BiomeDef, GameState, ItemId, RecipeDef, StopReason, WagonState, WagonStatus, WagonType, Warning } from './types';
+import type { BiomeDef, GameState, ItemId, RecipeDef, Stack, StopReason, WagonState, WagonStatus, WagonType, Warning } from './types';
 
 interface TickContext {
   cap: number;
@@ -112,6 +112,24 @@ function supplies(prev: WagonState, r: RecipeDef): boolean {
   const prevRecipe = RECIPE_BY_ID[prev.recipe];
   if (!prevRecipe) return false;
   return prevRecipe.outputs.some((o) => r.inputs.some((s) => s.item === o.item));
+}
+
+/** Ernterate eines Erntewagens in Stück pro Minute, mit Stufe, Technologie und Vor-Ort-Bonus */
+export function harvestRatePerMinute(state: GameState, w: WagonState, resource: ItemId | null = w.resource): number {
+  if (w.type !== 'ernte' || !resource) return 0;
+  const def = itemDef(resource);
+  const onSite = def.homeBiomes?.includes(currentBiome(state).id) ? BALANCE.onSiteBonus : 1;
+  return (def.harvestPerMinute ?? 0) * levelMultiplier(w.level) * harvestMultiplier(state) * onSite;
+}
+
+/** Ob der Vor-Ort-Bonus für einen Rohstoff gerade gilt */
+export function isOnSite(state: GameState, resource: ItemId): boolean {
+  return itemDef(resource).homeBiomes?.includes(currentBiome(state).id) ?? false;
+}
+
+/** Zutaten, die für einen Zyklus fehlen */
+export function missingInputs(state: GameState, r: RecipeDef): Stack[] {
+  return r.inputs.filter((s) => getStore(state, s.item) < s.amount).map((s) => ({ item: s.item, amount: s.amount - getStore(state, s.item) }));
 }
 
 /** Tempo eines Produktionswagens als Faktor: Stufe, Technologie, Nachbarschaft */

@@ -428,7 +428,7 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 ```
 
 - Der **Zugstreifen** ist die Bühne: Lok und Wagen als Silhouetten, Landschaft im Parallax, Räder drehen sich nur, wenn der Zug fährt. Antippen eines Wagens öffnet ihn. Der Streifen ist nie höher als ein Drittel des Bildschirms.
-- Die **Wagenliste** ist die Arbeitsfläche: Reihenfolge wie im Zug, Status als Farbe und Wort, Rate pro Minute. Ziehen ändert die Reihenfolge.
+- Die **Wagenliste** ist die Arbeitsfläche: Reihenfolge wie im Zug, Status als Farbe und Wort, Rate pro Minute. Umkoppeln geht im Wagen-Detail mit «Nach vorne» und «Nach hinten», Ziehen kommt mit der Bühne in Phase 4.
 - Die **Leiste unten** hat fünf Ziele. Ein Punkt an einem Ziel bedeutet: Dort wartet etwas (Forschung fertig, Baustelle fertig, Lager voll).
 
 ### 12.2 Weitere Bildschirme

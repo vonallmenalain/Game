@@ -7,3 +7,5 @@
 - Architektur: `src/engine` ist reine Spiellogik ohne DOM, Einstieg `tick(state, dt)`. `src/ui` ist Svelte 5 mit Runes. Zahlen fürs Balancing liegen in `src/engine/balance.ts` und in `src/engine/data/`.
 - Jede Bauphase aus Abschnitt 15 des Konzepts ist ein eigener Pull Request mit Squash-Merge.
 - Balancing-Messlatte: `npx vitest run src/engine/autoplay.test.ts` spielt den ersten Stand mit dem Autospieler durch und druckt den Zeitplan. Änderungen an Zahlen gegen diesen Zeitplan prüfen.
+- Oberfläche: `src/ui/game.svelte.ts` hält den Spielzustand als `$state` und treibt die Engine mit festem Zeitschritt. Komponenten liegen in `src/ui/components`, Texte für die Oberfläche in `src/ui/labels.ts`. Aktionen laufen über `game.run(...)`, das Fehler als Toast zeigt.
+- Smoke-Test im Browser: `npm run build && npx vite preview --port 4173 &` und dann `npm run smoke` (Chromium unter `CHROMIUM_PATH`, Standard `/opt/pw-browsers/chromium`). Prüft Ernte, Werkbank, Bildschirme und den Spielstand nach einem Reload.
