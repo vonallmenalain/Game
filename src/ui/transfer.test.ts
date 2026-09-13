@@ -10,7 +10,7 @@ describe('Spielstand exportieren und importieren', () => {
   it('baut einen Dateinamen mit Kilometerstand und Datum', () => {
     const s = createInitialState();
     s.km = 24.5;
-    expect(exportFileName(s, new Date(2026, 8, 13, 9, 5))).toBe('linie-null-km24-5-2026-09-13-0905.json');
+    expect(exportFileName(s, new Date(2026, 8, 13, 9, 5))).toBe('loco-km24-5-2026-09-13-0905.json');
   });
 
   it('liest einen echten Spielstand zurück', async () => {

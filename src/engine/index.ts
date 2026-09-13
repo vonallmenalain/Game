@@ -6,4 +6,4 @@ export { tick, productionSpeed, workbenchStalled, harvestRatePerMinute, isOnSite
 export * from './actions';
 export { simulateOffline, needsCatchUp } from './offline';
 export type { OfflineReport, OfflineWarning } from './offline';
-export { serialize, deserialize, fillDefaults, SAVE_KEY } from './save';
+export { serialize, deserialize, fillDefaults, SAVE_KEY, LEGACY_SAVE_KEY } from './save';

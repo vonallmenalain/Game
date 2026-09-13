@@ -95,14 +95,14 @@ try {
         open.onsuccess = () => {
           const tx = open.result.transaction('keyval', 'readwrite');
           const store = tx.objectStore('keyval');
-          const get = store.get('linie-null/save');
+          const get = store.get('loco/save');
           get.onsuccess = () => {
             const save = JSON.parse(get.result);
             save.lastSavedAt = Date.now() - 3 * 3600 * 1000;
             save.store.schienen = 600;
             save.store.kohle = 600;
             save.techs.done = ['selbstlader'];
-            store.put(JSON.stringify(save), 'linie-null/save');
+            store.put(JSON.stringify(save), 'loco/save');
             tx.oncomplete = () => resolve(true);
           };
           get.onerror = () => reject(get.error);
@@ -131,7 +131,7 @@ try {
       open.onsuccess = () => {
         const tx = open.result.transaction('keyval', 'readwrite');
         const store = tx.objectStore('keyval');
-        const get = store.get('linie-null/save');
+        const get = store.get('loco/save');
         get.onsuccess = () => {
           const save = JSON.parse(get.result);
           save.lastSavedAt = Date.now();
@@ -145,7 +145,7 @@ try {
           save.store.schienen = 400;
           save.store.kohle = 400;
           save.projects.bruecke = { delivered: { stahltraeger: 200, bohlen: 600, nieten: 800, teer: 80 }, done: false, paused: false, doneAt: null };
-          store.put(JSON.stringify(save), 'linie-null/save');
+          store.put(JSON.stringify(save), 'loco/save');
           tx.oncomplete = () => resolve(true);
         };
         get.onerror = () => reject(get.error);
@@ -170,12 +170,46 @@ try {
   const persisted = /Spielzeit: (?!0 s)/.test(spielzeit);
   const gefahren = /6,0 km gefahren/.test(bericht);
   const gewarnt = /Schienen alle/.test(bericht);
+  // Spielstände aus der Zeit als «Linie Null» müssen weiterlaufen
+  await page.evaluate(async () => {
+    await new Promise((resolve, reject) => {
+      const open = indexedDB.open('keyval-store');
+      open.onerror = () => reject(open.error);
+      open.onsuccess = () => {
+        const tx = open.result.transaction('keyval', 'readwrite');
+        const store = tx.objectStore('keyval');
+        store.put(
+          JSON.stringify({ version: 1, playedSeconds: 4242, pos: 1234, lastSavedAt: Date.now(), store: { kohle: 77 }, techs: { done: ['selbstlader'], current: null } }),
+          'linie-null/save',
+        );
+        store.delete('loco/save');
+        store.delete('loco/save/backup');
+        tx.oncomplete = () => resolve(true);
+      };
+    });
+  });
+  await page.reload();
+  await page.getByRole('button', { name: /Wagen anhängen, \d+ frei/ }).waitFor({ timeout: 15000 });
+  await page.waitForTimeout(1200);
+  const nachMigration = (await page.locator('.readout').innerText()).replace(/\s+/g, ' ');
+  const schluessel = await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const open = indexedDB.open('keyval-store');
+        open.onsuccess = () => {
+          const alle = open.result.transaction('keyval', 'readonly').objectStore('keyval').getAllKeys();
+          alle.onsuccess = () => resolve(alle.result);
+        };
+      }),
+  );
+  const migriert = /12,3 km/.test(nachMigration) && schluessel.includes('loco/save') && !schluessel.includes('linie-null/save');
+
   const offline = cloudRequests.length === 0 && !firebaseGeladen;
-  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs }, null, 2));
+  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration }, null, 2));
   // Erfolgskriterium aus Abschnitt 15.3 des Konzepts: unter zwei Sekunden bis zum ersten Bild
   const schnell = ladezeit < 2000;
-  if (errors.length > 0 || !(harvested > 0) || !queue.includes('Koks') || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline) {
-    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline });
+  if (errors.length > 0 || !(harvested > 0) || !queue.includes('Koks') || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');

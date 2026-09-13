@@ -1,6 +1,6 @@
 # Firebase: Konten, Cloud-Spielstände und automatische Regeln
 
-Linie Null läuft ohne Konto vollständig. Wer sich anmeldet, bekommt seinen Spielstand
+Loco läuft ohne Konto vollständig. Wer sich anmeldet, bekommt seinen Spielstand
 zusätzlich in die Cloud gelegt und kann auf mehreren Geräten weiterspielen.
 
 Dieses Dokument beschreibt, was im Repo steckt und was du einmalig in der Firebase-
@@ -44,12 +44,17 @@ Ohne diesen Schritt schlägt die Google-Anmeldung mit
 1. Firebase-Konsole öffnen, Projekt **game-e87e0**.
 2. Links auf **Authentication**, dann Reiter **Einstellungen**, Abschnitt
    **Autorisierte Domains**.
-3. Prüfen, dass `localhost` dabei ist, und die Netlify-Adresse hinzufügen. Das ist
-   vermutlich `matrix-foundry.netlify.app`; den genauen Namen zeigt dir Netlify unter
-   «Site configuration». Falls du eine eigene Domain nutzt, trage auch die ein.
+3. Diese Einträge müssen dort stehen:
+   - `localhost` für die Entwicklung
+   - `locogame.netlify.app` für die Netlify-Adresse
+   - `loco.alae.app` für die eigene Domain
+
+Die eigene Domain muss auch dann eingetragen sein, wenn die DNS-Prüfung noch läuft.
+Sobald sie greift, funktioniert die Anmeldung dort ohne weiteres Zutun.
 
 Deploy-Vorschauen von Netlify haben wechselnde Adressen und lassen sich nicht sinnvoll
-eintragen. Zum Ausprobieren der Anmeldung nimm `localhost` oder die Hauptadresse.
+eintragen. Zum Ausprobieren der Anmeldung nimm `localhost` oder eine der beiden
+Hauptadressen.
 
 ## Schritt 2: Dienstkonto für die GitHub Action erstellen
 
@@ -75,7 +80,7 @@ Die Action braucht einen Schlüssel, mit dem sie die Regeln veröffentlichen dar
 Danach kannst du die JSON-Datei auf deinem Rechner löschen. Brauchst du sie später
 wieder, generierst du einfach einen neuen Schlüssel.
 
-## Schritt 4: Die Action einmal laufen lassen
+## Schritt 4: Die Action laufen lassen
 
 1. Auf GitHub Reiter **Actions**, links **Firestore-Regeln**.
 2. Rechts **Run workflow**, Branch `main`, dann **Run workflow**.
@@ -85,17 +90,34 @@ Ob es geklappt hat, siehst du in der Firebase-Konsole unter **Firestore**, Reite
 **Regeln**: Dort muss dann der Inhalt von `firestore.rules` stehen, nicht mehr
 `allow read, write: if false`.
 
-### Wenn die Action an fehlenden Rechten scheitert
+### Schritt 5: Dem Dienstkonto die nötigen Rollen geben
 
-Meldet der Schritt «Regeln veröffentlichen» etwas wie
-`Permission denied` oder `caller does not have permission`, fehlt dem Dienstkonto die
-Rolle für Regeln:
+Das frisch erzeugte Dienstkonto darf noch nicht genug. Beim ersten Lauf meldet die
+Action darum so etwas:
 
-1. Google-Cloud-Konsole öffnen, Projekt **game-e87e0**, Bereich **IAM und Verwaltung**.
-2. Das Dienstkonto suchen, das mit `firebase-adminsdk` beginnt.
-3. Bearbeiten, **Weitere Rolle hinzufügen**, Rolle **Firebase Rules Admin** wählen,
-   speichern.
-4. Die Action noch einmal starten.
+```
+Error: Request to https://serviceusage.googleapis.com/v1/projects/game-e87e0/services/
+firestore.googleapis.com had HTTP Error: 403, Permission denied to get service
+```
+
+Das ist kein Fehler im Schlüssel, sondern eine fehlende Rolle. Die Firebase-CLI prüft
+vor dem Veröffentlichen, ob die Firestore-Schnittstelle aktiv ist, und dafür braucht
+sie eine eigene Berechtigung.
+
+1. [Google-Cloud-Konsole](https://console.cloud.google.com/iam-admin/iam) öffnen,
+   oben das Projekt **game-e87e0** wählen.
+2. Links **IAM**, in der Liste das Konto suchen, das mit `firebase-adminsdk` beginnt
+   und auf `@game-e87e0.iam.gserviceaccount.com` endet.
+3. Am Zeilenende auf den Stift klicken, dann zweimal **Weitere Rolle hinzufügen**:
+   - **Firebase Rules Admin**, damit es die Regeln schreiben darf
+   - **Service Usage Consumer**, damit es die Schnittstellen-Prüfung machen darf
+4. **Speichern**. Es dauert bis zu einer Minute, bis die Rollen greifen.
+5. Die Action noch einmal starten: Reiter **Actions**, **Firestore-Regeln**,
+   **Run workflow**.
+
+Wer es kurz halten will, kann stattdessen die Rolle **Editor** vergeben. Die deckt
+alles ab, gibt dem Konto aber deutlich mehr Rechte als nötig. Die beiden Rollen oben
+sind die sparsamere Wahl.
 
 ## So änderst du die Regeln künftig
 

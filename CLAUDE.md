@@ -1,5 +1,6 @@
-# Linie Null: Hinweise für die Arbeit im Repo
+# Loco: Hinweise für die Arbeit im Repo
 
+- Das Spiel heisst **Loco**. Die Bahnlinie, die man darin baut, heisst in der Fiktion weiterhin «Linie Null»; das ist kein Überbleibsel, sondern Absicht.
 - Sprache im Repo ist Deutsch (Schweiz): «ss» statt «ß», Guillemets «…». Bezeichner im Code sind kurze ASCII-IDs wie in `docs/konzept.md` (zum Beispiel `eisenbarren`, `bp_stahl`).
 - `docs/konzept.md` ist die Referenz für Spielregeln, Zahlen und Umfang. Wer im Code davon abweicht, führt das Konzept nach.
 - Befehle: `npm install`, `npm run dev`, `npm run check` (svelte-check), `npm test` (Vitest), `npm run build`.

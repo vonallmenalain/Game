@@ -2,7 +2,9 @@ import { ITEMS, PROJECTS } from './data';
 import { STATE_VERSION, createInitialState } from './state';
 import type { GameState, ProjectState, WagonState } from './types';
 
-export const SAVE_KEY = 'linie-null/save';
+export const SAVE_KEY = 'loco/save';
+/** Schlüssel aus der Zeit, als das Spiel «Linie Null» hiess. Wird beim Laden übernommen. */
+export const LEGACY_SAVE_KEY = 'linie-null/save';
 
 type Raw = Record<string, unknown>;
 

@@ -6,13 +6,13 @@ export function exportFileName(state: GameState, now = new Date()): string {
   const pad = (n: number) => n.toString().padStart(2, '0');
   const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
   const km = formatDecimal(state.km, 1).replace(',', '-').replace('’', '');
-  return `linie-null-km${km}-${date}.json`;
+  return `loco-km${km}-${date}.json`;
 }
 
 /** Bietet den Spielstand als Datei an. Nutzt Teilen, wo es geht, sonst einen Download. */
 export async function exportSave(json: string, fileName: string): Promise<'geteilt' | 'geladen'> {
   const file = new File([json], fileName, { type: 'application/json' });
-  const shareData = { files: [file], title: 'Linie Null', text: 'Spielstand Linie Null' };
+  const shareData = { files: [file], title: 'Loco', text: 'Spielstand Loco' };
   if (typeof navigator !== 'undefined' && navigator.canShare?.(shareData) && navigator.share) {
     try {
       await navigator.share(shareData);
@@ -48,7 +48,7 @@ export async function importSave(file: File): Promise<{ state: GameState; json: 
   try {
     state = deserialize(json);
   } catch {
-    throw new ImportError('Das ist kein Spielstand von Linie Null.');
+    throw new ImportError('Das ist kein Spielstand von Loco.');
   }
   return { state, json };
 }

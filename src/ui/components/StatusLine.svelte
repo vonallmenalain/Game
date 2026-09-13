@@ -8,7 +8,7 @@
 </script>
 
 <header class="status">
-  <span class="brand">Linie Null</span>
+  <span class="brand">Loco</span>
   <span class="mono">{formatKm(game.state.km)}</span>
   {#if next}
     <span class="muted">

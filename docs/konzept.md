@@ -1,14 +1,15 @@
-# Linie Null
+# Loco
 
-**Spielkonzept, Version 1** · Schritt 2 von 3 (Brainstorming, Konzept, Prototyp) · Stand 13. September 2026
+**Spielkonzept** · Stand 13. September 2026 · Der erste spielbare Stand ist gebaut, siehe Abschnitt 15
 
 | | |
 |---|---|
-| Arbeitstitel | Linie Null |
+| Name | Loco |
+| Die Linie im Spiel | Linie Null, die erste Bahn in eine unerschlossene Welt |
 | Genre | Idle-Aufbauspiel mit Produktionsketten, in der Tradition von Idle Planet Miner und Dyson Sphere Program |
 | Plattform | Progressive Web App. Handy im Hochformat zuerst, Desktop-Browser ebenfalls |
 | Sprache | Deutsch (Schweiz) |
-| Status | Konzept beschlossen, Prototyp noch nicht begonnen |
+| Status | Erster spielbarer Stand fertig: drei Biome, zwei Bauprojekte, Konten und Cloud-Spielstände |
 
 ## Inhalt
 
@@ -52,7 +53,7 @@ Folgende Entscheidungen sind gefallen und gelten für alle weiteren Schritte:
 | 5 | Handarbeit | Die ersten Minuten arbeitet man von Hand. Danach ist Tippen nie mehr Pflicht, nur noch Beschleunigung |
 | 6 | Grafik | Flache Silhouetten als SVG, kräftige Biomfarben, ruhige Animationen |
 | 7 | Prestige | «Neue Linie» ist eingeplant, wird aber erst nach dem ersten kompletten Durchlauf gestaltet |
-| 8 | Name | Linie Null als Arbeitstitel |
+| 8 | Name | Loco. Die Bahnlinie im Spiel heisst weiterhin Linie Null |
 
 ## 3. Design-Säulen
 
@@ -475,7 +476,7 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 | PWA | vite-plugin-pwa mit Workbox | Installation, Offline-Betrieb, Update-Hinweis |
 | Speicher | IndexedDB über idb-keyval | ein Spielstand als JSON-Blob, versioniert |
 | Tests | Vitest | Engine ohne Browser testbar |
-| Hosting | Netlify | wie die anderen Projekte, statisches Deploy |
+| Hosting | Netlify | statisches Deploy, erreichbar unter loco.alae.app |
 | Cloud | Firebase Authentication und Firestore | Konten und Cloud-Spielstände, seit dem Nachbau in `docs/firebase.md` |
 | Später | Firebase Cloud Messaging | Push-Nachrichten, noch nicht gebaut |
 
@@ -548,7 +549,7 @@ interface GameState {
 
 - Automatisch alle 10 Sekunden und bei jedem Wechsel in den Hintergrund (`visibilitychange`, `pagehide`).
 - Mit Konto zusätzlich alle zwei Minuten und beim Wechsel in den Hintergrund in die Cloud. Verglichen wird beim Anmelden die gespielte Zeit, nicht die Uhrzeit: Ist die Cloud mehr als eine Minute weiter, fragt das Spiel nach und zeigt beide Stände; ist das Gerät weiter, lädt es ungefragt hoch. Ohne Konto läuft alles wie bisher rein lokal.
-- Ein Schlüssel `linie-null/save` in IndexedDB, dazu eine Kopie des letzten funktionierenden Stands als Rückfall.
+- Ein Schlüssel `loco/save` in IndexedDB (Stände aus der Zeit als «Linie Null» werden beim Laden übernommen), dazu eine Kopie des letzten funktionierenden Stands als Rückfall.
 - `version` im Spielstand, Migrationen als Liste von Funktionen.
 - Export als JSON-Datei über Teilen (Web Share, wo vorhanden) oder Download, Import über Dateiauswahl mit Rückfrage, die Kilometerstand und Spielzeit der Datei zeigt. Der Bildschirm «Mehr» erinnert nach sieben Tagen ohne Export daran, sichtbar auch als Punkt an der Leiste unten.
 
@@ -564,7 +565,7 @@ interface GameState {
 
 ### 14.6 PWA
 
-- Manifest: Name «Linie Null», Anzeige `standalone`, Ausrichtung `portrait`, Themenfarbe je Theme, Icons in 192 und 512 Pixel, maskierbar.
+- Manifest: Name «Loco», Anzeige `standalone`, Ausrichtung `portrait`, Themenfarbe je Theme, Icons in 192 und 512 Pixel, maskierbar.
 - Workbox precached alle Dateien. Bei neuer Version erscheint ein Hinweis «Neue Version bereit, neu laden».
 - Wake Lock ist wählbar, damit der Zug beim Zuschauen nicht vom Bildschirmschoner unterbrochen wird.
 
