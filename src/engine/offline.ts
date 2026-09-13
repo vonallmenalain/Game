@@ -21,9 +21,13 @@ export interface OfflineReport {
   techsDone: TechId[];
   projectsDone: ProjectId[];
   projectProgress: { id: ProjectId; before: number; after: number }[];
+  /** Netto-Zugewinn je Ware, absteigend sortiert. Nur Waren mit Zuwachs. */
+  gained: { item: ItemId; amount: number }[];
   fullItems: ItemId[];
   warnings: OfflineWarning[];
   stoppedSeconds: number;
+  /** Die Lok am Ende, falls sie sich in der Abwesenheit geändert hat */
+  newLoco: string | null;
 }
 
 /**
@@ -38,6 +42,8 @@ export function simulateOffline(state: GameState, elapsedSeconds: number): Offli
   const kmBefore = state.km;
   const logStart = state.log.length;
   const stoppedBefore = state.stats.stoppedSeconds;
+  const locoBefore = state.loco;
+  const storeBefore = { ...state.store };
   const progressBefore = new Map<ProjectId, number>();
   for (const def of PROJECTS) progressBefore.set(def.id, projectProgress(state, def.id));
 
@@ -58,6 +64,10 @@ export function simulateOffline(state: GameState, elapsedSeconds: number): Offli
   const newLog = state.log.slice(logStart);
   const cap2 = storeCap(state);
   const fullItems = Object.keys(state.store).filter((item) => getStore(state, item) >= cap2);
+  const gained = Object.keys(state.store)
+    .map((item) => ({ item, amount: Math.floor(getStore(state, item) - (storeBefore[item] ?? 0)) }))
+    .filter((entry) => entry.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
 
   return {
     elapsedSeconds: elapsed,
@@ -72,9 +82,11 @@ export function simulateOffline(state: GameState, elapsedSeconds: number): Offli
     projectProgress: PROJECTS.filter((def) => !def.preview)
       .map((def) => ({ id: def.id, before: progressBefore.get(def.id) ?? 0, after: projectProgress(state, def.id) }))
       .filter((p) => p.after > 0 || p.before > 0),
+    gained,
     fullItems,
     warnings,
     stoppedSeconds: state.stats.stoppedSeconds - stoppedBefore,
+    newLoco: state.loco === locoBefore ? null : state.loco,
   };
 }
 

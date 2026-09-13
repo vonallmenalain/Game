@@ -15,7 +15,8 @@ Prototyp in Arbeit, nach dem Bauplan in Abschnitt 15 des Konzepts.
 | 3 Prototyp, Phase 0 | Projektgerüst: Vite, Svelte 5, TypeScript, Vitest, PWA, Netlify, CI | erledigt |
 | 3 Prototyp, Phase 1 | Engine mit Daten, Tick, Aktionen, Nachsimulation, Speichern, Autospieler und Tests | erledigt |
 | 3 Prototyp, Phase 2 | Bedienung: Zugstreifen, Wagenliste und Wagen-Detail, Werkstatt, Lager, Forschung, Strecke mit Baustellen, Autosave | erledigt |
-| 3 Prototyp, Phasen 3 bis 5 | Rückkehr, Bühne, Spieltest | offen |
+| 3 Prototyp, Phase 3 | Rückkehr: Nachholen der Abwesenheit, Rückkehr-Bericht, Sicherung als Datei | erledigt |
+| 3 Prototyp, Phasen 4 und 5 | Bühne, Spieltest | offen |
 
 ## Entwicklung
 

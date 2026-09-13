@@ -370,7 +370,7 @@ Bei einer neuen Lok: Die alte Lok wird ausgekoppelt, die neue rollt von vorn her
 - Beim Start wird die verstrichene Zeit seit dem letzten Speichern berechnet. Ab 60 Sekunden Abwesenheit wird nachsimuliert.
 - Nachsimuliert wird mit derselben Tick-Funktion wie im Spiel, in Schritten von 1 Sekunde, bis zum Deckel. Der Deckel ist 8 Stunden, mit Nachtschicht I 12 Stunden, mit Nachtschicht II (später) 24 Stunden.
 - Zeit über dem Deckel verfällt. Fiktion: «Nachtschicht vorbei, die Mannschaft schläft.»
-- Während der Nachsimulation zeigt ein Bildschirm den fahrenden Zug mit laufendem Kilometerzähler. Das dauert selbst bei 8 Stunden unter einer Sekunde, der Bildschirm bleibt trotzdem mindestens eine Sekunde stehen, damit die Rückkehr einen Auftritt hat.
+- Während der Nachsimulation zeigt ein Bildschirm den fahrenden Zug mit laufendem Kilometerzähler. Das Rechnen dauert selbst bei 8 Stunden unter einer Sekunde, der Zähler läuft danach über 1,4 Sekunden auf den neuen Stand, damit die Rückkehr einen Auftritt hat. Wer Bewegung reduziert hat, sieht den Endstand sofort.
 - Der **Rückkehr-Bericht** listet: gefahrene Kilometer, erreichte Biome, abgeschlossene Forschung, fertige und fortgeschrittene Bauprojekte, volle Lager, und Warnungen mit Zeitpunkt: «Kohle war nach 3 h 10 min leer. Der Zug stand 4 h 30 min.»
 - Die Warnungen sind der Lernmoment des Spiels: Sie zeigen, welcher Engpass die Nacht gekostet hat.
 
@@ -543,7 +543,7 @@ interface GameState {
 - Automatisch alle 10 Sekunden und bei jedem Wechsel in den Hintergrund (`visibilitychange`, `pagehide`).
 - Ein Schlüssel `linie-null/save` in IndexedDB, dazu eine Kopie des letzten funktionierenden Stands als Rückfall.
 - `version` im Spielstand, Migrationen als Liste von Funktionen.
-- Export als JSON-Datei über Teilen oder Download, Import über Dateiauswahl. Der Bildschirm «Mehr» erinnert nach sieben Tagen ohne Export daran.
+- Export als JSON-Datei über Teilen (Web Share, wo vorhanden) oder Download, Import über Dateiauswahl mit Rückfrage, die Kilometerstand und Spielzeit der Datei zeigt. Der Bildschirm «Mehr» erinnert nach sieben Tagen ohne Export daran, sichtbar auch als Punkt an der Leiste unten.
 
 ### 14.5 Tests
 

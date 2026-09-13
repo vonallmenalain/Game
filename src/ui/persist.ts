@@ -2,6 +2,7 @@ import { del, get, set } from 'idb-keyval';
 import { SAVE_KEY, deserialize, type GameState } from '../engine';
 
 const BACKUP_KEY = `${SAVE_KEY}/backup`;
+const EXPORT_KEY = `${SAVE_KEY}/lastExport`;
 
 /** Lädt den Spielstand, notfalls die Rückfallkopie. null, wenn nichts Brauchbares da ist. */
 export async function loadSave(): Promise<GameState | null> {
@@ -33,5 +34,22 @@ export async function clearSave(): Promise<void> {
     await del(BACKUP_KEY);
   } catch (error) {
     console.warn('Spielstand konnte nicht gelöscht werden', error);
+  }
+}
+
+/** Wanduhr des letzten Exports in Millisekunden, 0 wenn nie exportiert wurde. */
+export async function lastExportAt(): Promise<number> {
+  try {
+    return (await get<number>(EXPORT_KEY)) ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function noteExport(at: number): Promise<void> {
+  try {
+    await set(EXPORT_KEY, at);
+  } catch (error) {
+    console.warn('Export-Zeitpunkt konnte nicht gemerkt werden', error);
   }
 }

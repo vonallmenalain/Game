@@ -5,6 +5,8 @@
   import type { Tab } from './ui/tabs';
   import BuildSheet from './ui/components/BuildSheet.svelte';
   import MorePanel from './ui/components/MorePanel.svelte';
+  import ReturnReport from './ui/components/ReturnReport.svelte';
+  import ReturnScreen from './ui/components/ReturnScreen.svelte';
   import ResearchPanel from './ui/components/ResearchPanel.svelte';
   import Sheet from './ui/components/Sheet.svelte';
   import StatusLine from './ui/components/StatusLine.svelte';
@@ -37,13 +39,15 @@
     const projectDone = s.log.some((e) => e.kind === 'projekt' && s.playedSeconds - e.at < 120);
     const storeFull = s.warnings.some((w) => w.code === 'lager_voll');
     const wagonWaiting = s.warnings.some((w) => w.code === 'zutat_fehlt' || w.code === 'handkurbel');
-    return { forschung: researchReady, strecke: projectDone, lager: storeFull, zug: wagonWaiting } as Partial<Record<Tab, boolean>>;
+    return { forschung: researchReady, strecke: projectDone, lager: storeFull, zug: wagonWaiting, mehr: game.exportOverdue } as Partial<Record<Tab, boolean>>;
   });
 
   const sheetTitle = $derived(game.sheet.kind === 'wagen' ? 'Wagen' : game.sheet.kind === 'bauen' ? 'Wagen anhängen' : game.sheet.kind === 'werkstatt' ? 'Werkstatt' : '');
 </script>
 
-{#if !game.loaded}
+{#if game.returning}
+  <ReturnScreen />
+{:else if !game.loaded}
   <main class="loading">Linie Null lädt …</main>
 {:else}
   <StatusLine />
@@ -83,6 +87,9 @@
       <WorkshopSheet />
     {/if}
   </Sheet>
+  {#if game.report}
+    <ReturnReport report={game.report} />
+  {/if}
   <Toast />
 {/if}
 

@@ -9,3 +9,4 @@
 - Balancing-Messlatte: `npx vitest run src/engine/autoplay.test.ts` spielt den ersten Stand mit dem Autospieler durch und druckt den Zeitplan. Änderungen an Zahlen gegen diesen Zeitplan prüfen.
 - Oberfläche: `src/ui/game.svelte.ts` hält den Spielzustand als `$state` und treibt die Engine mit festem Zeitschritt. Komponenten liegen in `src/ui/components`, Texte für die Oberfläche in `src/ui/labels.ts`. Aktionen laufen über `game.run(...)`, das Fehler als Toast zeigt.
 - Smoke-Test im Browser: `npm run build && npx vite preview --port 4173 &` und dann `npm run smoke` (Chromium unter `CHROMIUM_PATH`, Standard `/opt/pw-browsers/chromium`). Prüft Ernte, Werkbank, Bildschirme und den Spielstand nach einem Reload.
+- Rückkehr: `game.boot()` rechnet die Abwesenheit mit `simulateOffline` nach, sobald sie eine Minute übersteigt, zeigt dabei den Rückkehr-Bildschirm und danach den Bericht. Der Spielstand merkt sich die Wanduhr in `lastSavedAt`.

@@ -68,11 +68,50 @@ try {
   const spielzeit = await page.getByText(/Spielzeit:/).innerText();
   await page.screenshot({ path: shot('08-mehr.png') });
 
+  // Rückkehr: Spielstand um drei Stunden zurückdatieren und mit Vorräten ausstatten
+  const prepared = await page.evaluate(async () => {
+    const read = () =>
+      new Promise((resolve, reject) => {
+        const open = indexedDB.open('keyval-store');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const tx = open.result.transaction('keyval', 'readwrite');
+          const store = tx.objectStore('keyval');
+          const get = store.get('linie-null/save');
+          get.onsuccess = () => {
+            const save = JSON.parse(get.result);
+            save.lastSavedAt = Date.now() - 3 * 3600 * 1000;
+            save.store.schienen = 600;
+            save.store.kohle = 600;
+            save.techs.done = ['selbstlader'];
+            store.put(JSON.stringify(save), 'linie-null/save');
+            tx.oncomplete = () => resolve(true);
+          };
+          get.onerror = () => reject(get.error);
+        };
+      });
+    return read();
+  });
+  if (!prepared) throw new Error('Spielstand liess sich nicht vorbereiten.');
+
+  await page.reload();
+  await page.getByText('Der Zug ist gefahren').waitFor({ timeout: 15000 });
+  await page.screenshot({ path: shot('09-rueckkehr.png') });
+  await page.getByRole('dialog', { name: 'Während du weg warst' }).waitFor({ timeout: 15000 });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: shot('10-bericht.png'), fullPage: true });
+  const bericht = (await page.getByRole('dialog', { name: 'Während du weg warst' }).innerText()).replace(/\s+/g, ' ');
+  await page.getByRole('button', { name: 'Weiter', exact: true }).click();
+  await page.getByText('Wagen anhängen').waitFor({ timeout: 15000 });
+  const nachRueckkehr = await page.locator('header.status').innerText();
+
   const harvested = Number.parseInt(eisen.split(' ')[2] ?? '0', 10);
   const persisted = /Spielzeit: (?!0 s)/.test(spielzeit);
-  console.log(JSON.stringify({ errors, eisen, queue, spielzeit }, null, 2));
-  if (errors.length > 0 || !(harvested > 0) || !queue.includes('Koks') || !persisted) {
-    console.error('Smoke-Test fehlgeschlagen.');
+  const gefahren = /6,0 km gefahren/.test(bericht);
+  const gewarnt = /Schienen alle/.test(bericht);
+  console.log(JSON.stringify({ errors, eisen, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr: nachRueckkehr.replace(/\s+/g, ' ') }, null, 2));
+  if (errors.length > 0 || !(harvested > 0) || !queue.includes('Koks') || !persisted || !gefahren || !gewarnt) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');
