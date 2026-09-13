@@ -3,7 +3,7 @@
  * nicht in der normalen Testsuite, weil der Emulator Java und einen Download braucht.
  */
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, deleteDoc, getDoc, getDocs, collection, setDoc } from 'firebase/firestore';
+import { doc, deleteDoc, getDoc, getDocs, collection, runTransaction, setDoc } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createInitialState, serialize, deserialize } from '../src/engine';
@@ -117,7 +117,38 @@ describe('Firestore-Regeln', () => {
     expect(zurueck.projects['tunnel']?.done).toBe(true);
 
     // Und der Abgleich erkennt, dass beide Seiten gleich weit sind
-    expect(decideSync(zurueck, buildCloudSave(json, state))).toEqual({ kind: 'nichts' });
+    const geschrieben = buildCloudSave(json, state);
+    const merkzettel = { stamp: geschrieben.aktualisiert, playedSeconds: zurueck.playedSeconds, catchUpSeconds: 0 };
+    expect(decideSync(zurueck, geschrieben, merkzettel)).toEqual({ kind: 'nichts' });
+  });
+
+  it('nehmen das Schreiben in der Transaktion an, mit der die App die Abstammung prüft', async () => {
+    const state = createInitialState();
+    const db = env.authenticatedContext(ANNA).firestore();
+    const ref = doc(db, 'spielstaende', ANNA);
+    const erstes = buildCloudSave(serialize(state, 1_700_000_000_000), state, 1_700_000_000_000, 'Android');
+    await assertSucceeds(setDoc(ref, { ...erstes }));
+
+    // Die App liest zuerst und schreibt nur, wenn die Cloud noch den erwarteten Stempel trägt
+    const zweites = buildCloudSave(serialize(state, 1_700_000_100_000), state, 1_700_000_100_000, 'Windows');
+    const geschrieben = await assertSucceeds(
+      runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (snap.data()?.['aktualisiert'] !== erstes.aktualisiert) return false;
+        tx.set(ref, { ...zweites });
+        return true;
+      }),
+    );
+    expect(geschrieben).toBe(true);
+    expect((await getDoc(ref)).data()?.['aktualisiert']).toBe(zweites.aktualisiert);
+
+    // Fremde Konten kommen auch über eine Transaktion nicht an den Stand
+    const fremd = env.authenticatedContext(BEN).firestore();
+    await assertFails(
+      runTransaction(fremd, async (tx) => {
+        await tx.get(doc(fremd, 'spielstaende', ANNA));
+      }),
+    );
   });
 
   it('sperren alle anderen Sammlungen', async () => {

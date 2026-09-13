@@ -13,6 +13,7 @@ import {
   type OfflineReport,
 } from '../engine';
 import { account, wasSignedIn } from '../cloud/account.svelte';
+import type { CloudSave } from '../cloud/sync';
 import { describeError } from './labels';
 import { clearSave, loadSave, storeSave } from './persist';
 import { buzz, playMilestone } from './sound';
@@ -27,6 +28,8 @@ const AUTOSAVE_MS = 10_000;
 const RETURN_ANIMATION_MS = 1400;
 /** So oft schiebt ein angemeldetes Gerät seinen Stand in die Cloud */
 const CLOUD_PUSH_MS = 2 * 60 * 1000;
+/** So lange wartet der Start höchstens auf die Cloud, bevor er mit dem lokalen Stand weitermacht */
+export const CLOUD_BOOT_WAIT_MS = 8000;
 
 /** Was im Zug-Bildschirm gerade ausgeklappt ist. Nichts davon überdeckt die Bühne. */
 export type DetailKind = { kind: 'none' } | { kind: 'wagen'; id: number } | { kind: 'bauen' };
@@ -48,8 +51,30 @@ export function elapsedSinceSave(state: GameState, now: number): number {
   return Math.max(0, (now - state.lastSavedAt) / 1000);
 }
 
+/** Wartet auf ein Ergebnis, aber höchstens die angegebene Zeit. Danach undefined. */
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(undefined), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(undefined);
+      },
+    );
+  });
+}
+
 function prefersReducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** Nur ein klares Nein zählt: Browser ohne Auskunft gelten als verbunden. */
+function isOnline(): boolean {
+  return typeof navigator === 'undefined' || navigator.onLine !== false;
 }
 
 class Game {
@@ -67,13 +92,16 @@ class Game {
   /** Was die Bühne gerade zeigt: den Zug, die Lok oder einen Wagen. Folgt aus Register und Detail. */
   focus: StageFocus = $derived(stageFocus(this.tab, this.detail, this.state));
   loaded = $state(false);
+  /** Was der Start gerade tut, für den Ladebildschirm */
+  bootPhase = $state<'lokal' | 'cloud'>('lokal');
   /** Läuft die Nachsimulation gerade als Bildschirm? */
   returning = $state(false);
   /** Kilometerstand, den der Rückkehr-Bildschirm gerade zeigt */
   returnKm = $state(0);
   /** Bericht der letzten Rückkehr, bis er weggeklickt wird */
   report = $state<OfflineReport | null>(null);
-  /** Wanduhr des letzten Exports, 0 wenn nie exportiert */
+  /** Woher der Stand im Bericht kommt, wenn er aus der Cloud übernommen wurde */
+  reportSource = $state<{ geraet: string; savedAt: number } | null>(null);
   /** Der Meilenstein, der gerade gefeiert wird */
   milestone = $state<Milestone | null>(null);
 
@@ -86,29 +114,50 @@ class Game {
   private logSeen = 0;
   private lastCloudPush = 0;
   private booted = false;
+  /** Ob der Start einen Stand aus der Cloud übernommen hat, statt den lokalen nachzuholen */
+  private adopted = false;
+
+  /**
+   * Solange die Rückfrage «Zwei Spielstände» offen ist, steht das Spiel: kein Tick, kein
+   * Speichern aus dem Takt, kein Sichern. So bleibt der Stand von hier genau der, den die
+   * Rückfrage zeigt, und wer ihn behält, bekommt die Wartezeit nachgeholt.
+   */
+  get holding(): boolean {
+    return account.conflict !== null;
+  }
 
   async boot(): Promise<void> {
     if (this.booted) return;
     this.booted = true;
     const saved = await loadSave();
-    if (saved) {
-      this.state = saved;
+    if (saved) this.state = saved;
+    this.connectAccount();
+    if (wasSignedIn() && isOnline()) {
+      // Erst die Cloud fragen, dann die Abwesenheit nachholen. Umgekehrt holt ein
+      // veralteter Stand auf und sieht danach so weit aus wie der frischere in der Cloud.
+      // Wer nicht antwortet, hält den Start nicht auf; der Abgleich meldet sich später.
+      this.bootPhase = 'cloud';
+      await withTimeout(account.firstDecision(), CLOUD_BOOT_WAIT_MS);
+      this.bootPhase = 'lokal';
+    }
+    if (saved && !this.adopted && !this.holding) {
       const elapsed = elapsedSinceSave(saved, Date.now());
-      if (needsCatchUp(elapsed)) await this.catchUp(elapsed);
+      if (needsCatchUp(elapsed)) await this.catchUp(this.state, elapsed);
     }
     // Was vor dem Start oder in der Abwesenheit geschah, steht im Bericht und wird nicht gefeiert
     this.logSeen = this.state.log.length;
     this.loaded = true;
-    this.start();
-    this.connectAccount();
+    if (!this.holding) this.start();
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
+        if (document.visibilityState === 'hidden' && !this.holding) {
           void this.save();
           if (account.signedIn) void account.push();
         }
       });
-      window.addEventListener('pagehide', () => void this.save());
+      window.addEventListener('pagehide', () => {
+        if (!this.holding) void this.save();
+      });
     }
   }
 
@@ -118,10 +167,11 @@ class Game {
    */
   private connectAccount(): void {
     account.getSnapshot = () => ({ json: this.snapshotJson(), state: $state.snapshot(this.state) });
-    account.onAdopt = async (state) => {
-      await this.adopt(state);
-      this.showToast('Spielstand aus der Cloud übernommen.');
+    account.onAdopt = async (state, source) => {
+      await this.adopt(state, source);
+      if (!this.report) this.showToast('Spielstand aus der Cloud übernommen.');
     };
+    account.onResume = () => this.resume();
     if (wasSignedIn()) void account.watch();
   }
 
@@ -130,11 +180,16 @@ class Game {
     await account.watch();
   }
 
-  /** Holt die Abwesenheit nach und lässt den Kilometerzähler dabei hochlaufen. */
-  private async catchUp(elapsedSeconds: number): Promise<void> {
+  /**
+   * Holt die Abwesenheit auf einem Stand nach und übernimmt ihn. Der Kilometerzähler
+   * läuft dabei hoch. Der Stand kann der laufende sein oder einer, der erst kommt.
+   */
+  private async catchUp(state: GameState, elapsedSeconds: number): Promise<void> {
     this.returning = true;
-    this.returnKm = this.state.km;
-    const report = simulateOffline(this.state, elapsedSeconds);
+    this.returnKm = state.km;
+    const report = simulateOffline(state, elapsedSeconds);
+    this.state = state;
+    account.noteCatchUp(report.simulatedSeconds);
     await this.runReturnAnimation(report.kmBefore, report.kmAfter);
     this.returning = false;
     this.report = report;
@@ -164,6 +219,7 @@ class Game {
 
   dismissReport(): void {
     this.report = null;
+    this.reportSource = null;
   }
 
   openTab(tab: Tab): void {
@@ -204,6 +260,8 @@ class Game {
   start(): void {
     if (this.timer) return;
     this.lastNow = performance.now();
+    // Der erste Stand nach dem Start ist frisch abgeglichen; die Cloud kommt im Takt dran
+    this.lastCloudPush = Date.now();
     this.timer = setInterval(() => this.frame(), 100);
   }
 
@@ -214,6 +272,11 @@ class Game {
 
   private frame(): void {
     const now = performance.now();
+    if (this.holding) {
+      // Das Spiel steht. Die Wartezeit holt nach, wer die Rückfrage beantwortet.
+      this.lastNow = now;
+      return;
+    }
     this.accumulated += Math.min(MAX_FRAME_CATCHUP_SECONDS, (now - this.lastNow) / 1000);
     this.lastNow = now;
     let steps = 0;
@@ -269,8 +332,11 @@ class Game {
   }
 
   async save(): Promise<void> {
-    this.lastSaveAt = Date.now();
-    await storeSave(this.snapshotJson());
+    const now = Date.now();
+    this.lastSaveAt = now;
+    // Auch im Speicher nachführen: So weiss das Spiel später, wie lange es gestanden hat
+    this.state.lastSavedAt = now;
+    await storeSave(serialize($state.snapshot(this.state), now));
   }
 
   /** Führt eine Aktion aus und zeigt bei Misserfolg den Grund. */
@@ -287,16 +353,38 @@ class Game {
     }, 3500);
   }
 
-  /** Übernimmt einen eingelesenen Spielstand und startet das Spiel damit neu. */
-  async adopt(state: GameState): Promise<void> {
+  /**
+   * Übernimmt einen Spielstand und startet das Spiel damit neu. Was er seit seinem
+   * letzten Speichern verpasst hat, holt er vorher nach: Ein Stand vom anderen Gerät
+   * war genauso lange unterwegs wie der hiesige.
+   */
+  async adopt(state: GameState, source: CloudSave | null = null): Promise<void> {
     this.stop();
-    this.state = state;
-    this.accumulated = 0;
+    this.adopted = true;
     this.detail = { kind: 'none' };
     this.report = null;
+    this.reportSource = source ? { geraet: source.geraet, savedAt: source.aktualisiert } : null;
     this.milestone = null;
-    this.logSeen = state.log.length;
-    await this.save();
+    const elapsed = elapsedSinceSave(state, Date.now());
+    if (needsCatchUp(elapsed)) {
+      await this.catchUp(state, elapsed);
+    } else {
+      this.state = state;
+      this.reportSource = null;
+      await this.save();
+    }
+    this.accumulated = 0;
+    this.logSeen = this.state.log.length;
+    this.start();
+  }
+
+  /** Nach der Rückfrage geht es mit dem Stand von hier weiter, samt der Zeit, die er gestanden hat. */
+  async resume(): Promise<void> {
+    this.stop();
+    const elapsed = elapsedSinceSave(this.state, Date.now());
+    if (needsCatchUp(elapsed)) await this.catchUp(this.state, elapsed);
+    this.accumulated = 0;
+    this.logSeen = this.state.log.length;
     this.start();
   }
 
@@ -307,10 +395,16 @@ class Game {
     this.accumulated = 0;
     this.detail = { kind: 'none' };
     this.report = null;
+    this.reportSource = null;
     this.milestone = null;
     this.logSeen = this.state.log.length;
     this.start();
     await this.save();
+    if (account.signedIn) {
+      // Die Cloud folgt dem Neuanfang, statt beim nächsten Abgleich den alten Stand zurückzubringen
+      account.noteFreshStart();
+      void account.push();
+    }
   }
 }
 

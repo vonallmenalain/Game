@@ -144,7 +144,7 @@ Dokumentname:
 | `playedSeconds` | Gespielte Sekunden, dient dem Vergleich zweier Geräte |
 | `km` | Kilometerstand, nur zur Anzeige in der Rückfrage |
 | `version` | Version des Spielstand-Formats |
-| `aktualisiert` | Wanduhr des letzten Hochladens |
+| `aktualisiert` | Wanduhr des letzten Hochladens. Jedes Schreiben vergibt einen neuen Wert, darum dient er zugleich als Stempel des Dokuments |
 | `geraet` | Grobe Geräteart, etwa «Android» oder «Mac» |
 
 Personendaten stehen dort nicht drin. E-Mail-Adresse und Name liegen bei Firebase
@@ -152,17 +152,38 @@ Authentication, nicht in der Datenbank.
 
 ## Wann hoch- und heruntergeladen wird
 
+- Beim Start, bevor die Abwesenheit nachgeholt wird: Das Spiel wartet bis zu acht Sekunden
+  auf die Cloud und zeigt derweil «Loco holt den Spielstand aus der Cloud». Ohne Verbindung
+  oder ohne Antwort geht es mit dem lokalen Stand weiter, der Abgleich meldet sich später.
 - Alle zwei Minuten, solange das Spiel offen und jemand angemeldet ist.
 - Beim Wechsel in den Hintergrund, etwa wenn du die App schliesst.
-- Beim Anmelden wird verglichen, wer weiter ist.
+- Beim Anmelden wird verglichen.
 
-Verglichen wird die **gespielte Zeit**, nicht die Uhrzeit. Sie wächst nur durch Spielen
-und lügt nicht, wenn ein Gerät falsch gestellt ist.
+### Worauf baut der Stand auf?
 
-- Ist die Cloud mehr als eine Minute weiter, fragt das Spiel nach und zeigt beide Stände
-  mit Kilometer und Spielzeit.
-- Ist das Gerät weiter, wird ungefragt hochgeladen. Dabei geht nichts verloren.
-- Liegen beide gleichauf, passiert nichts.
+Die Frage beim Abgleich ist nicht «wer hat mehr Spielzeit», sondern «worauf baut der Stand
+auf diesem Gerät auf». Jedes Gerät führt dazu einen **Merkzettel** in `localStorage`
+(`loco/abgleich`): den Stempel `aktualisiert` des Cloud-Dokuments, mit dem der lokale Stand
+zuletzt übereinstimmte, die Spielzeit in diesem Moment und die Nachsimulation seither.
+
+- Trägt die Cloud noch den Stempel vom Merkzettel, baut der lokale Stand darauf auf. Was
+  hier weiterging, wird hochgeladen; sonst passiert nichts.
+- Trägt sie einen anderen, hat inzwischen ein anderes Gerät geschrieben. Wurde hier seit dem
+  letzten Abgleich nichts gespielt, gilt die Cloud ohne Rückfrage: Das Gerät übernimmt den
+  Stand und holt dessen Abwesenheit nach, genau wie es den eigenen nachgeholt hätte.
+- Haben beide Seiten etwas, das der anderen fehlt, fragt das Spiel nach und zeigt beide
+  Stände mit Kilometer, Spielzeit, Gerät und Zeitpunkt. Der weitere ist als solcher markiert.
+  Solange die Rückfrage steht, tickt das Spiel nicht und nichts wird geschrieben.
+
+Die Nachsimulation zählt nicht als Spielen. Sonst sähe ein Handy, das nach einer Nacht
+aufwacht und acht Stunden nachholt, weiter aus als der Stand, der inzwischen am PC entstand,
+und würde ihn überschreiben. Genau das ist einmal passiert.
+
+Geschrieben wird nur in einer Transaktion, die zuerst liest: Trägt die Cloud nicht mehr den
+erwarteten Stempel, bleibt das Schreiben aus und der Abgleich entscheidet neu. So kann ein
+Gerät nie einen Stand überschreiben, den es nie gesehen hat, auch nicht, wenn zwei Geräte
+gleichzeitig offen sind. Wer «Neu anfangen» wählt, setzt die Spielzeit im Merkzettel auf
+null; die Cloud folgt dem frischen Stand, statt den alten zurückzubringen.
 
 ## Kosten
 

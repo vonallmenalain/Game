@@ -45,8 +45,10 @@ Die App ist eine Progressive Web App: installierbar, offline lauffähig, Updates
 ## Konto und Cloud
 
 Das Spiel läuft ohne Konto vollständig. Wer sich anmeldet, bekommt seinen Spielstand
-zusätzlich in die Cloud gelegt und spielt auf mehreren Geräten weiter. Die Einrichtung
-steht in [docs/firebase.md](docs/firebase.md).
+zusätzlich in die Cloud gelegt und spielt auf mehreren Geräten weiter: Beim Start holt
+Loco zuerst den Stand aus der Cloud, und kein Gerät überschreibt einen Stand, den es nie
+gesehen hat. Haben zwei Geräte unabhängig weitergespielt, fragt das Spiel, welcher gilt.
+Die Einrichtung steht in [docs/firebase.md](docs/firebase.md).
 
 ## Dokumente
 
