@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInitialState } from '../../engine';
+import { OBSTACLE_BY_ID, createInitialState } from '../../engine';
 import { biomeMood, blockingObstacle, noise, plantsFor, stageMode } from './scenery';
 
 describe('Bühne', () => {
@@ -41,7 +41,7 @@ describe('Bühne', () => {
     expect(stageMode(s)).toBe('steht');
     expect(blockingObstacle(s)).toBeNull();
     s.stop = 'hindernis';
-    s.pos = 2400;
+    s.pos = OBSTACLE_BY_ID['schlucht']!.km * 100;
     expect(stageMode(s)).toBe('hindernis');
     expect(blockingObstacle(s)?.id).toBe('schlucht');
     s.projects['bruecke']!.done = true;

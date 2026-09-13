@@ -24,8 +24,8 @@
   } from '../../engine';
   import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { WAGON_COLOR, WAGON_MARK, itemName, stackText, statusText, statusTone } from '../labels';
-  import Mark from './Mark.svelte';
+  import { WAGON_COLOR, itemName, stackText, statusText, statusTone } from '../labels';
+  import Vehicle from './Vehicle.svelte';
 
   let { id }: { id: number } = $props();
 
@@ -62,7 +62,7 @@
 
 {#if wagon && def}
   <div class="head">
-    <Mark text={WAGON_MARK[wagon.type]} color={WAGON_COLOR[wagon.type]} size="l" />
+    <span class="silhouette"><Vehicle kind={wagon.type} color={WAGON_COLOR[wagon.type]} rolling={false} /></span>
     <div>
       <div class="title">{def.name} <span class="muted">Stufe {wagon.level}</span></div>
       <div class="tone-{statusTone(wagon)}">{statusText(game.state, wagon)}</div>
@@ -135,6 +135,14 @@
 {/if}
 
 <style>
+  .silhouette {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 62px;
+    height: 48px;
+  }
+
   .head {
     display: flex;
     align-items: center;

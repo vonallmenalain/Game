@@ -22,8 +22,10 @@ page.on('console', (message) => {
 });
 
 try {
+  const started = Date.now();
   await page.goto(base);
   await page.getByRole('button', { name: /Wagen anhängen, \d+ frei/ }).waitFor({ timeout: 15000 });
+  const ladezeit = Date.now() - started;
   await page.screenshot({ path: shot('01-zug.png') });
 
   const crank = page.getByRole('button', { name: /^Kurbeln/ }).first();
@@ -152,9 +154,11 @@ try {
   const persisted = /Spielzeit: (?!0 s)/.test(spielzeit);
   const gefahren = /6,0 km gefahren/.test(bericht);
   const gewarnt = /Schienen alle/.test(bericht);
-  console.log(JSON.stringify({ errors, eisen, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs }, null, 2));
-  if (errors.length > 0 || !(harvested > 0) || !queue.includes('Koks') || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt) {
-    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt });
+  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, eisen, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs }, null, 2));
+  // Erfolgskriterium aus Abschnitt 15.3 des Konzepts: unter zwei Sekunden bis zum ersten Bild
+  const schnell = ladezeit < 2000;
+  if (errors.length > 0 || !(harvested > 0) || !queue.includes('Koks') || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');

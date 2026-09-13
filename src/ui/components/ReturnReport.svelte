@@ -3,7 +3,7 @@
   import { formatCount, formatDuration, formatKm } from '../../lib/format';
   import { formatOfflineWarning } from '../../i18n/de-CH';
   import { game } from '../game.svelte';
-  import { itemColor, itemMark, itemName } from '../labels';
+  import { itemColor, itemName } from '../labels';
   import Bar from './Bar.svelte';
   import Mark from './Mark.svelte';
 
@@ -57,7 +57,7 @@
       <div class="goods">
         {#each gained as entry (entry.item)}
           <div class="good-row">
-            <Mark text={itemMark(entry.item)} color={itemColor(entry.item)} size="s" />
+            <Mark item={entry.item} color={itemColor(entry.item)} size="s" />
             <span class="name">{itemName(entry.item)}</span>
             <span class="mono amount" class:full={report.fullItems.includes(entry.item)}>+{formatCount(entry.amount)}</span>
             {#if report.fullItems.includes(entry.item)}<span class="tag">voll</span>{/if}

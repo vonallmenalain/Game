@@ -84,8 +84,9 @@ const TECH_PRIORITY: TechId[] = [
 ];
 
 const PHASE_A: WagonType[] = ['ernte', 'schmelz', 'ernte', 'werk', 'walz', 'schmelz', 'buero', 'schmelz'];
-const PHASE_B: WagonType[] = [...PHASE_A, 'lager', 'ernte', 'schmelz', 'ernte'];
-const PHASE_C: WagonType[] = ['ernte', 'schmelz', 'ernte', 'werk', 'walz', 'schmelz', 'buero', 'ernte', 'lager', 'schmelz', 'ernte', 'chemie'];
+const PHASE_B: WagonType[] = [...PHASE_A, 'lager', 'werk', 'schmelz', 'ernte'];
+/** Ab der Kupferzeit zählt Verarbeitung, nicht Ernte: die Rohstofflager laufen ohnehin voll. */
+const PHASE_C: WagonType[] = ['ernte', 'schmelz', 'ernte', 'werk', 'walz', 'schmelz', 'buero', 'werk', 'lager', 'chemie', 'chemie', 'schmelz'];
 
 const UPGRADE_ORDER: WagonType[] = ['ernte', 'schmelz', 'walz', 'werk', 'buero', 'chemie'];
 
@@ -227,7 +228,9 @@ function recipeScore(state: GameState, r: RecipeDef, demand: Record<ItemId, numb
 const PRODUCTION_TYPES: WagonType[] = ['schmelz', 'walz', 'werk', 'buero', 'chemie'];
 
 function assignProduction(state: GameState, demand: Record<ItemId, number>, memory: BotMemory): void {
-  const horizonSeconds = 60;
+  // Was ein Wagen in fünf Minuten schafft, gilt als gedeckt. Kürzer, und mehrere
+  // Wagen stürzen sich auf dasselbe Rezept, statt die Arbeit zu teilen.
+  const horizonSeconds = 300;
   const cap = storeCap(state);
   for (const w of state.wagons) {
     if (w.type === 'ernte' || w.type === 'lager') continue;

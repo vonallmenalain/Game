@@ -2,7 +2,7 @@
   import { ITEMS, discoveredResources, getStore, isRecipeUnlocked, producerOf, storeCap } from '../../engine';
   import { formatCount, formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { TIER_NAME, itemColor, itemMark } from '../labels';
+  import { TIER_NAME, itemColor } from '../labels';
   import Bar from './Bar.svelte';
   import Mark from './Mark.svelte';
 
@@ -28,7 +28,7 @@
         {@const amount = getStore(game.state, item.id)}
         {@const rate = game.rates[item.id] ?? 0}
         <div class="row" class:full={amount >= cap}>
-          <Mark text={itemMark(item.id)} color={itemColor(item.id)} size="s" />
+          <Mark item={item.id} color={itemColor(item.id)} size="s" />
           <span class="name">{item.name}</span>
           <span class="mono amount">{formatCount(amount)}</span>
           <span class="mono rate" class:tone-good={rate > 0.05} class:tone-warn={rate < -0.05}>{rate > 0.05 ? '+' : ''}{Math.abs(rate) < 0.05 ? '' : formatRate(rate)}</span>
