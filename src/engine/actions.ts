@@ -4,7 +4,9 @@ import { PROJECT_BY_ID, RECIPE_BY_ID, TECH_BY_ID, wagon as wagonDef } from './da
 import {
   addToStore,
   currentLoco,
+  findMachine,
   findWagon,
+  freeMachineSlots,
   getStore,
   hasSelfLoader,
   isProjectUnlocked,
@@ -14,13 +16,16 @@ import {
   isWagonTypeUnlocked,
   storeCap,
   takeFromStore,
+  wagonOfType,
 } from './state';
-import type { GameState, ItemId, RecipeId, Stack, TechId, WagonState, WagonType } from './types';
+import type { GameState, ItemId, MachineState, RecipeId, Stack, TechId, WagonState, WagonType } from './types';
 
 export type ActionErrorCode =
   | 'unbekannt'
   | 'wagen_gesperrt'
+  | 'wagen_schon_da'
   | 'kein_platz'
+  | 'wagen_voll'
   | 'material_fehlt'
   | 'stufe_max'
   | 'nicht_aufstufbar'
@@ -31,6 +36,7 @@ export type ActionErrorCode =
   | 'forschung_fertig'
   | 'voraussetzung_fehlt'
   | 'warteschlange_voll'
+  | 'letzte_maschine'
   | 'projekt_gesperrt';
 
 export type ActionResult = { ok: true } | { ok: false; code: ActionErrorCode; missing?: Stack[] };
@@ -64,6 +70,27 @@ export function wagonBuildCost(type: WagonType): Stack[] {
   return wagonDef(type).cost.map((s) => ({ ...s }));
 }
 
+/**
+ * Kosten der Maschine mit der Nummer `index` (1-basiert). Die erste Maschine steckt
+ * in den Baukosten des Wagens, gefragt wird also ab Nummer 2. Jede weitere kostet
+ * einen halben Grundpreis mehr als die davor.
+ */
+export function machineBuildCost(type: WagonType, index: number): Stack[] {
+  const factor = 1 + BALANCE.machineCostStep * (Math.max(1, index) - 1);
+  return wagonDef(type).machineCost.map((s) => ({ item: s.item, amount: Math.ceil(s.amount * factor) }));
+}
+
+/** Kosten der nächsten Maschine in diesem Wagen */
+export function nextMachineCost(wagon: WagonState): Stack[] {
+  return machineBuildCost(wagon.type, wagon.machines.length + 1);
+}
+
+export function machineRefund(wagon: WagonState): Stack[] {
+  return machineBuildCost(wagon.type, wagon.machines.length)
+    .map((s) => ({ item: s.item, amount: Math.floor(s.amount * BALANCE.detachRefund) }))
+    .filter((s) => s.amount > 0);
+}
+
 /** Kosten für die Stufe `nextLevel`: nextLevel-mal die Baukosten ohne Fahrgestell */
 export function wagonUpgradeCost(type: WagonType, nextLevel: number): Stack[] {
   return wagonDef(type)
@@ -71,21 +98,58 @@ export function wagonUpgradeCost(type: WagonType, nextLevel: number): Stack[] {
     .map((s) => ({ item: s.item, amount: s.amount * nextLevel }));
 }
 
-export function detachRefund(type: WagonType): Stack[] {
-  return wagonDef(type)
-    .cost.map((s) => ({ item: s.item, amount: Math.floor(s.amount * BALANCE.detachRefund) }))
+/** Was das Abkoppeln zurückgibt: der Wagen und alle Maschinen ab der zweiten */
+export function detachRefund(wagon: WagonState): Stack[] {
+  const sum: Record<ItemId, number> = {};
+  const add = (cost: Stack[]) => {
+    for (const s of cost) sum[s.item] = (sum[s.item] ?? 0) + s.amount;
+  };
+  add(wagonDef(wagon.type).cost);
+  for (let i = 2; i <= wagon.machines.length; i += 1) add(machineBuildCost(wagon.type, i));
+  return Object.entries(sum)
+    .map(([item, amount]) => ({ item, amount: Math.floor(amount * BALANCE.detachRefund) }))
     .filter((s) => s.amount > 0);
 }
 
-// Wagen
+// Wagen und Maschinen
 
-export interface WagonInit {
+export interface MachineInit {
   recipe?: RecipeId;
   resource?: ItemId;
 }
 
-export function buildWagon(state: GameState, type: WagonType, init: WagonInit = {}): ActionResult {
+function newMachine(state: GameState): MachineState {
+  const m: MachineState = {
+    id: state.nextMachineId,
+    recipe: null,
+    resource: null,
+    progress: 0,
+    cycleActive: false,
+    status: 'leer',
+  };
+  state.nextMachineId += 1;
+  return m;
+}
+
+/** Auftrag einer frischen Maschine setzen, ohne Fehler zu melden: Was nicht geht, bleibt leer. */
+function applyInit(state: GameState, wagon: WagonState, m: MachineState, init: MachineInit): void {
+  if (wagon.type === 'ernte') {
+    const resource = init.resource ?? 'eisenerz';
+    if (isResourceDiscovered(state, resource)) m.resource = resource;
+    return;
+  }
+  if (wagon.type === 'lager' || !init.recipe) return;
+  const r = RECIPE_BY_ID[init.recipe];
+  if (r && r.wagon === wagon.type && isRecipeUnlocked(state, r.id)) m.recipe = r.id;
+}
+
+/**
+ * Hängt einen Wagen an. Von jedem Typ gibt es genau einen: Der Wagen ist die Abteilung,
+ * ausgebaut wird er mit Maschinen. Die erste Maschine steckt in den Baukosten.
+ */
+export function buildWagon(state: GameState, type: WagonType, init: MachineInit = {}): ActionResult {
   if (!isWagonTypeUnlocked(state, type)) return fail('wagen_gesperrt');
+  if (wagonOfType(state, type)) return fail('wagen_schon_da');
   if (state.wagons.length >= currentLoco(state).slots) return fail('kein_platz');
   const cost = wagonBuildCost(type);
   const missing = missingFor(state, cost);
@@ -96,54 +160,76 @@ export function buildWagon(state: GameState, type: WagonType, init: WagonInit = 
     id: state.nextWagonId,
     type,
     level: 1,
-    recipe: null,
-    resource: null,
-    progress: 0,
-    cycleActive: false,
+    machines: [],
     status: 'leer',
     crankUntil: 0,
   };
   state.nextWagonId += 1;
   state.wagons.push(w);
 
-  if (type === 'ernte') {
-    const resource = init.resource ?? 'eisenerz';
-    if (isResourceDiscovered(state, resource)) w.resource = resource;
-  } else if (type !== 'lager' && init.recipe) {
-    const r = RECIPE_BY_ID[init.recipe];
-    if (r && r.wagon === type && isRecipeUnlocked(state, r.id)) w.recipe = r.id;
-  }
+  const m = newMachine(state);
+  applyInit(state, w, m, init);
+  w.machines.push(m);
   return OK;
 }
 
-export function setRecipe(state: GameState, wagonId: number, recipeId: RecipeId | null): ActionResult {
+/** Baut eine weitere Maschine in den Wagen. Sie wird teurer, je mehr schon drinstehen. */
+export function buildMachine(state: GameState, wagonId: number, init: MachineInit = {}): ActionResult {
   const w = findWagon(state, wagonId);
-  if (!w || w.type === 'ernte' || w.type === 'lager') return fail('unbekannt');
+  if (!w) return fail('unbekannt');
+  if (freeMachineSlots(state, w) <= 0) return fail('wagen_voll');
+  const cost = nextMachineCost(w);
+  const missing = missingFor(state, cost);
+  if (missing.length > 0) return fail('material_fehlt', missing);
+  pay(state, cost);
+  const m = newMachine(state);
+  applyInit(state, w, m, init);
+  w.machines.push(m);
+  return OK;
+}
+
+/** Baut eine Maschine aus. Der letzte Platz im Wagen bleibt besetzt, sonst wäre der Wagen leer. */
+export function removeMachine(state: GameState, wagonId: number, machineId: number): ActionResult {
+  const w = findWagon(state, wagonId);
+  if (!w) return fail('unbekannt');
+  const index = w.machines.findIndex((m) => m.id === machineId);
+  if (index < 0) return fail('unbekannt');
+  if (w.machines.length <= 1) return fail('letzte_maschine');
+  for (const s of machineRefund(w)) addToStore(state, s.item, s.amount);
+  w.machines.splice(index, 1);
+  return OK;
+}
+
+export function setMachineRecipe(state: GameState, wagonId: number, machineId: number, recipeId: RecipeId | null): ActionResult {
+  const w = findWagon(state, wagonId);
+  const m = findMachine(state, wagonId, machineId);
+  if (!w || !m || w.type === 'ernte' || w.type === 'lager') return fail('unbekannt');
   if (recipeId === null) {
-    w.recipe = null;
-    w.progress = 0;
-    w.cycleActive = false;
-    w.status = 'leer';
+    m.recipe = null;
+    m.progress = 0;
+    m.cycleActive = false;
+    m.status = 'leer';
     return OK;
   }
   const r = RECIPE_BY_ID[recipeId];
   if (!r) return fail('unbekannt');
   if (r.wagon !== w.type) return fail('rezept_falscher_wagen');
   if (!isRecipeUnlocked(state, r.id)) return fail('rezept_gesperrt');
-  if (w.recipe === r.id) return OK;
-  w.recipe = r.id;
-  w.progress = 0;
-  w.cycleActive = false;
+  if (m.recipe === r.id) return OK;
+  m.recipe = r.id;
+  m.progress = 0;
+  m.cycleActive = false;
   return OK;
 }
 
-export function setResource(state: GameState, wagonId: number, item: ItemId): ActionResult {
+export function setMachineResource(state: GameState, wagonId: number, machineId: number, item: ItemId): ActionResult {
   const w = findWagon(state, wagonId);
-  if (!w || w.type !== 'ernte') return fail('unbekannt');
+  const m = findMachine(state, wagonId, machineId);
+  if (!w || !m || w.type !== 'ernte') return fail('unbekannt');
   if (!isResourceDiscovered(state, item)) return fail('rohstoff_unbekannt');
-  if (w.resource === item) return OK;
-  w.resource = item;
-  w.progress = 0;
+  if (m.resource === item) return OK;
+  m.resource = item;
+  m.progress = 0;
   return OK;
 }
 
@@ -165,7 +251,7 @@ export function detachWagon(state: GameState, wagonId: number): ActionResult {
   if (index < 0) return fail('unbekannt');
   const w = state.wagons[index]!;
   state.wagons.splice(index, 1);
-  for (const s of detachRefund(w.type)) addToStore(state, s.item, s.amount);
+  for (const s of detachRefund(w)) addToStore(state, s.item, s.amount);
   return OK;
 }
 
@@ -252,13 +338,18 @@ export function clearWorkbench(state: GameState): ActionResult {
   return OK;
 }
 
+/** Die Kurbel sitzt am Wagen und treibt alle Erntemaschinen darin an. */
 export function crank(state: GameState, wagonId: number): ActionResult {
   const w = findWagon(state, wagonId);
   if (!w || w.type !== 'ernte') return fail('unbekannt');
-  if (!w.resource || !isResourceDiscovered(state, w.resource)) return fail('rohstoff_unbekannt');
+  const resources = w.machines.map((m) => m.resource).filter((r): r is ItemId => r !== null && isResourceDiscovered(state, r));
+  if (resources.length === 0) return fail('rohstoff_unbekannt');
   if (hasSelfLoader(state)) {
-    const space = storeCap(state) - getStore(state, w.resource);
-    addToStore(state, w.resource, Math.min(BALANCE.crankBonusItems, Math.max(0, space)));
+    const cap = storeCap(state);
+    for (const resource of resources) {
+      const space = cap - getStore(state, resource);
+      addToStore(state, resource, Math.min(BALANCE.crankBonusItems, Math.max(0, space)));
+    }
     return OK;
   }
   const now = state.playedSeconds;

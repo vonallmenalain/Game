@@ -1,6 +1,6 @@
 import { ITEMS, PROJECTS } from './data';
 import { STATE_VERSION, createInitialState } from './state';
-import type { GameState, ProjectState, WagonState } from './types';
+import type { GameState, MachineState, ProjectState, WagonState } from './types';
 
 export const SAVE_KEY = 'loco/save';
 /** Schlüssel aus der Zeit, als das Spiel «Linie Null» hiess. Wird beim Laden übernommen. */
@@ -11,10 +11,55 @@ type Raw = Record<string, unknown>;
 const STATUSES: Set<unknown> = new Set(['aktiv', 'wartet', 'blockiert', 'leer']);
 
 /**
- * Migrationen von Version n auf n + 1. Wird beim Laden der Reihe nach angewendet.
- * Version 1 ist die erste veröffentlichte Form, darum ist die Liste noch leer.
+ * Version 1 hatte je Wagen genau einen Auftrag, dafür mehrere Wagen desselben Typs.
+ * Version 2 hat je Typ einen Wagen mit Maschinen darin. Aus jedem alten Wagen wird
+ * eine Maschine im Wagen seines Typs, die Stufe ist die höchste der Gruppe. So
+ * behält ein Spielstand genau seine bisherige Leistung, auch die Lagerkapazität.
  */
-const MIGRATIONS: Record<number, (raw: Raw) => Raw> = {};
+function migrateWagonsToMachines(raw: Raw): Raw {
+  if (!Array.isArray(raw['wagons'])) return raw;
+  const byType = new Map<string, Raw>();
+  const order: string[] = [];
+  let nextMachineId = 1;
+  raw['wagons'].forEach((entry) => {
+    if (!isObject(entry)) return;
+    const type = entry['type'];
+    if (typeof type !== 'string') return;
+    const machine: Raw = {
+      id: nextMachineId,
+      recipe: typeof entry['recipe'] === 'string' ? entry['recipe'] : null,
+      resource: typeof entry['resource'] === 'string' ? entry['resource'] : null,
+      progress: num(entry['progress'], 0),
+      cycleActive: entry['cycleActive'] === true,
+      status: STATUSES.has(entry['status']) ? entry['status'] : 'leer',
+    };
+    nextMachineId += 1;
+    const existing = byType.get(type);
+    if (existing) {
+      (existing['machines'] as Raw[]).push(machine);
+      existing['level'] = Math.max(num(existing['level'], 1), num(entry['level'], 1));
+      existing['crankUntil'] = Math.max(num(existing['crankUntil'], 0), num(entry['crankUntil'], 0));
+      return;
+    }
+    byType.set(type, {
+      id: num(entry['id'], byType.size + 1),
+      type,
+      level: Math.max(1, Math.floor(num(entry['level'], 1))),
+      machines: [machine],
+      status: 'leer',
+      crankUntil: num(entry['crankUntil'], 0),
+    });
+    order.push(type);
+  });
+  return { ...raw, wagons: order.map((type) => byType.get(type)!), nextMachineId };
+}
+
+/**
+ * Migrationen von Version n auf n + 1. Wird beim Laden der Reihe nach angewendet.
+ */
+const MIGRATIONS: Record<number, (raw: Raw) => Raw> = {
+  1: migrateWagonsToMachines,
+};
 
 function isObject(value: unknown): value is Raw {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -24,18 +69,36 @@ function num(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-function fillWagon(raw: unknown, fallbackId: number): WagonState | null {
+function fillMachine(raw: unknown, fallbackId: number): MachineState | null {
   if (!isObject(raw)) return null;
-  const type = raw['type'];
-  if (typeof type !== 'string') return null;
   return {
     id: num(raw['id'], fallbackId),
-    type: type as WagonState['type'],
-    level: Math.max(1, Math.floor(num(raw['level'], 1))),
     recipe: typeof raw['recipe'] === 'string' ? raw['recipe'] : null,
     resource: typeof raw['resource'] === 'string' ? raw['resource'] : null,
     progress: num(raw['progress'], 0),
     cycleActive: raw['cycleActive'] === true,
+    status: STATUSES.has(raw['status']) ? (raw['status'] as MachineState['status']) : 'leer',
+  };
+}
+
+function fillWagon(raw: unknown, fallbackId: number): WagonState | null {
+  if (!isObject(raw)) return null;
+  const type = raw['type'];
+  if (typeof type !== 'string') return null;
+  const machines: MachineState[] = [];
+  if (Array.isArray(raw['machines'])) {
+    raw['machines'].forEach((entry, index) => {
+      const m = fillMachine(entry, index + 1);
+      if (m) machines.push(m);
+    });
+  }
+  // Ein Wagen ohne Maschine kann nichts. Das gibt es nicht, also bekommt er eine leere.
+  if (machines.length === 0) machines.push({ id: 1, recipe: null, resource: null, progress: 0, cycleActive: false, status: 'leer' });
+  return {
+    id: num(raw['id'], fallbackId),
+    type: type as WagonState['type'],
+    level: Math.max(1, Math.floor(num(raw['level'], 1))),
+    machines,
     status: STATUSES.has(raw['status']) ? (raw['status'] as WagonState['status']) : 'leer',
     crankUntil: num(raw['crankUntil'], 0),
   };
@@ -90,6 +153,7 @@ export function fillDefaults(raw: Raw): GameState {
     stop: typeof raw['stop'] === 'string' ? (raw['stop'] as GameState['stop']) : 'faehrt',
     loco: raw['loco'] === 'schwere_dampflok' ? 'schwere_dampflok' : 'dampflok',
     nextWagonId: Math.max(num(raw['nextWagonId'], 1), ...wagons.map((w) => w.id + 1), 1),
+    nextMachineId: Math.max(num(raw['nextMachineId'], 1), ...wagons.flatMap((w) => w.machines.map((m) => m.id + 1)), 1),
     wagons: wagons.length > 0 ? wagons : base.wagons,
     store,
     discoveredBiomes: Array.isArray(raw['discoveredBiomes']) ? (raw['discoveredBiomes'].filter((b) => typeof b === 'string') as string[]) : base.discoveredBiomes,

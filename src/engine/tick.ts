@@ -17,7 +17,7 @@ import {
   takeFromStore,
   wagonTypeMultiplier,
 } from './state';
-import type { BiomeDef, GameState, ItemId, RecipeDef, Stack, StopReason, WagonState, WagonStatus, WagonType, Warning } from './types';
+import type { BiomeDef, GameState, ItemId, MachineState, RecipeDef, Stack, StopReason, WagonState, WagonStatus, WagonType, Warning } from './types';
 
 interface TickContext {
   cap: number;
@@ -67,33 +67,48 @@ export function tick(state: GameState, dt: number): void {
 function tickHarvest(state: GameState, dt: number, ctx: TickContext): void {
   for (const w of state.wagons) {
     if (w.type !== 'ernte') continue;
-    if (!w.resource || !ctx.discovered.has(w.resource)) {
-      w.status = 'leer';
-      continue;
-    }
     const active = ctx.selfLoader || w.crankUntil > state.playedSeconds;
-    if (!active) {
-      w.status = 'wartet';
-      continue;
+    for (const m of w.machines) {
+      if (!m.resource || !ctx.discovered.has(m.resource)) {
+        m.status = 'leer';
+        continue;
+      }
+      if (!active) {
+        m.status = 'wartet';
+        continue;
+      }
+      if (getStore(state, m.resource) >= ctx.cap) {
+        m.status = 'blockiert';
+        continue;
+      }
+      const def = itemDef(m.resource);
+      const onSite = def.homeBiomes?.includes(ctx.biome.id) ? BALANCE.onSiteBonus : 1;
+      const perSecond = ((def.harvestPerMinute ?? 0) / 60) * levelMultiplier(w.level) * ctx.harvestMul * onSite;
+      m.progress += perSecond * dt;
+      const whole = Math.floor(m.progress);
+      if (whole > 0) {
+        const space = Math.max(0, ctx.cap - getStore(state, m.resource));
+        const add = Math.min(whole, space);
+        addToStore(state, m.resource, add);
+        m.progress -= add;
+        if (m.progress > 1) m.progress = 1;
+      }
+      m.status = 'aktiv';
     }
-    if (getStore(state, w.resource) >= ctx.cap) {
-      w.status = 'blockiert';
-      continue;
-    }
-    const def = itemDef(w.resource);
-    const onSite = def.homeBiomes?.includes(ctx.biome.id) ? BALANCE.onSiteBonus : 1;
-    const perSecond = ((def.harvestPerMinute ?? 0) / 60) * levelMultiplier(w.level) * ctx.harvestMul * onSite;
-    w.progress += perSecond * dt;
-    const whole = Math.floor(w.progress);
-    if (whole > 0) {
-      const space = Math.max(0, ctx.cap - getStore(state, w.resource));
-      const add = Math.min(whole, space);
-      addToStore(state, w.resource, add);
-      w.progress -= add;
-      if (w.progress > 1) w.progress = 1;
-    }
-    w.status = 'aktiv';
+    w.status = summarize(w);
   }
+}
+
+/**
+ * Der Wagen zeigt den besten Stand seiner Maschinen: Läuft eine, läuft der Wagen.
+ * Sonst zählt die dringlichste Meldung, damit nichts unter den Tisch fällt.
+ */
+function summarize(w: WagonState): WagonStatus {
+  if (w.machines.length === 0) return 'leer';
+  if (w.machines.some((m) => m.status === 'aktiv')) return 'aktiv';
+  if (w.machines.some((m) => m.status === 'blockiert')) return 'blockiert';
+  if (w.machines.some((m) => m.status === 'wartet')) return 'wartet';
+  return 'leer';
 }
 
 // 2. Rezepte
@@ -106,21 +121,28 @@ function hasOutputRoom(state: GameState, r: RecipeDef, cap: number): boolean {
   return r.outputs.every((s) => getStore(state, s.item) < cap);
 }
 
-function supplies(prev: WagonState, r: RecipeDef): boolean {
-  if (prev.type === 'ernte') return prev.resource !== null && r.inputs.some((s) => s.item === prev.resource);
-  if (!prev.recipe) return false;
-  const prevRecipe = RECIPE_BY_ID[prev.recipe];
-  if (!prevRecipe) return false;
-  return prevRecipe.outputs.some((o) => r.inputs.some((s) => s.item === o.item));
+/** Liefert diese Maschine eine Zutat für das Rezept? */
+function supplies(m: MachineState, r: RecipeDef): boolean {
+  if (m.resource !== null) return r.inputs.some((s) => s.item === m.resource);
+  if (!m.recipe) return false;
+  const other = RECIPE_BY_ID[m.recipe];
+  if (!other) return false;
+  return other.outputs.some((o) => r.inputs.some((s) => s.item === o.item));
 }
 
-/** Ernterate eines Erntewagens in Stück pro Minute, mit Stufe, Technologie und Vor-Ort-Bonus */
-export function harvestRatePerMinute(state: GameState, w: WagonState, resource: ItemId | null = w.resource): number {
+/** Kurze Wege: Eine Maschine im selben Wagen liefert eine Zutat */
+function shortPath(wagon: WagonState, self: MachineState, r: RecipeDef): boolean {
+  return wagon.machines.some((m) => m !== self && supplies(m, r));
+}
+
+/** Ernterate einer Erntemaschine in Stück pro Minute, mit Stufe, Technologie und Vor-Ort-Bonus */
+export function harvestRatePerMinute(state: GameState, w: WagonState, resource: ItemId | null): number {
   if (w.type !== 'ernte' || !resource) return 0;
   const def = itemDef(resource);
   const onSite = def.homeBiomes?.includes(currentBiome(state).id) ? BALANCE.onSiteBonus : 1;
   return (def.harvestPerMinute ?? 0) * levelMultiplier(w.level) * harvestMultiplier(state) * onSite;
 }
+
 
 /** Ob der Vor-Ort-Bonus für einen Rohstoff gerade gilt */
 export function isOnSite(state: GameState, resource: ItemId): boolean {
@@ -132,15 +154,18 @@ export function missingInputs(state: GameState, r: RecipeDef): Stack[] {
   return r.inputs.filter((s) => getStore(state, s.item) < s.amount).map((s) => ({ item: s.item, amount: s.amount - getStore(state, s.item) }));
 }
 
-/** Tempo eines Produktionswagens als Faktor: Stufe, Technologie, Nachbarschaft */
-export function productionSpeed(state: GameState, index: number): number {
-  const w = state.wagons[index];
-  if (!w || !w.recipe) return 0;
-  const r = RECIPE_BY_ID[w.recipe];
+/** Tempo einer Maschine als Faktor: Stufe des Wagens, Technologie, kurze Wege */
+export function machineSpeed(state: GameState, w: WagonState, m: MachineState): number {
+  if (!m.recipe) return 0;
+  const r = RECIPE_BY_ID[m.recipe];
   if (!r) return 0;
-  const prev = index > 0 ? state.wagons[index - 1] : undefined;
-  const neighbor = prev && supplies(prev, r) ? 1 + BALANCE.neighborBonus : 1;
+  const neighbor = shortPath(w, m, r) ? 1 + BALANCE.neighborBonus : 1;
   return levelMultiplier(w.level) * wagonTypeMultiplier(state, w.type) * neighbor;
+}
+
+/** Grundtempo eines Wagens ohne kurze Wege */
+export function wagonBaseSpeed(state: GameState, w: WagonState): number {
+  return levelMultiplier(w.level) * wagonTypeMultiplier(state, w.type);
 }
 
 interface CycleHolder {
@@ -179,26 +204,27 @@ function runCycles(state: GameState, holder: CycleHolder, r: RecipeDef, work: nu
 }
 
 function tickProduction(state: GameState, dt: number, ctx: TickContext): void {
-  for (let i = 0; i < state.wagons.length; i += 1) {
-    const w = state.wagons[i]!;
+  for (const w of state.wagons) {
     if (w.type === 'ernte') continue;
     if (w.type === 'lager') {
-      w.status = 'aktiv';
+      for (const m of w.machines) m.status = 'aktiv';
+      w.status = w.machines.length > 0 ? 'aktiv' : 'leer';
       continue;
     }
-    if (!w.recipe) {
-      w.status = 'leer';
-      continue;
+    for (const m of w.machines) {
+      if (!m.recipe) {
+        m.status = 'leer';
+        continue;
+      }
+      const r = RECIPE_BY_ID[m.recipe];
+      if (!r || r.wagon !== w.type || !isRecipeUnlocked(state, r.id)) {
+        m.status = 'leer';
+        continue;
+      }
+      const speed = levelMultiplier(w.level) * (ctx.typeMul[w.type] ?? 1) * (shortPath(w, m, r) ? 1 + BALANCE.neighborBonus : 1);
+      m.status = runCycles(state, m, r, dt * speed, ctx.cap);
     }
-    const r = RECIPE_BY_ID[w.recipe];
-    if (!r || r.wagon !== w.type || !isRecipeUnlocked(state, r.id)) {
-      w.status = 'leer';
-      continue;
-    }
-    const prev = i > 0 ? state.wagons[i - 1] : undefined;
-    const neighbor = prev && supplies(prev, r) ? 1 + BALANCE.neighborBonus : 1;
-    const speed = levelMultiplier(w.level) * (ctx.typeMul[w.type] ?? 1) * neighbor;
-    w.status = runCycles(state, w, r, dt * speed, ctx.cap);
+    w.status = summarize(w);
   }
 }
 
@@ -397,10 +423,10 @@ function tickMovement(state: GameState, dt: number): void {
 
 // 7. Warnungen
 
-function outputItemOf(w: WagonState): ItemId | undefined {
-  if (w.type === 'ernte') return w.resource ?? undefined;
-  if (!w.recipe) return undefined;
-  return RECIPE_BY_ID[w.recipe]?.outputs[0]?.item;
+function outputItemOf(m: MachineState): ItemId | undefined {
+  if (m.resource) return m.resource;
+  if (!m.recipe) return undefined;
+  return RECIPE_BY_ID[m.recipe]?.outputs[0]?.item;
 }
 
 function collectWarnings(state: GameState): void {
@@ -409,9 +435,18 @@ function collectWarnings(state: GameState): void {
   if (state.stop === 'schienen') warnings.push({ code: 'schienen_leer', item: 'schienen' });
   if (state.stop === 'brennstoff') warnings.push({ code: 'brennstoff_leer', item: lk.fuel });
   if (state.stop !== 'faehrt') warnings.push({ code: 'zug_steht' });
+  // Je Ware und Grund nur eine Meldung: Zehn blockierte Maschinen sind ein Problem, nicht zehn.
+  const seen = new Set<string>();
   for (const w of state.wagons) {
-    if (w.status === 'blockiert') warnings.push({ code: 'lager_voll', item: outputItemOf(w), wagonId: w.id });
-    else if (w.status === 'wartet') warnings.push({ code: w.type === 'ernte' ? 'handkurbel' : 'zutat_fehlt', wagonId: w.id });
+    for (const m of w.machines) {
+      const code = m.status === 'blockiert' ? 'lager_voll' : m.status === 'wartet' ? (w.type === 'ernte' ? 'handkurbel' : 'zutat_fehlt') : null;
+      if (!code) continue;
+      const item = code === 'lager_voll' ? outputItemOf(m) : undefined;
+      const key = `${code}/${item ?? ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      warnings.push({ code, item, wagonId: w.id, machineId: m.id });
+    }
   }
   state.warnings = warnings;
 }

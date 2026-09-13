@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ITEMS, WAGONS, createInitialState, type WagonType } from '../engine';
-import { addWagon, research } from '../engine/sim/testkit';
+import { addMachine, addWagon, research } from '../engine/sim/testkit';
 import { WAGON_COLOR, describeError, statusText, techRequirementText } from './labels';
 import { GLYPH_ITEMS, itemsWithoutGlyph } from './glyphs';
 import { TECH_BY_ID } from '../engine';
@@ -23,10 +23,16 @@ describe('Beschriftungen', () => {
     const s = createInitialState();
     expect(statusText(s, s.wagons[0]!)).toBe('wartet auf die Handkurbel');
     const w = addWagon(s, 'schmelz', { recipe: 'eisenbarren' });
+    const m = w.machines[0]!;
     w.status = 'wartet';
+    m.status = 'wartet';
     expect(statusText(s, w)).toBe('wartet auf Eisenerz, Koks');
     w.status = 'blockiert';
+    m.status = 'blockiert';
     expect(statusText(s, w)).toBe('Lager voll: Eisenbarren');
+    // Mehrere Maschinen: Der Wagen meldet, wie viele laufen und was klemmt
+    addMachine(s, w, { recipe: 'koks' }).status = 'aktiv';
+    expect(statusText(s, w)).toBe('1 von 2 laufen · Lager voll: Eisenbarren');
   });
 
   it('nennt offene Voraussetzungen', () => {

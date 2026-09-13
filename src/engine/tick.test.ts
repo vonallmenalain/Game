@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { BALANCE } from './balance';
 import { BIOME_BY_ID, LOCO_BY_ID, OBSTACLE_BY_ID, PROJECT_BY_ID } from './data';
 import { createInitialState, getStore, storeCap } from './state';
-import { productionSpeed, tick } from './tick';
-import { addWagon, clone, grant, research, runFor } from './sim/testkit';
+import { machineSpeed, tick } from './tick';
+import { addMachine, addWagon, clone, grant, research, runFor } from './sim/testkit';
 import { startResearch } from './actions';
 
 describe('Ernte', () => {
@@ -13,6 +13,16 @@ describe('Ernte', () => {
     runFor(s, 60);
     expect(getStore(s, 'eisenerz')).toBe(45);
     expect(s.wagons[0]?.status).toBe('aktiv');
+  });
+
+  it('jede weitere Erntemaschine im Wagen erntet noch einmal so viel', () => {
+    const s = createInitialState();
+    research(s, 'selbstlader');
+    addMachine(s, s.wagons[0]!, { resource: 'eisenerz' });
+    addMachine(s, s.wagons[0]!, { resource: 'kohle' });
+    runFor(s, 60);
+    expect(getStore(s, 'eisenerz')).toBe(90);
+    expect(getStore(s, 'kohle')).toBe(BALANCE.startStore['kohle']! + 45);
   });
 
   it('wartet ohne Selbstlader auf die Handkurbel', () => {
@@ -46,6 +56,16 @@ describe('Produktion', () => {
     expect(s.wagons[1]?.status).toBe('wartet');
   });
 
+  it('zwei Schmelzöfen im selben Wagen arbeiten nebeneinander', () => {
+    const s = createInitialState();
+    s.store['kohle'] = 60;
+    const schmelz = addWagon(s, 'schmelz', { recipe: 'koks' });
+    addMachine(s, schmelz, { recipe: 'koks' });
+    runFor(s, 30);
+    expect(getStore(s, 'koks')).toBe(30);
+    expect(s.wagons[1]?.status).toBe('aktiv');
+  });
+
   it('liefert unabhängig vom Zeitschritt dasselbe Ergebnis', () => {
     const make = () => {
       const s = createInitialState();
@@ -66,14 +86,15 @@ describe('Produktion', () => {
     }
   });
 
-  it('gibt den Nachbarschaftsbonus nur, wenn der Wagen davor die Zutat liefert', () => {
+  it('gibt kurze Wege nur, wenn eine Maschine im selben Wagen die Zutat liefert', () => {
     const s = createInitialState();
     research(s, 'selbstlader');
-    addWagon(s, 'schmelz', { recipe: 'eisenbarren' });
-    expect(productionSpeed(s, 1)).toBeCloseTo(1.1);
-    const [a, b] = s.wagons;
-    s.wagons = [b!, a!];
-    expect(productionSpeed(s, 0)).toBeCloseTo(1);
+    const schmelz = addWagon(s, 'schmelz', { recipe: 'eisenbarren' });
+    const barren = schmelz.machines[0]!;
+    expect(machineSpeed(s, schmelz, barren)).toBeCloseTo(1);
+    // Ein Schmelzofen für Koks im selben Wagen bringt den Bonus
+    addMachine(s, schmelz, { recipe: 'koks' });
+    expect(machineSpeed(s, schmelz, barren)).toBeCloseTo(1.1);
   });
 
   it('blockiert, wenn das Lager für die Ausgabe voll ist', () => {

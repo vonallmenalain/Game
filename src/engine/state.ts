@@ -1,8 +1,8 @@
 import { BALANCE } from './balance';
 import { BIOMES, BIOME_BY_ID, ITEMS, PROJECTS, PROJECT_BY_ID, RECIPE_BY_ID, TECH_BY_ID, WAGON_BY_TYPE, loco as locoDef, recipesForWagon } from './data';
-import type { BiomeDef, GameState, ItemId, LocoDef, ProjectId, ProjectState, RecipeDef, TechEffect, TechId, WagonState, WagonType } from './types';
+import type { BiomeDef, GameState, ItemId, LocoDef, MachineState, ProjectId, ProjectState, RecipeDef, TechEffect, TechId, WagonState, WagonType } from './types';
 
-export const STATE_VERSION = 1;
+export const STATE_VERSION = 2;
 
 export function createInitialState(): GameState {
   const store: Record<ItemId, number> = {};
@@ -16,10 +16,7 @@ export function createInitialState(): GameState {
     id: 1,
     type: 'ernte',
     level: 1,
-    recipe: null,
-    resource: 'eisenerz',
-    progress: 0,
-    cycleActive: false,
+    machines: [{ id: 1, recipe: null, resource: 'eisenerz', progress: 0, cycleActive: false, status: 'wartet' }],
     status: 'wartet',
     crankUntil: 0,
   };
@@ -35,6 +32,7 @@ export function createInitialState(): GameState {
     stop: 'faehrt',
     loco: 'dampflok',
     nextWagonId: 2,
+    nextMachineId: 2,
     wagons: [firstWagon],
     store,
     discoveredBiomes: ['tal'],
@@ -67,12 +65,15 @@ export function takeFromStore(state: GameState, item: ItemId, amount: number): v
   state.stats.consumed[item] = (state.stats.consumed[item] ?? 0) + amount;
 }
 
-export function lagerwagenCount(state: GameState): number {
-  return state.wagons.filter((w) => w.type === 'lager').length;
+/** Wie viele Regale in allen Lagerwagen zusammen stehen */
+export function regalCount(state: GameState): number {
+  let count = 0;
+  for (const w of state.wagons) if (w.type === 'lager') count += w.machines.length;
+  return count;
 }
 
 export function storeCap(state: GameState): number {
-  return BALANCE.storeBaseCap + BALANCE.storeCapPerLagerwagen * lagerwagenCount(state);
+  return BALANCE.storeBaseCap + BALANCE.storeCapPerRegal * regalCount(state);
 }
 
 // Technologien und ihre Wirkung
@@ -108,6 +109,20 @@ export function wagonTypeMultiplier(state: GameState, type: WagonType): number {
 
 export function levelMultiplier(level: number): number {
   return 1 + BALANCE.levelSpeedStep * (level - 1);
+}
+
+/**
+ * Maschinenplätze je Wagen. Der Grundwert gilt für jeden Wagen gleich, die Lok
+ * bringt Zugkraft dazu, Forschung baut den Wagen innen aus.
+ */
+export function machineSlots(state: GameState): number {
+  let extra = currentLoco(state).machineBonus;
+  for (const e of activeEffects(state)) if (e.kind === 'maschinen_plaetze') extra += e.value;
+  return BALANCE.machineSlotsBase + extra;
+}
+
+export function freeMachineSlots(state: GameState, wagon: WagonState): number {
+  return machineSlots(state) - wagon.machines.length;
 }
 
 export function offlineCapSeconds(state: GameState): number {
@@ -165,6 +180,15 @@ export function freeSlots(state: GameState): number {
 export function findWagon(state: GameState, wagonId: number): WagonState | undefined {
   return state.wagons.find((w) => w.id === wagonId);
 }
+
+export function findMachine(state: GameState, wagonId: number, machineId: number): MachineState | undefined {
+  return findWagon(state, wagonId)?.machines.find((m) => m.id === machineId);
+}
+
+export function wagonOfType(state: GameState, type: WagonType): WagonState | undefined {
+  return state.wagons.find((w) => w.type === type);
+}
+
 
 export function hasWagonOfType(state: GameState, type: WagonType): boolean {
   return state.wagons.some((w) => w.type === type);

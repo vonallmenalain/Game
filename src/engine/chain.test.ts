@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { createInitialState } from './state';
-import { addWagon, grant, research, runFor } from './sim/testkit';
+import { addMachine, addWagon, grant, research, runFor } from './sim/testkit';
 
+/** Der Zug aus Abschnitt 7.3 des Konzepts: fünf Wagen, sieben Maschinen */
 function chain(werkRecipe: string) {
   const s = createInitialState();
   research(s, 'selbstlader', 'schmelzwagen', 'werkwagen', 'walzwagen', 'konstruktionsbuero');
   grant(s, { kohle: 50, holz: 400 });
-  addWagon(s, 'ernte', { resource: 'kohle' });
-  addWagon(s, 'schmelz', { recipe: 'koks' });
-  addWagon(s, 'schmelz', { recipe: 'eisenbarren' });
+  addMachine(s, s.wagons[0]!, { resource: 'kohle' });
+  const schmelz = addWagon(s, 'schmelz', { recipe: 'koks' });
+  addMachine(s, schmelz, { recipe: 'eisenbarren' });
   addWagon(s, 'walz', { recipe: 'schienen' });
   addWagon(s, 'werk', { recipe: werkRecipe });
   addWagon(s, 'buero', { recipe: 'bp_eisen' });
@@ -23,16 +24,17 @@ function railsPerMinute(s: ReturnType<typeof createInitialState>): number {
 }
 
 describe('Kettenrechnung aus dem Konzept', () => {
-  it('sieben Wagen liefern rund 20 Schienen pro Minute, mit Nachbarschaftsbonus etwas mehr', () => {
+  it('sieben Maschinen in fünf Wagen liefern rund 20 Schienen pro Minute', () => {
     const s = chain('bretter');
-    expect(s.wagons).toHaveLength(7);
+    expect(s.wagons).toHaveLength(5);
+    expect(s.wagons.reduce((sum, w) => sum + w.machines.length, 0)).toBe(7);
     const perMinute = railsPerMinute(s);
     expect(perMinute).toBeGreaterThanOrEqual(19);
     expect(perMinute).toBeLessThanOrEqual(23);
     expect(s.km).toBeGreaterThan(2);
   });
 
-  it('ein Werkwagen auf Zahnrad konkurriert um Eisenbarren und drückt die Schienen', () => {
+  it('ein Montagetisch auf Zahnrad konkurriert um Eisenbarren und drückt die Schienen', () => {
     const s = chain('zahnrad');
     const perMinute = railsPerMinute(s);
     expect(perMinute).toBeGreaterThanOrEqual(12);

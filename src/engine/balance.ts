@@ -11,12 +11,16 @@ export const BALANCE = {
   railsPerKm: 100,
   /** Lagerkapazität je Ware ohne Lagerwagen */
   storeBaseCap: 200,
-  /** Zusätzliche Kapazität je Ware pro Lagerwagen */
-  storeCapPerLagerwagen: 200,
+  /** Zusätzliche Kapazität je Ware pro Regal im Lagerwagen */
+  storeCapPerRegal: 200,
+  /** Maschinenplätze in jedem Wagen, ohne Lok-Bonus und Forschung */
+  machineSlotsBase: 10,
+  /** Die n-te Maschine kostet das n-fache der Grundkosten */
+  machineCostStep: 1,
   /** Tempo je Wagenstufe: Stufe n arbeitet mit 1 + step * (n - 1) */
   levelSpeedStep: 0.2,
   maxLevel: 5,
-  /** Tempo-Bonus, wenn der Wagen davor eine Zutat liefert */
+  /** Tempo-Bonus, wenn eine Maschine im selben Wagen eine Zutat liefert */
   neighborBonus: 0.1,
   /** Erntefaktor im Heimat-Biom des Rohstoffs */
   onSiteBonus: 1.5,

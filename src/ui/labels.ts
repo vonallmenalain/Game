@@ -1,4 +1,4 @@
-import { ITEM_BY_ID, RECIPE_BY_ID, TECH_BY_ID, BIOME_BY_ID, PROJECT_BY_ID, missingInputs, type ActionResult, type GameState, type Stack, type TechDef, type WagonState, type WagonType } from '../engine';
+import { BALANCE, ITEM_BY_ID, RECIPE_BY_ID, TECH_BY_ID, BIOME_BY_ID, PROJECT_BY_ID, WAGON_BY_TYPE, missingInputs, type ActionResult, type GameState, type MachineState, type Stack, type TechDef, type WagonState, type WagonStatus, type WagonType } from '../engine';
 
 /** CSS-Variable je Wagentyp, definiert in app.css */
 export const WAGON_COLOR: Record<WagonType, string> = {
@@ -87,30 +87,50 @@ export function describeError(result: ActionResult): string {
   }
 }
 
-/** Status eines Wagens als kurzer Satz */
-export function statusText(state: GameState, w: WagonState): string {
-  switch (w.status) {
+/** Wie eine Maschine in diesem Wagen heisst */
+export function machineName(type: WagonType): string {
+  return WAGON_BY_TYPE[type]?.machineName ?? 'Maschine';
+}
+
+/** Status einer einzelnen Maschine als kurzer Satz */
+export function machineStatusText(state: GameState, wagon: WagonState, m: MachineState): string {
+  switch (m.status) {
     case 'aktiv':
       return 'aktiv';
     case 'wartet': {
-      if (w.type === 'ernte') return 'wartet auf die Handkurbel';
-      const r = w.recipe ? RECIPE_BY_ID[w.recipe] : undefined;
+      if (wagon.type === 'ernte') return 'wartet auf die Handkurbel';
+      const r = m.recipe ? RECIPE_BY_ID[m.recipe] : undefined;
       if (!r) return 'wartet';
       const missing = missingInputs(state, r);
-      return missing.length > 0 ? `wartet auf ${missing.map((m) => itemName(m.item)).join(', ')}` : 'wartet';
+      return missing.length > 0 ? `wartet auf ${missing.map((x) => itemName(x.item)).join(', ')}` : 'wartet';
     }
     case 'blockiert': {
-      const out = w.type === 'ernte' ? w.resource : w.recipe ? RECIPE_BY_ID[w.recipe]?.outputs[0]?.item : undefined;
+      const out = m.resource ?? (m.recipe ? RECIPE_BY_ID[m.recipe]?.outputs[0]?.item : undefined);
       return out ? `Lager voll: ${itemName(out)}` : 'Lager voll';
     }
     default:
-      return w.type === 'ernte' ? 'kein Rohstoff gewählt' : w.type === 'lager' ? 'erhöht die Kapazität' : 'kein Rezept gewählt';
+      return wagon.type === 'ernte' ? 'kein Rohstoff gewählt' : wagon.type === 'lager' ? 'erhöht die Kapazität' : 'kein Auftrag gewählt';
   }
 }
 
-export function statusTone(w: WagonState): 'good' | 'warn' | 'mute' {
-  if (w.status === 'aktiv') return 'good';
-  if (w.status === 'leer') return 'mute';
+/**
+ * Status des ganzen Wagens. Laufen alle Maschinen, steht das kurz da. Sonst zählt,
+ * was klemmt, denn das ist der Grund hinzuschauen.
+ */
+export function statusText(state: GameState, w: WagonState): string {
+  const n = w.machines.length;
+  if (w.type === 'lager') return `${n} ${n === 1 ? 'Regal' : 'Regale'} · plus ${n * BALANCE.storeCapPerRegal} je Ware`;
+  const laufen = w.machines.filter((m) => m.status === 'aktiv').length;
+  if (laufen > 0 && laufen === n) return n === 1 ? 'aktiv' : `${n} Maschinen laufen`;
+  const klemmt = w.machines.find((m) => m.status === w.status);
+  const text = klemmt ? machineStatusText(state, w, klemmt) : 'leer';
+  return laufen > 0 ? `${laufen} von ${n} laufen · ${text}` : text;
+}
+
+/** Gilt für Wagen wie für einzelne Maschinen */
+export function statusTone(what: { status: WagonStatus }): 'good' | 'warn' | 'mute' {
+  if (what.status === 'aktiv') return 'good';
+  if (what.status === 'leer') return 'mute';
   return 'warn';
 }
 

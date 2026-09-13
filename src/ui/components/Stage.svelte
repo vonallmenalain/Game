@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BIOME_BY_ID, LOCO_BY_ID, PROJECT_BY_ID, WAGON_BY_TYPE, currentBiome, currentLoco, type WagonState } from '../../engine';
+  import { BIOME_BY_ID, LOCO_BY_ID, PROJECT_BY_ID, WAGONS, WAGON_BY_TYPE, currentBiome, currentLoco, machineSlots, wagonOfType, type WagonState } from '../../engine';
   import { formatKm } from '../../lib/format';
   import { game } from '../game.svelte';
   import { WAGON_COLOR, statusTone } from '../labels';
@@ -12,7 +12,8 @@
   const biome = $derived(currentBiome(game.state));
   const mode = $derived(stageMode(game.state));
   const obstacle = $derived(blockingObstacle(game.state));
-  const free = $derived(Math.max(0, loco.slots - game.state.wagons.length));
+  // Ein Platzhalter je Wagentyp, der noch fehlt, höchstens so viele wie die Lok zieht
+  const free = $derived(Math.min(Math.max(0, loco.slots - game.state.wagons.length), WAGONS.filter((w) => !wagonOfType(game.state, w.type)).length));
   const next = $derived(nextEvent(game.state));
 
   /** Das Bauwerk am aktuellen Hindernis, sobald es steht */
@@ -68,11 +69,11 @@
   </div>
 
   <div class="train" role="group" aria-label="Wagen des Zuges">
-    <button type="button" class="vehicle" class:arriving={locoArriving} onclick={() => game.showToast(`${loco.name}: ${loco.slots} Wagen, ${loco.speedKmh} km/h`)} aria-label={loco.name}>
+    <button type="button" class="vehicle" class:arriving={locoArriving} onclick={() => game.showToast(`${loco.name}: ${loco.slots} Wagen, ${machineSlots(game.state)} Maschinen je Wagen, ${loco.speedKmh} km/h`)} aria-label={loco.name}>
       <Vehicle kind={loco.id} color="var(--loco)" rolling={mode === 'faehrt'} />
     </button>
     {#each game.state.wagons as w (w.id)}
-      <button type="button" class="vehicle tone-{statusTone(w)}" onclick={() => open(w)} aria-label="{WAGON_BY_TYPE[w.type]?.name ?? w.type}, Stufe {w.level}">
+      <button type="button" class="vehicle tone-{statusTone(w)}" onclick={() => open(w)} aria-label="{WAGON_BY_TYPE[w.type]?.name ?? w.type}, Stufe {w.level}, {w.machines.length} Maschinen">
         <Vehicle kind={w.type} color={WAGON_COLOR[w.type]} rolling={mode === 'faehrt'} />
         <span class="pips" aria-hidden="true">
           {#each Array(5) as _, i (i)}<i class:on={i < w.level}></i>{/each}
