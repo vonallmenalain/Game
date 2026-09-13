@@ -51,15 +51,20 @@ try {
   await page.getByRole('button', { name: 'Werkstatt', exact: true }).click();
   await page.getByRole('button', { name: /Kohle schaufeln/ }).click();
 
+  // Karte über den Rezeptnamen suchen, nicht über irgendeinen Text darin:
+  // Die Zutaten tragen inzwischen selbst ihre Namen.
+  const rezeptKarte = (name) =>
+    page.locator('.rezept').filter({ has: page.locator('.zeile .name', { hasText: new RegExp(`^${name}$`) }) }).first();
+
   // Kette: Eisenbarren braucht Koks. Antippen muss Koks von selbst voranstellen.
-  const eisenbarren = page.locator('.rezept', { hasText: 'Eisenbarren' }).first();
+  const eisenbarren = rezeptKarte('Eisenbarren');
   const kettenKnopf = (await eisenbarren.getByRole('button').innerText()).trim();
   await eisenbarren.getByRole('button').click();
   await page.waitForTimeout(300);
   const queue = (await page.locator('.werkbank').innerText()).replace(/\s+/g, ' ');
 
   // Der Knopf darf nicht wandern, wenn die Warteschlange wächst
-  const koksRezept = page.locator('.rezept', { hasText: 'Koks' }).first();
+  const koksRezept = rezeptKarte('Koks');
   const knopfVorher = await koksRezept.getByRole('button').boundingBox();
   await koksRezept.getByRole('button').click();
   await page.waitForTimeout(250);
@@ -67,6 +72,13 @@ try {
   await page.waitForTimeout(250);
   const knopfNachher = await koksRezept.getByRole('button').boundingBox();
   const knopfWandert = Math.abs((knopfVorher?.y ?? 0) - (knopfNachher?.y ?? 0));
+
+  // Zutaten und Ergebnis sind beschriftet, und auch das Ergebnis zeigt seinen Bestand.
+  const koksFluss = koksRezept.locator('.flow');
+  const zutatName = (await koksFluss.locator('.chip').first().locator('.label').innerText()).trim();
+  const ergebnisName = (await koksFluss.locator('.chip').last().locator('.label').innerText()).trim();
+  const ergebnisBestand = await koksFluss.locator('.chip').last().locator('.have').count();
+  const beschriftet = zutatName === 'Kohle' && ergebnisName === 'Koks' && ergebnisBestand === 1;
   await page.screenshot({ path: shot('03-werkstatt.png') });
 
   await page.getByRole('button', { name: 'Zug', exact: true }).click();
@@ -240,11 +252,11 @@ try {
   const offline = cloudRequests.length === 0 && !firebaseGeladen;
   const alleScrollen = Object.values(scrollbar).every(Boolean) && leisteSichtbar;
   const kette = kettenKnopf === '+2' && /Koks/.test(queue) && /Eisenbarren/.test(queue);
-  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, scrollbar, leisteSichtbar }, null, 2));
+  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, beschriftet, zutatName, ergebnisName, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, scrollbar, leisteSichtbar }, null, 2));
   // Erfolgskriterium aus Abschnitt 15.3 des Konzepts: unter zwei Sekunden bis zum ersten Bild
   const schnell = ladezeit < 2000;
-  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen) {
-    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen });
+  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen || !beschriftet) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen, beschriftet });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');

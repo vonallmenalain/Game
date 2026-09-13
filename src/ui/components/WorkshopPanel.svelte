@@ -75,7 +75,7 @@
   </div>
   {#if head}
     <div class="laeuft">
-      <RecipeFlow recipe={head.id} showStock={false} size="s" />
+      <RecipeFlow recipe={head.id} showStock={false} showNames={false} size="s" />
       <span class="name">{head.name}</span>
     </div>
     <Bar value={progress} tone="good" />
