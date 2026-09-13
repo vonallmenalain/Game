@@ -18,7 +18,7 @@
   } from '../../engine';
   import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { WAGON_COLOR, itemName } from '../labels';
+  import { itemName } from '../labels';
   import Bar from './Bar.svelte';
   import ItemChip from './ItemChip.svelte';
   import RecipeFlow from './RecipeFlow.svelte';
@@ -103,7 +103,7 @@
 <div class="liste">
   {#each gruppen as gruppe (gruppe.typ)}
     <div class="gruppe">
-      <span class="silhouette"><Vehicle kind={gruppe.typ} color={WAGON_COLOR[gruppe.typ]} rolling={false} /></span>
+      <span class="silhouette"><Vehicle kind={gruppe.typ} /></span>
       <h3>{gruppe.name}</h3>
     </div>
     {#each gruppe.rezepte as r (r.id)}

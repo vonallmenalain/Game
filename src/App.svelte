@@ -16,7 +16,6 @@
   import WagonList from './ui/components/WagonList.svelte';
   import WorkshopPanel from './ui/components/WorkshopPanel.svelte';
 
-  let tab = $state<Tab>('zug');
   let needRefresh = $state(false);
 
   const updateSW = registerSW({
@@ -47,7 +46,7 @@
   <main class="loading">Loco lädt …</main>
 {:else}
   <div class="app">
-    {#if tab !== 'zug'}
+    {#if game.tab === 'mehr'}
       <StatusLine />
     {/if}
     {#if needRefresh}
@@ -60,22 +59,26 @@
       <div class="update">Ende des ersten Stands erreicht. Die Wüste wartet auf den nächsten Ausbau.</div>
     {/if}
     <main>
-      {#if tab === 'zug'}
+      <!-- Die Bühne steht auf jedem Register ausser «Mehr» fest oben. Sie bleibt dieselbe
+           Instanz, damit Fahrt und Kamerafahrt beim Wechsel nicht abreissen. -->
+      {#if game.tab !== 'mehr'}
         <Stage />
+      {/if}
+      {#if game.tab === 'zug'}
         <div class="scrollbereich"><WagonList /></div>
-      {:else if tab === 'werkstatt'}
+      {:else if game.tab === 'werkstatt'}
         <WorkshopPanel />
-      {:else if tab === 'lager'}
+      {:else if game.tab === 'lager'}
         <div class="scrollbereich"><StorePanel /></div>
-      {:else if tab === 'forschung'}
+      {:else if game.tab === 'forschung'}
         <div class="scrollbereich"><ResearchPanel /></div>
-      {:else if tab === 'strecke'}
+      {:else if game.tab === 'strecke'}
         <div class="scrollbereich"><TrackPanel /></div>
       {:else}
         <div class="scrollbereich"><MorePanel /></div>
       {/if}
     </main>
-    <TabBar active={tab} {dots} onchange={(t) => (tab = t)} />
+    <TabBar active={game.tab} {dots} onchange={(t: Tab) => game.openTab(t)} />
   </div>
 
   {#if game.report}

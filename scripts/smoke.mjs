@@ -108,8 +108,11 @@ try {
   await page.reload();
   await page.getByRole('group', { name: 'Wagen des Zuges' }).waitFor({ timeout: 15000 });
   await page.getByRole('button', { name: 'Zug', exact: true }).click();
+  // Die Bühne zeigt den ganzen Zug; ein Wagen auf der Bühne holt sich die Kamera und klappt auf
+  const fokusVorher = await page.locator('section.stage').getAttribute('data-focus');
   await page.getByRole('button', { name: /Erntewagen/ }).first().click();
   await page.waitForTimeout(300);
+  const fokusWagen = await page.locator('section.stage').getAttribute('data-focus');
 
   // Maschinen im Wagen: Eine zweite Erntemaschine bauen und ihr einen Rohstoff geben.
   const maschinenVorher = await page.locator('.maschine').count();
@@ -132,10 +135,20 @@ try {
   // Die Bühne bleibt sichtbar, während der Wagen ausgeklappt ist
   const buehne = await page.locator('section.stage').boundingBox();
   const buehneFrei = Boolean(buehne && buehne.y >= 0 && buehne.height > 100);
-  // Nochmals auf den Wagen tippen klappt ihn wieder zu
+  // Nochmals auf den Wagen tippen klappt ihn wieder zu, und die Bühne zeigt wieder den Zug
   await page.getByRole('button', { name: /Erntewagen/ }).first().click();
   await page.waitForTimeout(300);
   const zugeklappt = (await page.locator('.ausklapp').count()) === 0;
+  const fokusZurueck = await page.locator('section.stage').getAttribute('data-focus');
+  const buehneFokus = fokusVorher === 'zug' && fokusWagen === 'wagen' && fokusZurueck === 'zug';
+
+  // Die Lok antippen fährt die Kamera an sie heran und öffnet die Strecke
+  await page.getByRole('button', { name: /^Dampflok$/ }).first().click();
+  await page.waitForTimeout(400);
+  const lokOeffnetStrecke =
+    (await page.locator('nav.tabs button.active').innerText()).trim() === 'Strecke' && (await page.locator('section.stage').getAttribute('data-focus')) === 'lok';
+  await page.getByRole('button', { name: 'Zug', exact: true }).click();
+  await page.waitForTimeout(300);
 
   // Auf der Wagenkarte muss die zweite Maschine sichtbar werden
   const karte = (await page.locator('.wagon').first().innerText()).replace(/\s+/g, ' ');
@@ -269,10 +282,13 @@ try {
   const gewarnt = /Schienen alle/.test(bericht);
   // Jeder Bildschirm muss seinen Inhalt erreichbar machen: Das Gerüst hält Kopf und
   // Leiste fest, gescrollt wird innen. Bricht das, ist Inhalt unerreichbar.
+  // Die Bühne steht auf jedem Register ausser «Mehr» fest oben
   const scrollbar = {};
+  const buehneJeZiel = {};
   for (const ziel of ['Lager', 'Forschung', 'Strecke', 'Mehr', 'Werkstatt']) {
     await page.getByRole('button', { name: ziel, exact: true }).click();
     await page.waitForTimeout(300);
+    buehneJeZiel[ziel] = await page.locator('section.stage').count();
     const bereich = page.locator('.scrollbereich, .liste').first();
     const mass = await bereich.evaluate((el) => ({ scroll: el.scrollHeight, sicht: el.clientHeight }));
     if (mass.scroll > mass.sicht + 4) {
@@ -343,12 +359,13 @@ try {
 
   const offline = cloudRequests.length === 0 && !firebaseGeladen;
   const alleScrollen = Object.values(scrollbar).every(Boolean) && leisteSichtbar;
+  const buehneUeberall = buehneJeZiel['Lager'] === 1 && buehneJeZiel['Forschung'] === 1 && buehneJeZiel['Strecke'] === 1 && buehneJeZiel['Werkstatt'] === 1 && buehneJeZiel['Mehr'] === 0;
   const kette = kettenKnopf === '+2' && /Koks/.test(queue) && /Eisenbarren/.test(queue);
-  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, beschriftet, zutatName, ergebnisName, maschinenGebaut, pausiert, nachPause, buehneFrei, zugeklappt, ausklappPasst, karte, eingereiht, forschung, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, zugNachMigration, scrollbar, leisteSichtbar }, null, 2));
+  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, beschriftet, zutatName, ergebnisName, maschinenGebaut, pausiert, nachPause, buehneFrei, zugeklappt, ausklappPasst, karte, eingereiht, forschung, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, zugNachMigration, scrollbar, leisteSichtbar, buehneFokus, lokOeffnetStrecke, buehneJeZiel }, null, 2));
   // Erfolgskriterium aus Abschnitt 15.3 des Konzepts: unter zwei Sekunden bis zum ersten Bild
   const schnell = ladezeit < 2000;
-  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen || !beschriftet || !maschinenGebaut || !karteZeigtMaschinen || !pausiert || !eingereiht || !buehneFrei || !zugeklappt || !ausklappPasst) {
-    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen, beschriftet, maschinenGebaut, karteZeigtMaschinen, pausiert, eingereiht, buehneFrei, zugeklappt, ausklappPasst });
+  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen || !beschriftet || !maschinenGebaut || !karteZeigtMaschinen || !pausiert || !eingereiht || !buehneFrei || !zugeklappt || !ausklappPasst || !buehneFokus || !lokOeffnetStrecke || !buehneUeberall) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen, beschriftet, maschinenGebaut, karteZeigtMaschinen, pausiert, eingereiht, buehneFrei, zugeklappt, ausklappPasst, buehneFokus, lokOeffnetStrecke, buehneUeberall });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');
