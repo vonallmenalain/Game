@@ -107,17 +107,17 @@ Die Strecke ist der Techbaum, den man sehen kann. Jedes Biom liefert neue Rohsto
 | Ab km | Biom oder Hindernis | Neue Rohstoffe | Bauprojekt | Im ersten Stand |
 |---|---|---|---|---|
 | 0 | Tal | Eisenerz, Kohle, Holz, Stein | | ja |
-| 8 | Wald | Holz (reich), Harz | | ja |
-| 24 | Schlucht | | Brücke | ja |
-| 24 | Berg | Kupfererz, Kalk, Salpeter | | ja |
-| 36 | Bergmassiv | | Tunnel | ja |
-| 48 | Wüste | Sand, Öl, Salz | Wüstenstrecke | nein, Ausblick |
-| 72 | Küste | Wasser, Muschelkalk | Fähre | nein |
-| 96 | Vulkan | Schwefel, Titan, Erdwärme | | nein |
-| 120 | Hochgebirge | Quarz, Silber, Eis | Zahnradbahn | nein |
-| 150 | Weltende | | Raumbahnhof | nein |
+| 6 | Wald | Holz (reich), Harz | | ja |
+| 18 | Schlucht | | Brücke | ja |
+| 18 | Berg | Kupfererz, Kalk, Salpeter | | ja |
+| 28 | Bergmassiv | | Tunnel | ja |
+| 40 | Wüste | Sand, Öl, Salz | Wüstenstrecke | nein, Ausblick |
+| 60 | Küste | Wasser, Muschelkalk | Fähre | nein |
+| 80 | Vulkan | Schwefel, Titan, Erdwärme | | nein |
+| 100 | Hochgebirge | Quarz, Silber, Eis | Zahnradbahn | nein |
+| 125 | Weltende | | Raumbahnhof | nein |
 
-Die Kilometer nach der Wüste sind Platzhalter und werden beim Ausbau neu balanciert.
+Die Kilometer bis zur Wüste sind im Spieltest gemessen, die danach sind Platzhalter. Sie waren im ersten Entwurf um ein Drittel länger; die reine Fahrzeit frass dann fast drei Stunden, ohne dass etwas passierte.
 
 ### 5.3 Rohstoffe und Ernte
 
@@ -147,8 +147,8 @@ Die Lok bestimmt drei Dinge: wie viele Wagen sie zieht, wie schnell der Zug höc
 
 | Lok | Wagen | Höchsttempo | Brennstoff | Verbrauch je km | Im ersten Stand |
 |---|---|---|---|---|---|
-| Dampflok | 8 | 12 km/h | Kohle | 30 | ja, Start |
-| Schwere Dampflok | 12 | 15 km/h | Koks | 25 | ja |
+| Dampflok | 8 | 14 km/h | Kohle | 30 | ja, Start |
+| Schwere Dampflok | 12 | 19 km/h | Koks | 25 | ja |
 | Diesellok | 18 | 20 km/h | Diesel | 15 | nein |
 | E-Lok | 28 | 30 km/h | Strom aus Generatorwagen | | nein |
 | Maglev | 40 | 60 km/h | Strom, Supraleiter | | nein |
@@ -158,7 +158,7 @@ Brennstoff wird nur beim Fahren verbraucht und automatisch aus dem Lager genomme
 ### 6.2 Bewegung
 
 - Ein Kilometer Strecke verbraucht 100 Schienen.
-- Der Zug fährt, solange Schienen und Brennstoff im Lager sind, höchstens mit dem Tempo der Lok. Bei 12 km/h sind das 20 Schienen und 6 Kohle pro Minute.
+- Der Zug fährt, solange Schienen und Brennstoff im Lager sind, höchstens mit dem Tempo der Lok. Bei 14 km/h sind das rund 23 Schienen und 7 Kohle pro Minute.
 - Der Zug hält vor einem Hindernis, bis das Bauprojekt fertig ist. Er hält auch ohne Schienen oder ohne Brennstoff. Wagen produzieren im Stand weiter.
 - Ohne mindestens ein Stück Brennstoff im Lager fährt der Zug nicht an. Der Verbrauch wird über die Strecke aufsummiert und bei jedem vollen Stück abgebucht.
 - Beim Erreichen eines Bioms erscheint ein Fahrtenbuch-Eintrag, die neuen Rohstoffe werden freigeschaltet, und die Landschaft wechselt.
@@ -348,10 +348,10 @@ Es gibt zwei Arten: Hindernisse auf der Strecke und Loks.
 
 | Projekt | Ort | Stückliste | Voraussetzung | Ergebnis |
 |---|---|---|---|---|
-| Brücke über die Schlucht | km 24 | 240 Stahlträger, 600 Bohlen, 800 Nieten, 80 Teer | Brückenbau | Der Berg ist erreichbar. Die Brücke steht sichtbar in der Landschaft |
-| Schwere Dampflok | Zug | 6 Dampfkessel, 60 Stahl, 120 Nieten, 40 Zahnrad | Schwere Dampflok | 12 Wagen, 15 km/h, Koks als Brennstoff |
-| Tunnel durch das Bergmassiv | km 36 | 300 Sprengstoff, 60 Bohrkopf, 400 Stützbalken, 200 Mörtel | Bohrtechnik | Der Berg hinter dem Massiv ist erreichbar |
-| Wüstenstrecke | km 48 | im nächsten Stand | | Ausblick, im ersten Stand nicht baubar |
+| Brücke über die Schlucht | km 18 | 170 Stahlträger, 420 Bohlen, 600 Nieten, 60 Teer | Brückenbau | Der Berg ist erreichbar. Die Brücke steht sichtbar in der Landschaft |
+| Schwere Dampflok | Zug | 6 Dampfkessel, 60 Stahl, 120 Nieten, 40 Zahnrad | Schwere Dampflok | 12 Wagen, 19 km/h, Koks als Brennstoff |
+| Tunnel durch das Bergmassiv | km 28 | 220 Sprengstoff, 45 Bohrkopf, 260 Stützbalken, 150 Mörtel | Bohrtechnik | Der Berg hinter dem Massiv ist erreichbar |
+| Wüstenstrecke | km 40 | im nächsten Stand | | Ausblick, im ersten Stand nicht baubar |
 
 ### Der Meilenstein-Moment
 
@@ -382,24 +382,27 @@ Zielbild für den ersten spielbaren Stand. Aktive Zeit, Wartezeiten kommen dazu.
 |---|---|---|---|
 | 0 bis 10 min | Handarbeit | Kohle schaufeln, Erz kurbeln. Werkbank: Koks, Eisenbarren, Zahnrad, Bretter, 3 Eiserne Blaupausen. Selbstlader forschen | Der Erntewagen läuft von selbst |
 | 10 bis 30 min | Erste Automation | Schmelz-, Werk- und Walzwagen bauen. Erster automatischer Schienenfluss. Konstruktionsbüro | Der Zug fährt ohne Zutun. Die 8 Plätze sind voll |
-| 30 bis 60 min | Ende des Tals | Lagerwagen, Erntetechnik I, Stahlwerk. Wagen aufstufen | Wald bei km 8. Harz |
-| 1 bis 2,5 h | Wald | Teerofen, Teer und Bohlen bevorraten. Schwere Dampflok bauen. Stahlkette aufbauen | 12 Plätze. Schlucht bei km 24 |
-| 2,5 bis 4 h | Brücke | Baustelle füllen, Engpässe beheben, erste Nacht offline | Erster Meilenstein-Moment. Berg |
-| 4 bis 6 h | Berg | Kupferhütte, Chemiewagen, Bohrtechnik, Tunnel-Baustelle | Zweiter Meilenstein-Moment |
-| 6 bis 8 h | Ausklang | Berg bis km 48, Walztechnik, Erntetechnik II | Wüstenstrecke als Ausblick, Ende des Stands |
+| 30 bis 60 min | Ende des Tals | Lagerwagen, Erntetechnik I, Stahlwerk. Wagen aufstufen | Wald bei km 6. Harz |
+| 1 bis 2 h | Wald | Teerofen, Teer und Bohlen bevorraten. Schwere Dampflok bauen. Stahlkette aufbauen | 12 Plätze. Schlucht bei km 18 |
+| 2 bis 3 h | Brücke | Baustelle füllen, Engpässe beheben, erste Nacht offline | Erster Meilenstein-Moment. Berg |
+| 3 bis 5 h | Berg | Kupferhütte, Chemiewagen, Bohrtechnik, Tunnel-Baustelle | Zweiter Meilenstein-Moment |
+| 5 bis 6 h | Ausklang | Berg bis km 40, Walztechnik, Erntetechnik II | Wüstenstrecke als Ausblick, Ende des Stands |
 
 Die Zahlen sind Zielwerte. Ob sie stimmen, zeigt erst der Spieltest, dafür gibt es die Balancing-Datei und die Simulationstests in Abschnitt 14.
 
-**Messlatte aus Phase 1.** Der Autospieler (`src/engine/sim/autoplay.ts`) spielt den ersten Stand mit einer einfachen, dauernd aktiven Strategie und ohne Wartezeiten durch. Mit den Startwerten ergibt das:
+**Messlatte.** Der Autospieler (`src/engine/sim/autoplay.ts`) spielt den ersten Stand mit einer einfachen, dauernd aktiven Strategie und ohne Wartezeiten durch. Er ist die Untergrenze: Ein Mensch, der nicht alle fünf Sekunden umdisponiert, braucht länger.
 
-| Ereignis | Ziel | Autospieler |
-|---|---|---|
-| Wald | 30 bis 60 min | 1 h 17 min |
-| Schlucht erreicht | 1 bis 2,5 h | 2 h 37 min |
-| Brücke fertig | 2,5 bis 4 h | 3 h 26 min |
-| Tunnel fertig | 4 bis 6 h | 7 h 25 min |
+| Ereignis | Ziel | Erster Entwurf | Nach dem Balancing |
+|---|---|---|---|
+| Wald | 30 bis 60 min | 1 h 17 min | 1 h 5 min |
+| Schlucht erreicht | 1 bis 2,5 h | 2 h 37 min | 2 h |
+| Brücke fertig | 2 bis 3 h | 3 h 26 min | 2 h 51 min |
+| Tunnel fertig | 3 bis 5 h | 7 h 25 min | 4 h 41 min |
+| Ende des Stands | 5 bis 6 h | über 12 h | 4 h 57 min |
 
-Die Brücke liegt im Ziel, das Tal und vor allem der Berg sind langsamer als geplant. Das wird in Phase 5 balanciert, die Messlatte läuft als Test bei jedem Build mit (`npx vitest run src/engine/autoplay.test.ts` zeigt den Zeitplan).
+Drei Hebel haben gewirkt, in dieser Reihenfolge: die Strecke um ein Drittel kürzen (die reine Fahrzeit war der grösste Posten), die Loks schneller machen, und die Stücklisten von Brücke und Tunnel um rund ein Viertel senken. Ein vierter Hebel lag beim Autospieler selbst: Er hielt bis zuletzt vier Erntewagen, obwohl alle Rohstofflager voll waren. Mit zwei Erntewagen und mehr Verarbeitung misst er ehrlicher.
+
+Die Messlatte läuft als Test bei jedem Build mit, `npx vitest run src/engine/autoplay.test.ts` zeigt den Zeitplan.
 
 ## 12. Oberfläche
 
@@ -457,7 +460,7 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 - **Biome** haben je eine Farbstimmung für Himmel, ferne Hügel und Boden: Tal grün-grau, Wald dunkelgrün, Schlucht ocker mit Schatten, Berg schiefer-blau, Wüste sandgelb.
 - **Bewegung:** Räder mit zwei Bildern, Rauch als drei driftende Kreise, Parallax in drei Ebenen (ferne Hügel, Vegetation, Boden mit Gleis). Beim Bauwerk eine einzige Einblend-Animation über 2,4 Sekunden. Eine neue Lok rollt von vorne heran. Wer Bewegung reduziert hat, bekommt Standbilder.
 - **Vegetation und Felsen** werden deterministisch aus der Kachelnummer gestreut, nie zufällig. So sieht die Landschaft abwechslungsreich aus und flackert beim Neuzeichnen nicht.
-- **Icons:** 30 Waren brauchen 30 Glyphen. Der erste Stand beginnt mit Buchstabenmarken in Stufenfarbe, echte Glyphen kommen, sobald die Waren feststehen.
+- **Icons:** 30 Waren, 30 Glyphen, flach und in einem 24er Raster gezeichnet. Verwandte Waren teilen eine Grundform: Barren sind Trapeze, Blaupausen beschriebene Blätter, Erze Klumpen mit Adern. Rohstoffe tragen eigene Farben, weil sie alle auf derselben Stufe liegen; hergestellte Waren tragen die Farbe ihrer Stufe. Wagen zeigen überall ihre Silhouette aus der Bühne.
 - **Ton:** wenig und leise. Im ersten Stand nur ein Akkord beim Meilenstein, erzeugt mit der Web Audio API statt aus einer Datei. Standard aus, in «Mehr» einschaltbar. Dazu eine kurze Vibration, wo das Gerät sie kennt.
 
 ## 14. Technik
@@ -622,7 +625,7 @@ In dieser Reihenfolge, jede Stufe erst, wenn die vorherige im Spieltest trägt.
 
 | Risiko | Umgang |
 |---|---|
-| Das Tempo stimmt nicht: zu langsam bis zum Wald, zu schnell bis zur Brücke | Alle Zahlen in `balance.ts`, Sackgassen-Skript misst die Zeit bis zu jedem Ereignis, Spieltest in Phase 5 |
+| Das Tempo stimmt nicht | In Phase 5 gemessen und korrigiert, siehe Messlatte in Abschnitt 11. Alle Zahlen in `balance.ts` und `data/`, der Autospieler misst bei jedem Build nach |
 | 8 Wagenplätze fühlen sich eng statt spannend an | Wert ist ein Parameter. Alternative: Werkstatt kann ein zweites Rezept fahren |
 | Die Werkbank macht Wagen überflüssig | Warteschlange 10, einfaches Tempo, kein Nachbarschaftsbonus, keine Stufen |
 | Baustellen saugen das Lager leer und stoppen den Wagenbau | Pausieren pro Baustelle. Falls das nicht reicht: Reserve pro Ware einstellbar |

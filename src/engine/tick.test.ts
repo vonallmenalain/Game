@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BALANCE } from './balance';
+import { BIOME_BY_ID, LOCO_BY_ID, OBSTACLE_BY_ID, PROJECT_BY_ID } from './data';
 import { createInitialState, getStore, storeCap } from './state';
 import { productionSpeed, tick } from './tick';
 import { addWagon, clone, grant, research, runFor } from './sim/testkit';
@@ -109,11 +110,12 @@ describe('Werkbank', () => {
 });
 
 describe('Bewegung', () => {
-  it('verbraucht 100 Schienen und 30 Kohle je Kilometer bei 12 km/h', () => {
+  it('verbraucht 100 Schienen und 30 Kohle je Kilometer', () => {
     const s = createInitialState();
     s.store['schienen'] = 100;
     s.store['kohle'] = 100;
-    runFor(s, 310);
+    const seconds = (3600 / LOCO_BY_ID['dampflok']!.speedKmh) * 1.05;
+    runFor(s, seconds);
     expect(s.km).toBeCloseTo(1, 5);
     expect(getStore(s, 'schienen')).toBe(0);
     expect(getStore(s, 'kohle')).toBe(70);
@@ -132,26 +134,28 @@ describe('Bewegung', () => {
 
   it('hält vor der Schlucht, bis die Brücke steht, und entdeckt dann den Berg', () => {
     const s = createInitialState();
-    s.pos = 2399;
-    s.km = 23.99;
+    const schlucht = OBSTACLE_BY_ID['schlucht']!.km * BALANCE.railsPerKm;
+    s.pos = schlucht - 1;
+    s.km = s.pos / BALANCE.railsPerKm;
     s.discoveredBiomes = ['tal', 'wald'];
     grant(s, { schienen: 100, kohle: 100 });
     runFor(s, 30);
-    expect(s.pos).toBe(2400);
+    expect(s.pos).toBe(schlucht);
     expect(s.stop).toBe('hindernis');
     expect(s.reachedObstacles).toContain('schlucht');
     expect(s.discoveredBiomes).not.toContain('berg');
     s.projects['bruecke']!.done = true;
     runFor(s, 10);
-    expect(s.pos).toBeGreaterThan(2400);
+    expect(s.pos).toBeGreaterThan(schlucht);
     expect(s.discoveredBiomes).toContain('berg');
     expect(s.log.some((e) => e.kind === 'biom' && e.ref === 'berg')).toBe(true);
   });
 
-  it('entdeckt den Wald bei Kilometer 8', () => {
+  it('entdeckt den Wald, sobald er beginnt', () => {
     const s = createInitialState();
-    s.pos = 799;
-    s.km = 7.99;
+    const wald = BIOME_BY_ID['wald']!.startKm * BALANCE.railsPerKm;
+    s.pos = wald - 1;
+    s.km = s.pos / BALANCE.railsPerKm;
     grant(s, { schienen: 10, kohle: 10 });
     runFor(s, 10);
     expect(s.discoveredBiomes).toContain('wald');
@@ -162,14 +166,16 @@ describe('Baustellen', () => {
   it('ziehen Material aus dem Lager, sobald es da ist, und werden fertig', () => {
     const s = createInitialState();
     research(s, 'stahlwerk', 'teerofen', 'brueckenbau');
-    grant(s, { stahltraeger: 100, bohlen: 600, nieten: 1000, teer: 80 });
+    const bom = PROJECT_BY_ID['bruecke']!.bom;
+    const need = (item: string) => bom.find((b) => b.item === item)!.amount;
+    grant(s, { stahltraeger: need('stahltraeger') - 40, bohlen: need('bohlen'), nieten: need('nieten') + 200, teer: need('teer') });
     tick(s, 1);
     const st = s.projects['bruecke']!;
-    expect(st.delivered['stahltraeger']).toBe(100);
-    expect(st.delivered['nieten']).toBe(800);
+    expect(st.delivered['stahltraeger']).toBe(need('stahltraeger') - 40);
+    expect(st.delivered['nieten']).toBe(need('nieten'));
     expect(getStore(s, 'nieten')).toBe(200);
     expect(st.done).toBe(false);
-    grant(s, { stahltraeger: 140 });
+    grant(s, { stahltraeger: 40 });
     tick(s, 1);
     expect(st.done).toBe(true);
     expect(s.log.some((e) => e.kind === 'projekt' && e.ref === 'bruecke')).toBe(true);

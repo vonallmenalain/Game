@@ -1,8 +1,12 @@
 <script lang="ts">
-  let { text, color, size = 'm' }: { text: string; color: string; size?: 's' | 'm' | 'l' } = $props();
+  import ItemIcon from './ItemIcon.svelte';
+
+  let { item, color, size = 'm' }: { item: string; color: string; size?: 's' | 'm' | 'l' } = $props();
 </script>
 
-<span class="mark {size}" style="--mark: {color}" aria-hidden="true">{text}</span>
+<span class="mark {size}" style="--mark: {color}">
+  <ItemIcon {item} />
+</span>
 
 <style>
   .mark {
@@ -11,24 +15,23 @@
     flex: none;
     width: 30px;
     height: 30px;
+    padding: 3px;
     border-radius: 7px;
     background: var(--mark);
     color: #fff;
-    font: 600 12px/1 var(--mono);
-    letter-spacing: 0.02em;
   }
 
   .mark.s {
     width: 22px;
     height: 22px;
+    padding: 1.5px;
     border-radius: 5px;
-    font-size: 10px;
   }
 
   .mark.l {
     width: 42px;
     height: 42px;
+    padding: 5px;
     border-radius: 9px;
-    font-size: 15px;
   }
 </style>

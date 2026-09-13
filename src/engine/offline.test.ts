@@ -47,7 +47,7 @@ describe('Nachsimulation', () => {
     const report = simulateOffline(s, 1800);
     expect(report.kmAfter).toBeCloseTo(0.5, 5);
     expect(report.warnings.map((w) => w.code)).toContain('schienen');
-    expect(report.warnings[0]?.at).toBeGreaterThan(140);
+    expect(report.warnings[0]?.at).toBeGreaterThan(100);
     expect(report.stoppedSeconds).toBeGreaterThan(1000);
     expect(report.fullItems).toContain('eisenerz');
     expect(getStore(s, 'schienen')).toBe(0);

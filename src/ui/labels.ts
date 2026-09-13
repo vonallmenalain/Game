@@ -1,15 +1,5 @@
 import { ITEM_BY_ID, RECIPE_BY_ID, TECH_BY_ID, BIOME_BY_ID, PROJECT_BY_ID, missingInputs, type ActionResult, type GameState, type Stack, type TechDef, type WagonState, type WagonType } from '../engine';
 
-export const WAGON_MARK: Record<WagonType, string> = {
-  ernte: 'ER',
-  schmelz: 'SM',
-  walz: 'WZ',
-  werk: 'WK',
-  buero: 'KB',
-  lager: 'LG',
-  chemie: 'CH',
-};
-
 /** CSS-Variable je Wagentyp, definiert in app.css */
 export const WAGON_COLOR: Record<WagonType, string> = {
   ernte: 'var(--w-ernte)',
@@ -19,39 +9,6 @@ export const WAGON_COLOR: Record<WagonType, string> = {
   buero: 'var(--w-buero)',
   lager: 'var(--w-lager)',
   chemie: 'var(--w-chemie)',
-};
-
-export const ITEM_MARK: Record<string, string> = {
-  eisenerz: 'Fe',
-  kohle: 'Ko',
-  holz: 'Ho',
-  stein: 'St',
-  harz: 'Hz',
-  kupfererz: 'Cu',
-  kalk: 'Ka',
-  salpeter: 'Sp',
-  koks: 'Kk',
-  eisenbarren: 'Eb',
-  schienen: 'Sn',
-  bretter: 'Br',
-  zahnrad: 'Zr',
-  nieten: 'Ni',
-  fahrgestell: 'Fg',
-  bp_eisen: 'B1',
-  teer: 'Te',
-  stahl: 'Sa',
-  stahltraeger: 'Tr',
-  bohlen: 'Bo',
-  dampfkessel: 'Dk',
-  bp_stahl: 'B2',
-  kupferbarren: 'Cb',
-  kupferdraht: 'Cd',
-  kupferspule: 'Cs',
-  bohrkopf: 'Bk',
-  sprengstoff: 'Sx',
-  moertel: 'Mö',
-  stuetzbalken: 'Sb',
-  bp_kupfer: 'B3',
 };
 
 export const TIER_NAME: Record<number, string> = {
@@ -72,12 +29,23 @@ export function itemName(id: string): string {
   return ITEM_BY_ID[id]?.name ?? id;
 }
 
-export function itemMark(id: string): string {
-  return ITEM_MARK[id] ?? id.slice(0, 2);
-}
+/**
+ * Rohstoffe haben eigene Farben, denn sie liegen alle auf derselben Stufe und
+ * wären sonst nicht auseinanderzuhalten. Hergestellte Waren tragen die Farbe ihrer Stufe.
+ */
+const RESOURCE_COLOR: Record<string, string> = {
+  eisenerz: '#8a5a3a',
+  kupfererz: '#3f7f6d',
+  kohle: '#3d434a',
+  holz: '#7a5a35',
+  stein: '#6f7680',
+  harz: '#b08a2e',
+  kalk: '#87907f',
+  salpeter: '#6e769a',
+};
 
 export function itemColor(id: string): string {
-  return TIER_COLOR[ITEM_BY_ID[id]?.tier ?? 0] ?? 'var(--t-0)';
+  return RESOURCE_COLOR[id] ?? TIER_COLOR[ITEM_BY_ID[id]?.tier ?? 0] ?? 'var(--t-0)';
 }
 
 export function stackText(stacks: Stack[]): string {

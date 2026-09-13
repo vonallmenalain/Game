@@ -109,7 +109,7 @@
   <h3 class="section-title">Über</h3>
   <div class="card">
     <p class="small">Linie Null, Version <span class="mono">{version}</span>. Ein Idle-Aufbauspiel mit Produktionsketten. Dein Zug ist deine Fabrik.</p>
-    <p class="small muted">Erster spielbarer Stand, Phase 4 von 5: die Bühne mit Landschaft, Bauwerken und Meilenstein-Moment.</p>
+    <p class="small muted">Erster spielbarer Stand: drei Biome vom Tal bis zum Berg, zwei Bauprojekte, dreissig Waren. Hinter dem Tunnel wartet die Wüste auf den nächsten Ausbau.</p>
   </div>
 </section>
 

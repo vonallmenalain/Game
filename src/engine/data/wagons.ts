@@ -11,6 +11,6 @@ export const WAGONS: WagonDef[] = [
 ];
 
 export const LOCOS: LocoDef[] = [
-  { id: 'dampflok', name: 'Dampflok', slots: 8, speedKmh: 12, fuel: 'kohle', fuelPerKm: 30 },
-  { id: 'schwere_dampflok', name: 'Schwere Dampflok', slots: 12, speedKmh: 15, fuel: 'koks', fuelPerKm: 25 },
+  { id: 'dampflok', name: 'Dampflok', slots: 8, speedKmh: 14, fuel: 'kohle', fuelPerKm: 30 },
+  { id: 'schwere_dampflok', name: 'Schwere Dampflok', slots: 12, speedKmh: 19, fuel: 'koks', fuelPerKm: 25 },
 ];

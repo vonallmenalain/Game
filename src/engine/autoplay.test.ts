@@ -4,15 +4,21 @@ import { autoplay } from './sim/autoplay';
 
 const KEY_EVENTS = ['biom:wald', 'hindernis:schlucht', 'projekt:schwere_dampflok', 'projekt:bruecke', 'biom:berg', 'hindernis:bergmassiv', 'projekt:tunnel', 'forschung:wuestenausruestung', 'hindernis:wuestenstrecke'];
 
-describe('Sackgassen-Test: der Autospieler erreicht den Tunnel', () => {
-  it('spielt den ersten Stand ohne Oberfläche durch', () => {
-    const result = autoplay({ maxSeconds: 14 * 3600, stopAt: 'tunnel' });
+describe('Sackgassen-Test: der Autospieler spielt den ersten Stand durch', () => {
+  it('erreicht das Ende des Stands im Zeitrahmen aus dem Konzept', () => {
+    const result = autoplay({ maxSeconds: 14 * 3600, stopAt: 'stand_ende' });
     const lines = result.events
       .filter((e) => KEY_EVENTS.includes(e.name))
       .map((e) => `${formatDuration(e.at).padStart(12)}  km ${e.km.toFixed(1).padStart(5)}  ${e.name}`);
     const research = result.events.filter((e) => e.name.startsWith('forschung:')).map((e) => `${formatDuration(e.at).padStart(12)}  ${e.name}`);
-    console.info(['Zeitplan des Autospielers:', ...lines, 'Forschung:', ...research, `Ende bei ${formatDuration(result.seconds)}, km ${result.state.km.toFixed(1)}, Zug: ${result.state.wagons.map((w) => `${w.type}${w.level}`).join(' ')}`].join('\n'));
+    console.info(['Zeitplan des Autospielers:', ...lines, 'Forschung:', ...research, `Ende bei ${formatDuration(result.seconds)}, km ${result.state.km.toFixed(1)}, Stillstand ${formatDuration(result.state.stats.stoppedSeconds)}, Zug: ${result.state.wagons.map((w) => `${w.type}${w.level}`).join(' ')}`].join('\n'));
+    const at = (name: string) => result.events.find((e) => e.name === name)?.at;
     expect(result.reachedTunnel).toBe(true);
-    expect(result.seconds).toBeLessThan(12 * 3600);
-  }, 120000);
+    expect(result.state.standEnde).toBe(true);
+    // Grenzen aus Abschnitt 11 des Konzepts, mit Luft nach oben für kleine Änderungen
+    expect(at('biom:wald')).toBeLessThan(80 * 60);
+    expect(at('projekt:bruecke')).toBeLessThan(3.5 * 3600);
+    expect(at('projekt:tunnel')).toBeLessThan(5.5 * 3600);
+    expect(result.seconds).toBeLessThan(6 * 3600);
+  }, 180000);
 });

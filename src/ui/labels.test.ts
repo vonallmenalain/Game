@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { ITEMS, WAGONS, createInitialState, type WagonType } from '../engine';
 import { addWagon, research } from '../engine/sim/testkit';
-import { ITEM_MARK, WAGON_MARK, describeError, statusText, techRequirementText } from './labels';
+import { WAGON_COLOR, describeError, statusText, techRequirementText } from './labels';
+import { GLYPH_ITEMS, itemsWithoutGlyph } from './glyphs';
 import { TECH_BY_ID } from '../engine';
 
 describe('Beschriftungen', () => {
-  it('jede Ware und jeder Wagentyp hat eine Buchstabenmarke', () => {
-    for (const item of ITEMS) expect(ITEM_MARK[item.id], item.id).toBeDefined();
-    for (const w of WAGONS) expect(WAGON_MARK[w.type as WagonType], w.type).toBeDefined();
-    expect(new Set(Object.values(ITEM_MARK)).size).toBe(Object.keys(ITEM_MARK).length);
+  it('jede Ware hat eine Glyphe und jeder Wagentyp eine Farbe', () => {
+    expect(itemsWithoutGlyph()).toEqual([]);
+    expect(GLYPH_ITEMS).toHaveLength(ITEMS.length);
+    expect(new Set(GLYPH_ITEMS).size).toBe(GLYPH_ITEMS.length);
+    for (const w of WAGONS) expect(WAGON_COLOR[w.type as WagonType], w.type).toBeDefined();
   });
 
   it('erklärt Fehler als Satz', () => {

@@ -2,8 +2,8 @@
   import { RECIPE_BY_ID, WAGON_BY_TYPE, crank, harvestRatePerMinute, hasSelfLoader, productionSpeed, type WagonState } from '../../engine';
   import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { WAGON_COLOR, WAGON_MARK, itemName, statusText, statusTone } from '../labels';
-  import Mark from './Mark.svelte';
+  import { WAGON_COLOR, itemName, statusText, statusTone } from '../labels';
+  import Vehicle from './Vehicle.svelte';
 
   let { wagon, index }: { wagon: WagonState; index: number } = $props();
 
@@ -22,7 +22,7 @@
 
 <div class="card wagon">
   <button type="button" class="main" onclick={() => (game.sheet = { kind: 'wagen', id: wagon.id })}>
-    <Mark text={WAGON_MARK[wagon.type]} color={WAGON_COLOR[wagon.type]} size="l" />
+    <span class="silhouette"><Vehicle kind={wagon.type} color={WAGON_COLOR[wagon.type]} rolling={false} /></span>
     <span class="text">
       <span class="title">{def?.name ?? wagon.type} <span class="muted">Stufe {wagon.level}</span></span>
       <span class="job">{job ?? statusText(game.state, wagon)}</span>
@@ -42,6 +42,15 @@
 </div>
 
 <style>
+  .silhouette {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 44px;
+    overflow: hidden;
+  }
+
   .wagon {
     display: flex;
     align-items: center;
