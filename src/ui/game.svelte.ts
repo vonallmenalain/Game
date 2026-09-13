@@ -11,6 +11,7 @@ import {
 } from '../engine';
 import { describeError } from './labels';
 import { clearSave, lastExportAt, loadSave, noteExport, storeSave } from './persist';
+import { buzz, playMilestone } from './sound';
 import { exportFileName, exportSave } from './transfer';
 
 const TICK = BALANCE.tickSeconds;
@@ -30,6 +31,17 @@ interface RateSample {
 }
 
 export type SheetKind = { kind: 'none' } | { kind: 'wagen'; id: number } | { kind: 'bauen' } | { kind: 'werkstatt' };
+
+/** Ein Meilenstein, der gerade gefeiert wird. */
+export interface Milestone {
+  kind: 'projekt' | 'lok' | 'biom';
+  ref: string;
+  /** Wanduhr beim Auslösen, dient auch als Schlüssel für die Animation */
+  at: number;
+}
+
+/** So lange steht der Meilenstein-Hinweis, inklusive der wachsenden Bauwerke */
+export const MILESTONE_MS = 6000;
 
 /** Sekunden seit dem letzten Speichern, aus Sicht der Wanduhr. */
 export function elapsedSinceSave(state: GameState, now: number): number {
@@ -56,6 +68,8 @@ class Game {
   report = $state<OfflineReport | null>(null);
   /** Wanduhr des letzten Exports, 0 wenn nie exportiert */
   exportedAt = $state(0);
+  /** Der Meilenstein, der gerade gefeiert wird */
+  milestone = $state<Milestone | null>(null);
 
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastNow = 0;
@@ -64,6 +78,8 @@ class Game {
   private lastSampleAt = -1;
   private lastSaveAt = 0;
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
+  private milestoneTimer: ReturnType<typeof setTimeout> | null = null;
+  private logSeen = 0;
   private booted = false;
 
   get exportOverdue(): boolean {
@@ -80,6 +96,8 @@ class Game {
       const elapsed = elapsedSinceSave(saved, Date.now());
       if (needsCatchUp(elapsed)) await this.catchUp(elapsed);
     }
+    // Was vor dem Start oder in der Abwesenheit geschah, steht im Bericht und wird nicht gefeiert
+    this.logSeen = this.state.log.length;
     this.loaded = true;
     this.start();
     if (typeof document !== 'undefined') {
@@ -148,8 +166,41 @@ class Game {
       this.accumulated -= TICK;
       steps += 1;
     }
-    if (steps > 0) this.sampleRates();
+    if (steps > 0) {
+      this.sampleRates();
+      this.catchMilestones();
+    }
     if (Date.now() - this.lastSaveAt > AUTOSAVE_MS) void this.save();
+  }
+
+  /**
+   * Sucht in den neuen Fahrtenbuch-Einträgen nach etwas, das einen Auftritt verdient.
+   * Ein fertiges Bauprojekt schlägt eine neue Lok, die ein neues Biom.
+   */
+  private catchMilestones(): void {
+    if (this.logSeen >= this.state.log.length) return;
+    const fresh = this.state.log.slice(this.logSeen);
+    this.logSeen = this.state.log.length;
+    const pick =
+      fresh.find((e) => e.kind === 'projekt') ?? fresh.find((e) => e.kind === 'lok') ?? fresh.find((e) => e.kind === 'biom');
+    if (!pick) return;
+    this.milestone = { kind: pick.kind as Milestone['kind'], ref: pick.ref, at: Date.now() };
+    if (pick.kind === 'projekt' || pick.kind === 'lok') {
+      playMilestone();
+      buzz([90, 60, 140]);
+    } else {
+      buzz(40);
+    }
+    if (this.milestoneTimer) clearTimeout(this.milestoneTimer);
+    this.milestoneTimer = setTimeout(() => {
+      this.milestone = null;
+    }, MILESTONE_MS);
+    void this.save();
+  }
+
+  dismissMilestone(): void {
+    if (this.milestoneTimer) clearTimeout(this.milestoneTimer);
+    this.milestone = null;
   }
 
   private sampleRates(): void {
@@ -219,6 +270,8 @@ class Game {
     this.accumulated = 0;
     this.sheet = { kind: 'none' };
     this.report = null;
+    this.milestone = null;
+    this.logSeen = state.log.length;
     await this.save();
     this.start();
   }
@@ -233,6 +286,8 @@ class Game {
     this.accumulated = 0;
     this.sheet = { kind: 'none' };
     this.report = null;
+    this.milestone = null;
+    this.logSeen = this.state.log.length;
     this.start();
     await this.save();
   }

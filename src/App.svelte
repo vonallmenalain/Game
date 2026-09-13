@@ -14,7 +14,7 @@
   import TabBar from './ui/components/TabBar.svelte';
   import Toast from './ui/components/Toast.svelte';
   import TrackPanel from './ui/components/TrackPanel.svelte';
-  import TrainStrip from './ui/components/TrainStrip.svelte';
+  import Stage from './ui/components/Stage.svelte';
   import WagonList from './ui/components/WagonList.svelte';
   import WagonSheet from './ui/components/WagonSheet.svelte';
   import WorkshopSheet from './ui/components/WorkshopSheet.svelte';
@@ -50,7 +50,9 @@
 {:else if !game.loaded}
   <main class="loading">Linie Null lädt …</main>
 {:else}
-  <StatusLine />
+  {#if tab !== 'zug'}
+    <StatusLine />
+  {/if}
   {#if needRefresh}
     <div class="update">
       Neue Version bereit.
@@ -62,7 +64,7 @@
   {/if}
   <main class="content">
     {#if tab === 'zug'}
-      <TrainStrip />
+      <Stage />
       <WagonList />
     {:else if tab === 'lager'}
       <StorePanel />

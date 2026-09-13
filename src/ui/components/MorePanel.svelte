@@ -2,9 +2,11 @@
   import { offlineCapSeconds } from '../../engine';
   import { formatDuration } from '../../lib/format';
   import { game } from '../game.svelte';
+  import { playMilestone, setSoundEnabled, soundEnabled } from '../sound';
   import { ImportError, importSave } from '../transfer';
 
   let confirmReset = $state(false);
+  let sound = $state(soundEnabled());
   let fileInput = $state<HTMLInputElement | null>(null);
   let pending = $state<{ name: string; state: import('../../engine').GameState; km: number; played: number } | null>(null);
   const version = __APP_VERSION__;
@@ -75,6 +77,24 @@
     {/if}
   </div>
 
+  <h3 class="section-title">Ton</h3>
+  <div class="card">
+    <label class="switch" for="sound">
+      <input
+        id="sound"
+        type="checkbox"
+        checked={sound}
+        onchange={(event) => {
+          sound = event.currentTarget.checked;
+          setSoundEnabled(sound);
+          if (sound) playMilestone();
+        }}
+      />
+      <span>Ton beim Meilenstein</span>
+    </label>
+    <p class="small muted">Ein kurzer Akkord, wenn ein Bauprojekt fertig ist oder eine neue Lok kommt. Sonst bleibt das Spiel still.</p>
+  </div>
+
   <h3 class="section-title">Neu anfangen</h3>
   <div class="card">
     <p class="small">Löscht den Spielstand auf diesem Gerät. Eine gesicherte Datei bleibt erhalten.</p>
@@ -89,7 +109,7 @@
   <h3 class="section-title">Über</h3>
   <div class="card">
     <p class="small">Linie Null, Version <span class="mono">{version}</span>. Ein Idle-Aufbauspiel mit Produktionsketten. Dein Zug ist deine Fabrik.</p>
-    <p class="small muted">Erster spielbarer Stand, Phase 3 von 5: Rückkehr, Bericht, Sicherung.</p>
+    <p class="small muted">Erster spielbarer Stand, Phase 4 von 5: die Bühne mit Landschaft, Bauwerken und Meilenstein-Moment.</p>
   </div>
 </section>
 
@@ -112,6 +132,21 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  .switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .switch input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent);
   }
 
   .warnbox {
