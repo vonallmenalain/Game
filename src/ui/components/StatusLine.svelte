@@ -10,31 +10,41 @@
 <header class="status">
   <span class="brand">Loco</span>
   <span class="mono">{formatKm(game.state.km)}</span>
-  {#if next}
-    <span class="muted">
-      {#if next.km - game.state.km < 0.005}
-        vor {next.label}
-      {:else}
-        {next.label} in {formatKm(next.km - game.state.km)}
-      {/if}
-    </span>
-  {/if}
-  <span class={moving ? 'tone-good' : 'tone-warn'}>{stopText(game.state)}</span>
+  <span class="naechstes muted">
+    {#if next}{next.km - game.state.km < 0.005 ? `vor ${next.label}` : `${next.label} in ${formatKm(next.km - game.state.km)}`}{/if}
+  </span>
+  <span class="zustand {moving ? 'tone-good' : 'tone-warn'}">{stopText(game.state)}</span>
 </header>
 
 <style>
+  /* Eine Zeile, immer gleich hoch: Sonst rutscht der ganze Bildschirm, sobald der
+     Zug anhält und der Text länger wird. Zu Enges wird gekürzt, nicht umgebrochen. */
   .status {
     position: sticky;
     top: 0;
     z-index: 5;
     display: flex;
-    flex-wrap: wrap;
     align-items: baseline;
-    gap: 4px 14px;
+    gap: 10px;
     padding: 10px 16px;
     background: var(--surface);
     border-bottom: 1px solid var(--line);
     font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .naechstes {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .zustand {
+    flex: none;
+    max-width: 55%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .brand {

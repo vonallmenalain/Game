@@ -52,8 +52,10 @@
     return { eyebrow: 'Neues Gebiet', title: BIOME_BY_ID[m.ref]?.name ?? m.ref };
   });
 
+  /** Antippen klappt den Wagen in der Liste darunter auf, nochmals antippen wieder zu. */
   function open(w: WagonState) {
-    game.sheet = { kind: 'wagen', id: w.id };
+    const offen = game.detail.kind === 'wagen' && game.detail.id === w.id;
+    game.detail = offen ? { kind: 'none' } : { kind: 'wagen', id: w.id };
   }
 </script>
 
@@ -81,7 +83,7 @@
       </button>
     {/each}
     {#each Array(free) as _, i (i)}
-      <button type="button" class="vehicle slot" onclick={() => (game.sheet = { kind: 'bauen' })} aria-label="Wagen anhängen">+</button>
+      <button type="button" class="vehicle slot" onclick={() => (game.detail = game.detail.kind === 'bauen' ? { kind: 'none' } : { kind: 'bauen' })} aria-label="Wagen anhängen">+</button>
     {/each}
   </div>
 

@@ -12,9 +12,8 @@ import {
 } from '../engine';
 import { account, wasSignedIn } from '../cloud/account.svelte';
 import { describeError } from './labels';
-import { clearSave, lastExportAt, loadSave, noteExport, storeSave } from './persist';
+import { clearSave, loadSave, storeSave } from './persist';
 import { buzz, playMilestone } from './sound';
-import { exportFileName, exportSave } from './transfer';
 
 const TICK = BALANCE.tickSeconds;
 /** So viel Zeit holt ein einzelnes Bild höchstens auf, etwa nach einem gedrosselten Tab */
@@ -22,12 +21,11 @@ const MAX_FRAME_CATCHUP_SECONDS = 120;
 const AUTOSAVE_MS = 10_000;
 /** Der Rückkehr-Bildschirm steht mindestens so lange, damit die Rückkehr einen Auftritt hat */
 const RETURN_ANIMATION_MS = 1400;
-/** Nach so langer Zeit ohne Export erinnert der Bildschirm «Mehr» daran */
-export const EXPORT_REMINDER_MS = 7 * 24 * 3600 * 1000;
 /** So oft schiebt ein angemeldetes Gerät seinen Stand in die Cloud */
 const CLOUD_PUSH_MS = 2 * 60 * 1000;
 
-export type SheetKind = { kind: 'none' } | { kind: 'wagen'; id: number } | { kind: 'bauen' };
+/** Was im Zug-Bildschirm gerade ausgeklappt ist. Nichts davon überdeckt die Bühne. */
+export type DetailKind = { kind: 'none' } | { kind: 'wagen'; id: number } | { kind: 'bauen' };
 
 /** Ein Meilenstein, der gerade gefeiert wird. */
 export interface Milestone {
@@ -59,7 +57,7 @@ class Game {
    */
   rates: Record<string, number> = $derived(flowPerMinute(this.state));
   toast = $state<{ text: string; id: number } | null>(null);
-  sheet = $state<SheetKind>({ kind: 'none' });
+  detail = $state<DetailKind>({ kind: 'none' });
   loaded = $state(false);
   /** Läuft die Nachsimulation gerade als Bildschirm? */
   returning = $state(false);
@@ -68,7 +66,6 @@ class Game {
   /** Bericht der letzten Rückkehr, bis er weggeklickt wird */
   report = $state<OfflineReport | null>(null);
   /** Wanduhr des letzten Exports, 0 wenn nie exportiert */
-  exportedAt = $state(0);
   /** Der Meilenstein, der gerade gefeiert wird */
   milestone = $state<Milestone | null>(null);
 
@@ -82,15 +79,10 @@ class Game {
   private lastCloudPush = 0;
   private booted = false;
 
-  get exportOverdue(): boolean {
-    return this.loaded && this.state.playedSeconds > 600 && Date.now() - (this.exportedAt || 0) > EXPORT_REMINDER_MS;
-  }
-
   async boot(): Promise<void> {
     if (this.booted) return;
     this.booted = true;
     const saved = await loadSave();
-    this.exportedAt = await lastExportAt();
     if (saved) {
       this.state = saved;
       const elapsed = elapsedSinceSave(saved, Date.now());
@@ -252,27 +244,12 @@ class Game {
     }, 3500);
   }
 
-  async exportToFile(): Promise<void> {
-    const snapshot = $state.snapshot(this.state);
-    try {
-      const how = await exportSave(this.snapshotJson(), exportFileName(snapshot));
-      const at = Date.now();
-      this.exportedAt = at;
-      await noteExport(at);
-      this.showToast(how === 'geteilt' ? 'Spielstand geteilt.' : 'Spielstand als Datei gespeichert.');
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
-      console.warn('Export ging nicht', error);
-      this.showToast('Der Export ging nicht. Versuche es noch einmal.');
-    }
-  }
-
   /** Übernimmt einen eingelesenen Spielstand und startet das Spiel damit neu. */
   async adopt(state: GameState): Promise<void> {
     this.stop();
     this.state = state;
     this.accumulated = 0;
-    this.sheet = { kind: 'none' };
+    this.detail = { kind: 'none' };
     this.report = null;
     this.milestone = null;
     this.logSeen = state.log.length;
@@ -285,7 +262,7 @@ class Game {
     await clearSave();
     this.state = createInitialState();
     this.accumulated = 0;
-    this.sheet = { kind: 'none' };
+    this.detail = { kind: 'none' };
     this.report = null;
     this.milestone = null;
     this.logSeen = this.state.log.length;

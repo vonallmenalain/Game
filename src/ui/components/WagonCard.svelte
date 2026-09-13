@@ -6,7 +6,7 @@
   import ItemChip from './ItemChip.svelte';
   import Vehicle from './Vehicle.svelte';
 
-  let { wagon }: { wagon: WagonState } = $props();
+  let { wagon, open = false, ontoggle }: { wagon: WagonState; open?: boolean; ontoggle?: () => void } = $props();
 
   const def = $derived(WAGON_BY_TYPE[wagon.type]);
 
@@ -32,8 +32,8 @@
   const crankLeft = $derived(Math.max(0, wagon.crankUntil - game.state.playedSeconds));
 </script>
 
-<div class="card wagon">
-  <button type="button" class="main" onclick={() => (game.sheet = { kind: 'wagen', id: wagon.id })}>
+<div class="wagon" class:offen={open}>
+  <button type="button" class="main" aria-expanded={open} onclick={() => ontoggle?.()}>
     <span class="silhouette"><Vehicle kind={wagon.type} color={WAGON_COLOR[wagon.type]} rolling={false} /></span>
     <span class="text">
       <span class="title">
@@ -59,6 +59,7 @@
         {#if wagon.type !== 'lager'}<span class="mono">{formatRate(rate)}</span>{' · '}{/if}{statusText(game.state, wagon)}
       </span>
     </span>
+    <span class="pfeil" aria-hidden="true">{open ? '⌃' : '⌄'}</span>
   </button>
   {#if needsCrank}
     <button type="button" class="btn primary crank" onclick={() => game.run(crank(game.state, wagon.id))}>
@@ -83,6 +84,26 @@
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  /* Der offene Wagen hebt sich ab, seine Karte geht unten in den Ausklapp über. */
+  .wagon.offen {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .pfeil {
+    flex: none;
+    align-self: center;
+    width: 16px;
+    text-align: center;
+    font-size: 15px;
+    color: var(--ink-2);
   }
 
   .main {
