@@ -121,7 +121,13 @@ try {
   await page.waitForTimeout(300);
   const zweite = (await page.locator('.maschine').nth(1).innerText()).replace(/\s+/g, ' ');
   await page.screenshot({ path: shot('04-wagen.png') });
-  const maschinenGebaut = maschinenNachher === maschinenVorher + 1 && /Kohle/.test(zweite);
+  const maschinenGebaut = maschinenNachher === maschinenVorher + 1 && /Kohle/.test(zweite) && /\d+\/min/.test(zweite);
+
+  // Pausieren nimmt den Auftrag weg, nicht die Maschine. Sonst wäre sie neu zu bezahlen.
+  await page.getByRole('button', { name: /Erntemaschine 2 pausieren/ }).click();
+  await page.waitForTimeout(300);
+  const nachPause = (await page.locator('.maschine').nth(1).innerText()).replace(/\s+/g, ' ');
+  const pausiert = (await page.locator('.maschine').count()) === maschinenNachher && /pausiert/.test(nachPause);
   await page.getByRole('button', { name: 'Schliessen' }).click();
 
   // Auf der Wagenkarte muss die zweite Maschine sichtbar werden
@@ -313,11 +319,11 @@ try {
   const offline = cloudRequests.length === 0 && !firebaseGeladen;
   const alleScrollen = Object.values(scrollbar).every(Boolean) && leisteSichtbar;
   const kette = kettenKnopf === '+2' && /Koks/.test(queue) && /Eisenbarren/.test(queue);
-  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, beschriftet, zutatName, ergebnisName, maschinenGebaut, karte, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, zugNachMigration, scrollbar, leisteSichtbar }, null, 2));
+  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, beschriftet, zutatName, ergebnisName, maschinenGebaut, pausiert, nachPause, karte, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, zugNachMigration, scrollbar, leisteSichtbar }, null, 2));
   // Erfolgskriterium aus Abschnitt 15.3 des Konzepts: unter zwei Sekunden bis zum ersten Bild
   const schnell = ladezeit < 2000;
-  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen || !beschriftet || !maschinenGebaut || !karteZeigtMaschinen) {
-    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen, beschriftet, maschinenGebaut, karteZeigtMaschinen });
+  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen || !beschriftet || !maschinenGebaut || !karteZeigtMaschinen || !pausiert) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen, beschriftet, maschinenGebaut, karteZeigtMaschinen, pausiert });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');

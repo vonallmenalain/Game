@@ -222,6 +222,22 @@ export function setMachineRecipe(state: GameState, wagonId: number, machineId: n
   return OK;
 }
 
+/**
+ * Nimmt einer Maschine den Auftrag, ohne sie auszubauen. Sie bleibt im Wagen stehen
+ * und verbraucht nichts, der Platz und das Material bleiben bezahlt.
+ */
+export function pauseMachine(state: GameState, wagonId: number, machineId: number): ActionResult {
+  const w = findWagon(state, wagonId);
+  const m = findMachine(state, wagonId, machineId);
+  if (!w || !m || w.type === 'lager') return fail('unbekannt');
+  m.recipe = null;
+  m.resource = null;
+  m.progress = 0;
+  m.cycleActive = false;
+  m.status = 'leer';
+  return OK;
+}
+
 export function setMachineResource(state: GameState, wagonId: number, machineId: number, item: ItemId): ActionResult {
   const w = findWagon(state, wagonId);
   const m = findMachine(state, wagonId, machineId);

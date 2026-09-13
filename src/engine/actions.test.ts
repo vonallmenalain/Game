@@ -8,6 +8,7 @@ import {
   moveWagon,
   queueWorkbench,
   removeMachine,
+  pauseMachine,
   setMachineRecipe,
   setMachineResource,
   setProjectPaused,
@@ -18,7 +19,7 @@ import {
 } from './actions';
 import { BALANCE } from './balance';
 import { createInitialState, getStore, machineSlots, storeCap } from './state';
-import { addMachine, addWagon, grant, research } from './sim/testkit';
+import { addMachine, addWagon, grant, research, runFor } from './sim/testkit';
 
 describe('Wagen bauen', () => {
   it('scheitert an gesperrtem Typ, fehlendem Material und einem zweiten Wagen desselben Typs', () => {
@@ -85,6 +86,46 @@ describe('Maschinen bauen', () => {
     expect(machineSlots(s)).toBe(BALANCE.machineSlotsBase + 2);
     research(s, 'maschinenhalle1');
     expect(machineSlots(s)).toBe(BALANCE.machineSlotsBase + 6);
+  });
+});
+
+describe('Maschine pausieren', () => {
+  it('nimmt den Auftrag weg, lässt die Maschine aber stehen', () => {
+    const s = createInitialState();
+    research(s, 'schmelzwagen');
+    const schmelz = addWagon(s, 'schmelz', { recipe: 'koks' });
+    const m = schmelz.machines[0]!;
+    m.progress = 1;
+    m.cycleActive = true;
+    expect(pauseMachine(s, schmelz.id, m.id).ok).toBe(true);
+    expect(schmelz.machines).toHaveLength(1);
+    expect(m.recipe).toBeNull();
+    expect(m.progress).toBe(0);
+    expect(m.cycleActive).toBe(false);
+
+    // Sie produziert nichts mehr, kostet aber auch nichts
+    grant(s, { kohle: 20 });
+    runFor(s, 30);
+    expect(getStore(s, 'koks')).toBe(0);
+    expect(getStore(s, 'kohle')).toBe(20 + BALANCE.startStore['kohle']!);
+    expect(m.status).toBe('leer');
+
+    // Weiterlaufen lassen geht ohne neue Kosten
+    expect(setMachineRecipe(s, schmelz.id, m.id, 'koks').ok).toBe(true);
+    runFor(s, 10);
+    expect(getStore(s, 'koks')).toBeGreaterThan(0);
+  });
+
+  it('pausiert auch eine Erntemaschine, der Wagen behält die anderen', () => {
+    const s = createInitialState();
+    research(s, 'selbstlader');
+    const ernte = s.wagons[0]!;
+    const zweite = addMachine(s, ernte, { resource: 'kohle' });
+    expect(pauseMachine(s, ernte.id, zweite.id).ok).toBe(true);
+    expect(zweite.resource).toBeNull();
+    runFor(s, 60);
+    expect(getStore(s, 'eisenerz')).toBe(45);
+    expect(getStore(s, 'kohle')).toBe(BALANCE.startStore['kohle']!);
   });
 });
 

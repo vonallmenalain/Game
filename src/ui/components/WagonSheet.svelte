@@ -15,10 +15,13 @@
     getStore,
     ingredientsOf,
     isOnSite,
+    machineRatePerMinute,
+    machineRefund,
     machineSlots,
     machineSpeed,
     moveWagon,
     nextMachineCost,
+    pauseMachine,
     removeMachine,
     setMachineRecipe,
     setMachineResource,
@@ -49,6 +52,8 @@
 
   /** Welche Maschine gerade ihren Auftrag ändern lässt */
   let offen = $state<number | null>(null);
+  /** Welche Maschine schon einmal auf «Ausbauen» geklickt wurde */
+  let confirmRemove = $state<number | null>(null);
   let confirmDetach = $state(false);
 
   /** Was diese Maschine mit dem Rezept pro Minute ausstösst */
@@ -76,6 +81,17 @@
       const neu = wagon.machines[vorher];
       if (neu) offen = neu.id;
     }
+  }
+
+  /** Erst beim zweiten Tipp wird wirklich ausgebaut. Der Platz ist bezahlt. */
+  function ausbauen(m: MachineState) {
+    if (!wagon) return;
+    if (confirmRemove !== m.id) {
+      confirmRemove = m.id;
+      return;
+    }
+    confirmRemove = null;
+    if (game.run(removeMachine(game.state, wagon.id, m.id))) offen = null;
   }
 
   function detach() {
@@ -112,27 +128,42 @@
                 {#if m.resource}
                   <ItemChip item={m.resource} have={getStore(game.state, m.resource)} size="s" showName />
                 {:else}
-                  <span class="small tone-warn">Rohstoff wählen</span>
+                  <span class="small muted">Rohstoff wählen</span>
                 {/if}
               {:else if m.recipe}
                 <RecipeFlow recipe={m.recipe} size="s" showNames={false} />
               {:else}
-                <span class="small tone-warn">Auftrag wählen</span>
+                <span class="small muted">Auftrag wählen</span>
               {/if}
-              <span class="status tone-{statusTone(m)}">{machineStatusText(game.state, wagon, m)}</span>
+              <span class="status tone-{statusTone(m)}">
+                {#if wagon.type !== 'lager'}<span class="mono">{formatRate(machineRatePerMinute(game.state, wagon, m))}</span>{' · '}{/if}{machineStatusText(game.state, wagon, m)}
+              </span>
             </span>
             {#if wagon.type !== 'lager'}
               <span class="pfeil" aria-hidden="true">{offen === m.id ? '×' : '›'}</span>
             {/if}
           </button>
-          {#if wagon.machines.length > 1}
-            <button type="button" class="btn ghost weg" aria-label="{machineName(wagon.type)} {i + 1} ausbauen" onclick={() => game.run(removeMachine(game.state, wagon.id, m.id))}>×</button>
+          {#if wagon.type !== 'lager' && (m.recipe || m.resource)}
+            <button
+              type="button"
+              class="btn ghost pause"
+              aria-label="{machineName(wagon.type)} {i + 1} pausieren"
+              title="Pausieren: Der Auftrag geht weg, die Maschine bleibt"
+              onclick={() => game.run(pauseMachine(game.state, wagon.id, m.id))}
+            >
+              <svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="3" height="9" rx="1" /><rect x="7" y="1.5" width="3" height="9" rx="1" /></svg>
+            </button>
           {/if}
         </div>
 
-        {#if offen === m.id}
+        {#if offen === m.id || (wagon.type === 'lager' && wagon.machines.length > 1)}
           <div class="choices">
-            {#if wagon.type === 'ernte'}
+            {#if wagon.type === 'lager'}
+              <div class="fuss">
+                <span class="small muted">Ausbauen gibt {stackText(machineRefund(wagon))} zurück.</span>
+                <button type="button" class="btn danger small" onclick={() => ausbauen(m)}>{confirmRemove === m.id ? 'Wirklich ausbauen' : 'Ausbauen'}</button>
+              </div>
+            {:else if wagon.type === 'ernte'}
               {#each discoveredResources(game.state) as res (res)}
                 <button type="button" class="choice row" class:active={m.resource === res} onclick={() => setzeRohstoff(m, res)}>
                   <ItemChip item={res} have={getStore(game.state, res)} />
@@ -156,6 +187,12 @@
                   {/if}
                 </button>
               {/each}
+            {/if}
+            {#if wagon.machines.length > 1}
+              <div class="fuss">
+                <span class="small muted">Ausbauen gibt {stackText(machineRefund(wagon))} zurück. Pausieren kostet nichts.</span>
+                <button type="button" class="btn danger small" onclick={() => ausbauen(m)}>{confirmRemove === m.id ? 'Wirklich ausbauen' : 'Ausbauen'}</button>
+              </div>
             {/if}
           </div>
         {/if}
@@ -298,21 +335,36 @@
     font-size: 12.5px;
   }
 
+  /* Pausieren nimmt den Auftrag weg, nicht die Maschine. Ausbauen steht aufgeklappt
+     darunter und fragt zurück: Sonst zahlt man den Platz aus Versehen zweimal. */
+  .pause {
+    flex: none;
+    width: 34px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+  }
+
+  .pause svg {
+    width: 12px;
+    height: 12px;
+    fill: var(--ink-2);
+  }
+
+  .fuss {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 2px;
+  }
+
   /* Der Pfeil sagt, dass die Zeile aufgeht. Offen wird er zum Schliessen-Zeichen. */
   .pfeil {
     flex: none;
     width: 14px;
     text-align: center;
     font-size: 17px;
-    color: var(--ink-2);
-  }
-
-  .weg {
-    flex: none;
-    width: 32px;
-    padding: 0;
-    font-size: 15px;
-    line-height: 1;
     color: var(--ink-2);
   }
 

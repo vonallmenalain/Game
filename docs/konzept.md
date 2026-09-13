@@ -187,12 +187,13 @@ Regeln:
 - **Plätze.** 10 je Wagen, plus die Zugkraft der Lok (schwere Dampflok: 2) und plus Forschung (Maschinenhalle I: 4). Im ersten Stand sind 16 erreichbar.
 - **Stufen.** Jeder Wagen hat Stufe 1 bis 5. Jede Stufe bringt 20 Prozent mehr Tempo **für jede Maschine darin**, Stufe 5 also Faktor 1,8. Das Aufstufen auf Stufe n kostet n-mal die Baukosten ohne Fahrgestell. Je voller der Wagen, desto mehr lohnt die Stufe.
 - **Auftragswechsel** ist jederzeit möglich und kostenlos. Der laufende Fortschritt dieser Maschine geht verloren.
-- **Ausbauen** einer Maschine gibt die Hälfte ihres Preises zurück. Die letzte Maschine bleibt im Wagen, sonst stünde eine leere Hülle im Zug.
+- **Pausieren** nimmt einer Maschine den Auftrag, ohne sie auszubauen: Sie steht still, verbraucht nichts, und der bezahlte Platz bleibt. So drosselt man eine Kette, ohne ein Ersatzrezept suchen zu müssen. Ein Tipp auf ein Rezept lässt sie weiterlaufen, ohne neue Kosten.
+- **Ausbauen** einer Maschine gibt die Hälfte ihres Preises zurück, fragt aber zurück und steht nur in der aufgeklappten Maschine: Wer bloss drosseln will, soll nicht aus Versehen den Platz noch einmal bezahlen. Die letzte Maschine bleibt im Wagen, sonst stünde eine leere Hülle im Zug.
 - **Abkoppeln** gibt die Hälfte von Wagen und allen Maschinen zurück.
 - **Umkoppeln** (Reihenfolge ändern) ist möglich, ändert aber nur das Bild: Die Produktion hängt nicht mehr von der Reihenfolge ab.
 - **Kurze Wege.** Stellt eine Maschine im selben Wagen eine Zutat für eine andere her, arbeitet die andere 10 Prozent schneller. Wer Koks und Eisenbarren in denselben Schmelzwagen stellt, bekommt den Bonus geschenkt. Das ist der Nachfolger des Nachbarschaftsbonus und belohnt jetzt, wie man einen Wagen belegt, statt wie man den Zug sortiert.
 - **Handkurbel.** Sie sitzt am Wagen, nicht an der Maschine: Ein Tipp treibt alle Erntemaschinen darin an.
-- **Status.** Jede Maschine ist aktiv, wartet auf eine Zutat, ist blockiert (Lager voll) oder hat keinen Auftrag. Der Wagen fasst zusammen: «5 Maschinen laufen» oder «2 von 5 laufen · wartet auf Koks».
+- **Status.** Jede Maschine ist aktiv, wartet auf eine Zutat, ist blockiert (Lager voll) oder pausiert. Neben dem Status steht immer, wie viel sie pro Minute liefert. Der Wagen fasst zusammen: «5 Maschinen laufen» oder «2 von 5 laufen · 3 pausiert».
 - **Knappe Zutaten.** Maschinen werden in Zugreihenfolge bedient, im Wagen von vorne nach hinten. Wer zuerst frei ist, bekommt zuerst. Das ist gewollt, der Engpass ist am Status ablesbar und mit einer Maschine mehr lösbar.
 - **Weiche Kapazität.** Eine Maschine startet keinen Zyklus, wenn ihre Ausgabe am Limit ist. Ein laufender Zyklus liefert aber noch ab, darum kann das Lager um eine Rezeptausgabe überlaufen.
 
@@ -434,10 +435,10 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 +----------------------------------+
 |  Wagen        5 mit 16 Maschinen |
 |  > Erntewagen St2          4/10  |
-|    [Erz ×2][Kohle][Holz]         |
+|    [Erz]x2 108/min [Kohle] 54/min|
 |    216/min  4 Maschinen laufen   |
 |  > Schmelzwagen St2        5/10  |
-|    [Koks ×2][Barren ×2][Stahl]   |
+|    [Koks]x2 72/min [Barren] 39/min|
 |    124/min  wartet auf Koks      |
 |  + Wagen anhängen                |
 +----------------------------------+
@@ -447,15 +448,15 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 
 - Der **Zugstreifen** ist die Bühne: Lok und Wagen als Silhouetten, Landschaft im Parallax, Räder drehen sich nur, wenn der Zug fährt. Antippen eines Wagens öffnet ihn. Der Streifen ist nie höher als ein Drittel des Bildschirms. Er trägt auch den Kilometerstand, den Fahrzustand und das nächste Ereignis, darum entfällt auf diesem Bildschirm die Statuszeile.
 - Die Bühne ist eine Illustration, keine massstabsgetreue Karte. Die Landschaft zieht mit gefühlter Geschwindigkeit vorbei, nicht mit den echten 12 km/h, sonst stünde das Bild still. Ein Hindernis erscheint, sobald der Zug davorsteht, und der Zug rückt ein Stück zurück, um Platz dafür zu machen.
-- Die **Wagenliste** ist die Arbeitsfläche: Reihenfolge wie im Zug, belegte von freien Maschinenplätzen, was der Wagen ausstösst als Glyphen mit Stückzahl («Koks ×2»), Status als Farbe und Wort, Rate pro Minute für den ganzen Wagen. Umkoppeln geht im Wagen-Detail mit «Nach vorne» und «Nach hinten», Ziehen kommt mit der Bühne in Phase 4.
+- Die **Wagenliste** ist die Arbeitsfläche: Reihenfolge wie im Zug, belegte von freien Maschinenplätzen, was der Wagen ausstösst als Glyphen mit Stückzahl und **Rate je Ware** («Koks ×2, 72/min»), darunter der Status und die Rate des ganzen Wagens. Die Rate je Ware ist die Zahl zum Abstimmen: Liefert der Schmelzwagen 39/min Eisenbarren und frisst der Walzwagen 40/min, sieht man den Engpass, ohne zu rechnen. Umkoppeln geht im Wagen-Detail mit «Nach vorne» und «Nach hinten», Ziehen kommt mit der Bühne in Phase 4.
 - Die **Leiste unten** hat sechs Ziele: Zug, Werkstatt, Lager, Forschung, Strecke, Mehr. Ein Punkt an einem Ziel bedeutet: Dort wartet etwas (Forschung fertig, Baustelle fertig, Lager voll).
 
 ### 12.2 Weitere Bildschirme
 
 | Bildschirm | Inhalt |
 |---|---|
-| Wagen-Detail (Bottom Sheet) | Liste der Maschinen im Wagen, je Zeile ihr Auftrag als Fluss und ihr Status. Antippen klappt die Auftragswahl auf, mit Ausgabe pro Minute je Rezept. Darunter «Maschine bauen» mit Preis, Stufe mit Kosten und Knopf, kurze Wege, Reihenfolge, Abkoppeln |
-| Werkstatt (eigener Bildschirm) | Kohle schaufeln und die Werkbank stehen fest oben, nur die Rezepte darunter scrollen. Die Werkbank zeigt den laufenden Auftrag mit Fortschritt und die Warteschlange, gleiche Aufträge zusammengezogen («Koks ×5»). Ihr Bereich hat eine feste Höhe, damit die Liste nicht springt, wenn Aufträge dazukommen: Man kann denselben Knopf mehrmals antippen, ohne ihn zu suchen |
+| Wagen-Detail (Bottom Sheet) | Liste der Maschinen im Wagen, je Zeile ihr Auftrag als Fluss, ihre Rate pro Minute und ihr Status. Rechts der Pausenknopf, der nur den Auftrag wegnimmt. Antippen klappt die Auftragswahl auf, mit Ausgabe pro Minute je Rezept, und darin steht das Ausbauen mit Rückfrage. Darunter «Maschine bauen» mit Preis, Stufe mit Kosten und Knopf, kurze Wege, Reihenfolge, Abkoppeln |
+| Werkstatt (eigener Bildschirm) | Kohle schaufeln und die Werkbank stehen fest oben, nur die Rezepte darunter scrollen. Die Werkbank zeigt den laufenden Auftrag mit Fortschritt, Ausstoss pro Minute und die Warteschlange, gleiche Aufträge zusammengezogen («Koks ×5»). Jedes Rezept in der Liste nennt Dauer und Ausstoss («2 s · 30/min»), damit sich Handarbeit und Wagen vergleichen lassen. Ihr Bereich hat eine feste Höhe, damit die Liste nicht springt, wenn Aufträge dazukommen: Man kann denselben Knopf mehrmals antippen, ohne ihn zu suchen |
 | Lager | Alle Waren nach Stufe, Bestand von Kapazität, Nettorate pro Minute mit Vorzeichen. Volle und leere Waren stehen oben |
 | Forschung | Technologien nach Stufe, Kosten in Blaupausen, laufende Forschung mit Balken, Voraussetzungen als Text |
 | Strecke | Streckenkarte mit Biomen, Hindernissen, Position. Offene Baustellen mit Stückliste und Balken. Lok mit Upgrade-Projekt. Fahrtenbuch |
@@ -468,6 +469,8 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 - Was nicht geht, sagt warum: «Braucht 6 Zahnrad, du hast 2.»
 - Zahlen im Format der Schweiz: `1'200`, `7,5/min`.
 - Rot ist nur für Blockaden, Messing nur für Fortschritt und Meilensteine.
+- Wo produziert wird, steht auch der Ausstoss pro Minute: je Maschine, je Ware im Wagen, je Rezept in der Werkstatt. Ohne diese Zahl lässt sich keine Kette abstimmen.
+- Was bezahltes Material vernichtet, fragt zurück und liegt nicht neben einem harmlosen Knopf. Drosseln muss immer einfacher sein als Abreissen.
 
 ## 13. Grafik und Ton
 

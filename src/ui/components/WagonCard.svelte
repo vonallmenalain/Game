@@ -1,15 +1,5 @@
 <script lang="ts">
-  import {
-    RECIPE_BY_ID,
-    WAGON_BY_TYPE,
-    crank,
-    getStore,
-    harvestRatePerMinute,
-    hasSelfLoader,
-    machineSlots,
-    machineSpeed,
-    type WagonState,
-  } from '../../engine';
+  import { RECIPE_BY_ID, WAGON_BY_TYPE, crank, getStore, hasSelfLoader, machineRatePerMinute, machineSlots, type WagonState } from '../../engine';
   import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
   import { WAGON_COLOR, machineName, statusText, statusTone } from '../labels';
@@ -21,29 +11,20 @@
   const def = $derived(WAGON_BY_TYPE[wagon.type]);
 
   /**
-   * Was der Wagen ausstösst, je Ware zusammengezählt: «Koks ×2» statt zweimal Koks.
-   * So sieht man auf der Karte, wofür die Maschinen darin eingeteilt sind.
+   * Was der Wagen ausstösst, je Ware zusammengezählt: «Koks ×2, 60/min» statt zweimal
+   * Koks. Die Rate steht je Ware, damit sich zwei Wagen aufeinander abstimmen lassen.
    */
   const ausstoss = $derived.by(() => {
     const gruppen = new Map<string, { item: string; maschinen: number; rate: number }>();
     for (const m of wagon.machines) {
-      if (wagon.type === 'ernte') {
-        if (!m.resource) continue;
-        const eintrag = gruppen.get(m.resource) ?? { item: m.resource, maschinen: 0, rate: 0 };
-        eintrag.maschinen += 1;
-        eintrag.rate += harvestRatePerMinute(game.state, wagon, m.resource);
-        gruppen.set(m.resource, eintrag);
-        continue;
-      }
-      const r = m.recipe ? RECIPE_BY_ID[m.recipe] : undefined;
-      const out = r?.outputs[0];
-      if (!r || !out) continue;
-      const eintrag = gruppen.get(out.item) ?? { item: out.item, maschinen: 0, rate: 0 };
+      const item = wagon.type === 'ernte' ? m.resource : (m.recipe ? RECIPE_BY_ID[m.recipe]?.outputs[0]?.item : undefined);
+      if (!item) continue;
+      const eintrag = gruppen.get(item) ?? { item, maschinen: 0, rate: 0 };
       eintrag.maschinen += 1;
-      eintrag.rate += (out.amount / r.seconds) * 60 * machineSpeed(game.state, wagon, m);
-      gruppen.set(out.item, eintrag);
+      eintrag.rate += machineRatePerMinute(game.state, wagon, m);
+      gruppen.set(item, eintrag);
     }
-    return [...gruppen.values()].sort((a, b) => b.maschinen - a.maschinen);
+    return [...gruppen.values()].sort((a, b) => b.rate - a.rate);
   });
 
   const rate = $derived(ausstoss.reduce((sum, g) => sum + g.rate, 0));
@@ -64,7 +45,10 @@
           {#each ausstoss as g (g.item)}
             <span class="gruppe">
               <ItemChip item={g.item} have={getStore(game.state, g.item)} size="s" />
-              {#if g.maschinen > 1}<b class="mono">×{g.maschinen}</b>{/if}
+              <span class="zahlen">
+                {#if g.maschinen > 1}<b class="mono">×{g.maschinen}</b>{/if}
+                <span class="rate mono">{formatRate(g.rate)}</span>
+              </span>
             </span>
           {/each}
         </span>
@@ -148,11 +132,23 @@
   .gruppe {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
   }
 
-  .gruppe b {
+  /* Anzahl Maschinen oben, Ausstoss darunter: Beides gehört zur Ware daneben. */
+  .zahlen {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+
+  .zahlen b {
     font-size: 12px;
+    color: var(--ink-2);
+  }
+
+  .rate {
+    font-size: 11px;
     color: var(--ink-2);
   }
 

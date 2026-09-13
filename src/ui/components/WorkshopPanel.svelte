@@ -15,6 +15,7 @@
     storeCap,
     type ProductionWagonType,
   } from '../../engine';
+  import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
   import { WAGON_COLOR, itemName } from '../labels';
   import Bar from './Bar.svelte';
@@ -24,6 +25,8 @@
 
   const queue = $derived(game.state.workbench.queue);
   const head = $derived(queue[0] ? RECIPE_BY_ID[queue[0]] : undefined);
+  /** Die Werkbank arbeitet mit einfachem Tempo: Ausstoss ist Ausgabe je Rezeptdauer. */
+  const bankRate = $derived(head ? ((head.outputs[0]?.amount ?? 0) / head.seconds) * 60 : 0);
   const progress = $derived(head ? game.state.workbench.progress / head.seconds : 0);
   const frei = $derived(BALANCE.workbenchQueueMax - queue.length);
 
@@ -77,6 +80,7 @@
     <div class="laeuft">
       <RecipeFlow recipe={head.id} showStock={false} showNames={false} size="s" />
       <span class="name">{head.name}</span>
+      <span class="muted small mono">{formatRate(bankRate)}</span>
     </div>
     <Bar value={progress} tone="good" />
     <div class="schlange">
@@ -106,7 +110,7 @@
       <div class="rezept" class:gesperrt={!geht}>
         <div class="zeile">
           <span class="name">{r.name}</span>
-          <span class="dauer mono muted">{r.seconds} s</span>
+          <span class="dauer mono muted">{r.seconds} s · {formatRate(((r.outputs[0]?.amount ?? 0) / r.seconds) * 60)}</span>
           <button type="button" class="btn small primary" disabled={!geht} onclick={() => bauen(r.id)}>
             +{plan.orders || 1}
           </button>
@@ -197,6 +201,11 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .laeuft .small {
+    flex: none;
+    font-size: 12px;
   }
 
   .schlange {

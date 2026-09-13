@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BALANCE } from './balance';
 import { BIOME_BY_ID, LOCO_BY_ID, OBSTACLE_BY_ID, PROJECT_BY_ID } from './data';
 import { createInitialState, getStore, storeCap } from './state';
-import { machineSpeed, tick } from './tick';
+import { machineRatePerMinute, machineSpeed, tick } from './tick';
 import { addMachine, addWagon, clone, grant, research, runFor } from './sim/testkit';
 import { startResearch } from './actions';
 
@@ -105,6 +105,28 @@ describe('Produktion', () => {
     runFor(s, 10);
     expect(s.wagons[1]?.status).toBe('blockiert');
     expect(getStore(s, 'kohle')).toBe(50);
+  });
+});
+
+describe('Ausstoss je Maschine', () => {
+  it('rechnet Ernte und Rezept in Stück pro Minute, ohne Auftrag null', () => {
+    const s = createInitialState();
+    const ernte = s.wagons[0]!;
+    // Eisenerz im Tal: 30 mal 1,5 vor Ort
+    expect(machineRatePerMinute(s, ernte, ernte.machines[0]!)).toBeCloseTo(45);
+
+    const schmelz = addWagon(s, 'schmelz', { recipe: 'koks' });
+    // Koks: 1 Stück je 2 Sekunden
+    expect(machineRatePerMinute(s, schmelz, schmelz.machines[0]!)).toBeCloseTo(30);
+
+    const leer = addMachine(s, schmelz);
+    expect(machineRatePerMinute(s, schmelz, leer)).toBe(0);
+
+    // Kurze Wege und Stufe schlagen auf die Zahl durch
+    const barren = addMachine(s, schmelz, { recipe: 'eisenbarren' });
+    expect(machineRatePerMinute(s, schmelz, barren)).toBeCloseTo(16.5);
+    schmelz.level = 2;
+    expect(machineRatePerMinute(s, schmelz, barren)).toBeCloseTo(19.8);
   });
 });
 
