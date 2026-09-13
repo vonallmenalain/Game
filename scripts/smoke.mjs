@@ -51,10 +51,24 @@ try {
   await page.getByRole('button', { name: 'Zug', exact: true }).click();
   await page.getByRole('button', { name: 'Werkstatt', exact: true }).last().click();
   await page.getByRole('button', { name: /Kohle schaufeln/ }).click();
-  await page.getByRole('button', { name: '+1' }).first().click();
-  await page.waitForTimeout(600);
-  await page.screenshot({ path: shot('03-werkstatt.png') });
-  const queue = (await page.locator('.queue').innerText().catch(() => 'keine Warteschlange')).replace(/\s+/g, ' ');
+
+  // Kette: Eisenbarren braucht Koks. Antippen muss Koks von selbst voranstellen.
+  const eisenbarren = page.locator('.rezept', { hasText: 'Eisenbarren' }).first();
+  const kettenKnopf = (await eisenbarren.getByRole('button').innerText()).trim();
+  await eisenbarren.getByRole('button').click();
+  await page.waitForTimeout(300);
+  const queue = (await page.locator('.werkbank').innerText()).replace(/\s+/g, ' ');
+
+  // Der Knopf darf nicht wandern, wenn die Warteschlange wächst
+  const koksRezept = page.locator('.rezept', { hasText: 'Koks' }).first();
+  const knopfVorher = await koksRezept.getByRole('button').boundingBox();
+  await koksRezept.getByRole('button').click();
+  await page.waitForTimeout(250);
+  await koksRezept.getByRole('button').click();
+  await page.waitForTimeout(250);
+  const knopfNachher = await koksRezept.getByRole('button').boundingBox();
+  const knopfWandert = Math.abs((knopfVorher?.y ?? 0) - (knopfNachher?.y ?? 0));
+  await page.screenshot({ path: shot('03-werkstatt.png'), fullPage: true });
   await page.getByRole('button', { name: 'Schliessen' }).click();
 
   await page.getByRole('button', { name: /Erntewagen/ }).first().click();
@@ -205,11 +219,12 @@ try {
   const migriert = /12,3 km/.test(nachMigration) && schluessel.includes('loco/save') && !schluessel.includes('linie-null/save');
 
   const offline = cloudRequests.length === 0 && !firebaseGeladen;
-  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration }, null, 2));
+  const kette = kettenKnopf === '+2' && /Koks/.test(queue) && /Eisenbarren/.test(queue);
+  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration }, null, 2));
   // Erfolgskriterium aus Abschnitt 15.3 des Konzepts: unter zwei Sekunden bis zum ersten Bild
   const schnell = ladezeit < 2000;
-  if (errors.length > 0 || !(harvested > 0) || !queue.includes('Koks') || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert) {
-    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert });
+  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');

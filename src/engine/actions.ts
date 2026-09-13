@@ -1,4 +1,5 @@
 import { BALANCE } from './balance';
+import { planCraft } from './craft';
 import { PROJECT_BY_ID, RECIPE_BY_ID, TECH_BY_ID, wagon as wagonDef } from './data';
 import {
   addToStore,
@@ -220,6 +221,27 @@ export function queueWorkbench(state: GameState, recipeId: RecipeId): ActionResu
   if (!isRecipeUnlocked(state, r.id)) return fail('rezept_gesperrt');
   if (state.workbench.queue.length >= BALANCE.workbenchQueueMax) return fail('warteschlange_voll');
   state.workbench.queue.push(r.id);
+  return OK;
+}
+
+/**
+ * Reiht ein Rezept ein und stellt fehlende Zwischenprodukte davor. Wer Eisenbarren
+ * will und keinen Koks hat, bekommt zuerst Koks in die Warteschlange.
+ */
+export function queueCraftChain(state: GameState, recipeId: RecipeId): ActionResult {
+  const r = RECIPE_BY_ID[recipeId];
+  if (!r) return fail('unbekannt');
+  if (!isRecipeUnlocked(state, r.id)) return fail('rezept_gesperrt');
+
+  const plan = planCraft(state, recipeId);
+  if (plan.missing.length > 0) return fail('material_fehlt', plan.missing);
+
+  const frei = BALANCE.workbenchQueueMax - state.workbench.queue.length;
+  if (plan.orders > frei) return fail('warteschlange_voll');
+
+  for (const step of plan.steps) {
+    for (let i = 0; i < step.runs; i += 1) state.workbench.queue.push(step.recipe);
+  }
   return OK;
 }
 

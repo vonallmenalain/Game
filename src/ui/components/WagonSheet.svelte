@@ -8,9 +8,10 @@
     detachRefund,
     detachWagon,
     discoveredResources,
-    getStore,
     harvestRatePerMinute,
     hasSelfLoader,
+    getStore,
+    ingredientsOf,
     isOnSite,
     levelMultiplier,
     moveWagon,
@@ -25,6 +26,8 @@
   import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
   import { WAGON_COLOR, itemName, stackText, statusText, statusTone } from '../labels';
+  import ItemChip from './ItemChip.svelte';
+  import RecipeFlow from './RecipeFlow.svelte';
   import Vehicle from './Vehicle.svelte';
 
   let { id }: { id: number } = $props();
@@ -41,13 +44,12 @@
 
   let confirmDetach = $state(false);
 
+  /** Wie viel dieser Wagen mit dem Rezept pro Minute ausstösst */
   function rateText(recipeId: string): string {
     const r = RECIPE_BY_ID[recipeId];
     if (!r || !wagon) return '';
     const factor = (60 / r.seconds) * (wagon.recipe === recipeId ? speed : baseSpeed);
-    const ins = r.inputs.map((s) => `${formatRate(s.amount * factor)} ${itemName(s.item)}`).join(' + ');
-    const outs = r.outputs.map((s) => `${formatRate(s.amount * factor)} ${itemName(s.item)}`).join(' + ');
-    return `${ins} ergibt ${outs}`;
+    return r.outputs.map((s) => formatRate(s.amount * factor)).join(' + ');
   }
 
   function detach() {
@@ -73,9 +75,12 @@
     <p class="eyebrow">Rohstoff</p>
     <div class="choices">
       {#each discoveredResources(game.state) as res (res)}
-        <button type="button" class="choice" class:active={wagon.resource === res} onclick={() => game.run(setResource(game.state, wagon.id, res))}>
-          <span class="name">{itemName(res)}</span>
-          <span class="muted small">{formatRate(harvestRatePerMinute(game.state, wagon, res))}{#if isOnSite(game.state, res)}{` · vor Ort, mal ${BALANCE.onSiteBonus.toString().replace('.', ',')}`}{/if}</span>
+        <button type="button" class="choice row" class:active={wagon.resource === res} onclick={() => game.run(setResource(game.state, wagon.id, res))}>
+          <ItemChip item={res} have={getStore(game.state, res)} />
+          <span class="text">
+            <span class="name">{itemName(res)}</span>
+            <span class="muted small">{formatRate(harvestRatePerMinute(game.state, wagon, res))}{#if isOnSite(game.state, res)}{` · vor Ort, mal ${BALANCE.onSiteBonus.toString().replace('.', ',')}`}{/if}</span>
+          </span>
         </button>
       {/each}
     </div>
@@ -89,9 +94,16 @@
     <p class="eyebrow">Rezept</p>
     <div class="choices">
       {#each unlockedRecipesFor(game.state, wagon.type) as r (r.id)}
+        {@const fehlt = ingredientsOf(game.state, r.id).filter((z) => !z.enough)}
         <button type="button" class="choice" class:active={wagon.recipe === r.id} onclick={() => game.run(setRecipe(game.state, wagon.id, r.id))}>
-          <span class="name">{r.name}</span>
-          <span class="muted small">{rateText(r.id)}</span>
+          <span class="kopf">
+            <span class="name">{r.name}</span>
+            <span class="muted small mono">{rateText(r.id)}</span>
+          </span>
+          <RecipeFlow recipe={r.id} />
+          {#if fehlt.length > 0}
+            <span class="small tone-warn">Kein {fehlt.map((z) => itemName(z.item)).join(', kein ')} im Lager.</span>
+          {/if}
         </button>
       {/each}
     </div>
@@ -166,8 +178,8 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
-    padding: 9px 12px;
+    gap: 7px;
+    padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: var(--surface);
@@ -184,6 +196,26 @@
 
   .choice .name {
     font-weight: 600;
+  }
+
+  .choice.row {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .choice .text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .kopf {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
   }
 
   .small {
