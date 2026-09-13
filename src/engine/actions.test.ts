@@ -133,10 +133,10 @@ describe('Forschung starten', () => {
 });
 
 describe('Werkbank und Baustellen', () => {
-  it('Warteschlange ist auf zehn begrenzt und nimmt nur freigeschaltete Rezepte', () => {
+  it('Warteschlange ist begrenzt und nimmt nur freigeschaltete Rezepte', () => {
     const s = createInitialState();
     expect(queueWorkbench(s, 'stahl')).toMatchObject({ ok: false, code: 'rezept_gesperrt' });
-    for (let i = 0; i < 10; i += 1) expect(queueWorkbench(s, 'koks').ok).toBe(true);
+    for (let i = 0; i < BALANCE.workbenchQueueMax; i += 1) expect(queueWorkbench(s, 'koks').ok).toBe(true);
     expect(queueWorkbench(s, 'koks')).toMatchObject({ ok: false, code: 'warteschlange_voll' });
   });
 

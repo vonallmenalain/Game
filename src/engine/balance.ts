@@ -20,8 +20,8 @@ export const BALANCE = {
   neighborBonus: 0.1,
   /** Erntefaktor im Heimat-Biom des Rohstoffs */
   onSiteBonus: 1.5,
-  /** Höchstens so viele Aufträge in der Werkbank */
-  workbenchQueueMax: 10,
+  /** Höchstens so viele Aufträge in der Werkbank. Genug für eine tiefe Kette wie ein Fahrgestell. */
+  workbenchQueueMax: 30,
   /** Forschungstempo ohne Konstruktionsbüro */
   workbenchResearchFactor: 0.5,
   /** Sekunden Ernte je Tipp auf die Handkurbel */

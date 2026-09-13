@@ -78,7 +78,7 @@
   </main>
   <TabBar active={tab} {dots} onchange={(t) => (tab = t)} />
 
-  <Sheet open={game.sheet.kind !== 'none'} title={sheetTitle} onclose={() => (game.sheet = { kind: 'none' })}>
+  <Sheet open={game.sheet.kind !== 'none'} title={sheetTitle} onclose={() => (game.sheet = { kind: 'none' })} scroll={game.sheet.kind !== 'werkstatt'}>
     {#if game.sheet.kind === 'wagen'}
       {#key game.sheet.id}
         <WagonSheet id={game.sheet.id} />
