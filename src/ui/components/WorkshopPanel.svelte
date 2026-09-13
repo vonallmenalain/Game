@@ -27,6 +27,17 @@
   const progress = $derived(head ? game.state.workbench.progress / head.seconds : 0);
   const frei = $derived(BALANCE.workbenchQueueMax - queue.length);
 
+  /** Gleiche Aufträge hintereinander werden zusammengezogen: «Koks ×6» statt sechs Chips. */
+  const wartend = $derived.by(() => {
+    const gruppen: { recipe: string; anzahl: number }[] = [];
+    for (const id of queue.slice(1)) {
+      const letzte = gruppen[gruppen.length - 1];
+      if (letzte && letzte.recipe === id) letzte.anzahl += 1;
+      else gruppen.push({ recipe: id, anzahl: 1 });
+    }
+    return gruppen;
+  });
+
   /** Rezepte nach Wagen gruppiert: So ist sichtbar, wer was herstellt. */
   const gruppen = $derived(
     WAGONS.filter((w) => w.type !== 'ernte' && w.type !== 'lager')
@@ -47,6 +58,7 @@
   }
 </script>
 
+<section class="werkstatt">
 <div class="tender">
   <span class="small">
     <ItemChip item="kohle" have={getStore(game.state, 'kohle')} size="s" />
@@ -68,8 +80,10 @@
     </div>
     <Bar value={progress} tone="good" />
     <div class="schlange">
-      {#each queue.slice(1) as id, i (i)}
-        <span class="wartet">{RECIPE_BY_ID[id]?.name ?? id}</span>
+      {#each wartend as gruppe, i (i)}
+        <span class="wartet">
+          {RECIPE_BY_ID[gruppe.recipe]?.name ?? gruppe.recipe}{#if gruppe.anzahl > 1}<b class="mono">&#8202;×{gruppe.anzahl}</b>{/if}
+        </span>
       {/each}
       {#if queue.length === 1}<span class="muted small">danach ist die Werkbank frei</span>{/if}
     </div>
@@ -113,9 +127,20 @@
     {/each}
   {/each}
 </div>
+</section>
 
 <style>
+  /* Tender und Werkbank stehen fest, nur die Rezepte darunter scrollen. */
+  .werkstatt {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    padding: 12px 16px 0;
+  }
+
   .tender {
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -136,6 +161,7 @@
   /* Feste Höhe für beide Zustände: leer und arbeitend. Nur so bleibt die Liste
      darunter stehen, wenn Aufträge dazukommen. */
   .werkbank {
+    flex: none;
     height: 140px;
     display: flex;
     flex-direction: column;
@@ -144,7 +170,7 @@
     border: 1px solid var(--line);
     border-radius: 10px;
     background: var(--surface);
-    margin-bottom: 14px;
+    margin-bottom: 12px;
     overflow: hidden;
   }
 
@@ -196,15 +222,27 @@
     white-space: nowrap;
   }
 
+  .wartet b {
+    font-weight: 700;
+    color: var(--accent-ink);
+  }
+
   .leer {
     margin: 0;
     font-size: 13.5px;
     color: var(--ink-2);
   }
 
+  /* Nur die Rezepte scrollen. Tender und Werkbank darüber bleiben stehen. */
   .liste {
     display: grid;
+    align-content: start;
     gap: 10px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 0 -16px;
+    padding: 0 16px 20px;
   }
 
   .gruppe {

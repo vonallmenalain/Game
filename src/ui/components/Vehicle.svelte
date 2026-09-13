@@ -5,7 +5,7 @@
     kind,
     color,
     rolling,
-  }: { kind: WagonType | LocoId | 'werkstatt'; color: string; rolling: boolean } = $props();
+  }: { kind: WagonType | LocoId; color: string; rolling: boolean } = $props();
 
   const isLoco = $derived(kind === 'dampflok' || kind === 'schwere_dampflok');
   const width = $derived(kind === 'schwere_dampflok' ? 86 : kind === 'dampflok' ? 72 : 58);
@@ -59,8 +59,6 @@
         <rect x="26" y="10" width="6" height="7" rx="2" />
       {:else}
         <rect x="4" y="24" width="50" height="16" rx="3" />
-        <path d="M10 24 L29 12 L48 24 Z" />
-        <rect x="24" y="28" width="10" height="12" rx="2" fill="rgba(255,255,255,0.5)" />
       {/if}
     </g>
     <g class="wheels" fill={color}>

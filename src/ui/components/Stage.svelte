@@ -71,9 +71,6 @@
     <button type="button" class="vehicle" class:arriving={locoArriving} onclick={() => game.showToast(`${loco.name}: ${loco.slots} Wagen, ${loco.speedKmh} km/h`)} aria-label={loco.name}>
       <Vehicle kind={loco.id} color="var(--loco)" rolling={mode === 'faehrt'} />
     </button>
-    <button type="button" class="vehicle" onclick={() => (game.sheet = { kind: 'werkstatt' })} aria-label="Werkstatt">
-      <Vehicle kind="werkstatt" color="var(--w-lager)" rolling={mode === 'faehrt'} />
-    </button>
     {#each game.state.wagons as w (w.id)}
       <button type="button" class="vehicle tone-{statusTone(w)}" onclick={() => open(w)} aria-label="{WAGON_BY_TYPE[w.type]?.name ?? w.type}, Stufe {w.level}">
         <Vehicle kind={w.type} color={WAGON_COLOR[w.type]} rolling={mode === 'faehrt'} />

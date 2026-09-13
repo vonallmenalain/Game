@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { queueCraftChain } from './actions';
+import { BALANCE } from './balance';
 import { ingredientsOf, outputBlocked, planCraft } from './craft';
 import { createInitialState, getStore, storeCap } from './state';
 import { grant, research, runFor } from './sim/testkit';
@@ -89,13 +90,25 @@ describe('Kette einreihen', () => {
     expect(s.workbench.queue).toHaveLength(0);
   });
 
-  it('lehnt ab, wenn die Kette nicht in die Warteschlange passt', () => {
+  it('reiht eine tiefe Kette in einem Zug ein', () => {
     const s = createInitialState();
     research(s, 'werkwagen');
     grant(s, { kohle: 40, eisenerz: 40, holz: 20 });
+    expect(queueCraftChain(s, 'fahrgestell').ok).toBe(true);
+    expect(s.workbench.queue).toHaveLength(17);
+    expect(s.workbench.queue.at(-1)).toBe('fahrgestell');
+    expect(s.workbench.queue[0]).toBe('koks');
+  });
+
+  it('lehnt ab, wenn der Platz nicht reicht, und lässt die Warteschlange unberührt', () => {
+    const s = createInitialState();
+    research(s, 'werkwagen');
+    grant(s, { kohle: 40, eisenerz: 40, holz: 20 });
+    const belegt = BALANCE.workbenchQueueMax - 3;
+    for (let i = 0; i < belegt; i += 1) s.workbench.queue.push('koks');
     const result = queueCraftChain(s, 'fahrgestell');
     expect(result).toMatchObject({ ok: false, code: 'warteschlange_voll' });
-    expect(s.workbench.queue).toHaveLength(0);
+    expect(s.workbench.queue).toHaveLength(belegt);
   });
 });
 
