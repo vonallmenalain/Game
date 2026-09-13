@@ -112,7 +112,7 @@ describe('Spieldaten', () => {
     expect(ITEMS.filter((i) => i.kind === 'ware')).toHaveLength(19);
     expect(ITEMS.filter((i) => i.kind === 'blaupause')).toHaveLength(3);
     expect(RECIPES).toHaveLength(22);
-    expect(TECHS).toHaveLength(19);
+    expect(TECHS).toHaveLength(20);
     expect(WAGONS).toHaveLength(7);
     expect(LOCOS).toHaveLength(2);
     expect(PROJECTS.filter((p) => !p.preview)).toHaveLength(3);

@@ -3,29 +3,34 @@
     BALANCE,
     RECIPE_BY_ID,
     WAGON_BY_TYPE,
+    buildMachine,
     canAfford,
     crank,
     detachRefund,
     detachWagon,
     discoveredResources,
+    freeMachineSlots,
     harvestRatePerMinute,
     hasSelfLoader,
     getStore,
     ingredientsOf,
     isOnSite,
-    levelMultiplier,
+    machineSlots,
+    machineSpeed,
     moveWagon,
-    productionSpeed,
-    setRecipe,
-    setResource,
+    nextMachineCost,
+    removeMachine,
+    setMachineRecipe,
+    setMachineResource,
     unlockedRecipesFor,
     upgradeWagon,
-    wagonTypeMultiplier,
+    wagonBaseSpeed,
     wagonUpgradeCost,
+    type MachineState,
   } from '../../engine';
   import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { WAGON_COLOR, itemName, stackText, statusText, statusTone } from '../labels';
+  import { WAGON_COLOR, itemName, machineName, machineStatusText, stackText, statusText, statusTone } from '../labels';
   import ItemChip from './ItemChip.svelte';
   import RecipeFlow from './RecipeFlow.svelte';
   import Vehicle from './Vehicle.svelte';
@@ -35,21 +40,42 @@
   const index = $derived(game.state.wagons.findIndex((w) => w.id === id));
   const wagon = $derived(game.state.wagons[index]);
   const def = $derived(wagon ? WAGON_BY_TYPE[wagon.type] : undefined);
-  const speed = $derived(wagon && wagon.type !== 'ernte' && wagon.type !== 'lager' ? productionSpeed(game.state, index) : 0);
-  const baseSpeed = $derived(wagon ? levelMultiplier(wagon.level) * wagonTypeMultiplier(game.state, wagon.type) : 1);
-  const neighborBonus = $derived(wagon?.recipe ? speed > baseSpeed + 1e-9 : false);
+  const baseSpeed = $derived(wagon ? wagonBaseSpeed(game.state, wagon) : 1);
   const upgradeCost = $derived(wagon && def?.upgradable && wagon.level < BALANCE.maxLevel ? wagonUpgradeCost(wagon.type, wagon.level + 1) : null);
   const canUpgrade = $derived(upgradeCost ? canAfford(game.state, upgradeCost) : false);
   const selfLoader = $derived(hasSelfLoader(game.state));
+  const machineCost = $derived(wagon ? nextMachineCost(wagon) : []);
+  const frei = $derived(wagon ? freeMachineSlots(game.state, wagon) : 0);
 
+  /** Welche Maschine gerade ihren Auftrag ändern lässt */
+  let offen = $state<number | null>(null);
   let confirmDetach = $state(false);
 
-  /** Wie viel dieser Wagen mit dem Rezept pro Minute ausstösst */
-  function rateText(recipeId: string): string {
+  /** Was diese Maschine mit dem Rezept pro Minute ausstösst */
+  function rateText(m: MachineState, recipeId: string): string {
     const r = RECIPE_BY_ID[recipeId];
     if (!r || !wagon) return '';
-    const factor = (60 / r.seconds) * (wagon.recipe === recipeId ? speed : baseSpeed);
+    const factor = (60 / r.seconds) * (m.recipe === recipeId ? machineSpeed(game.state, wagon, m) : baseSpeed);
     return r.outputs.map((s) => formatRate(s.amount * factor)).join(' + ');
+  }
+
+  function setzeRezept(m: MachineState, recipeId: string) {
+    if (!wagon) return;
+    if (game.run(setMachineRecipe(game.state, wagon.id, m.id, recipeId))) offen = null;
+  }
+
+  function setzeRohstoff(m: MachineState, item: string) {
+    if (!wagon) return;
+    if (game.run(setMachineResource(game.state, wagon.id, m.id, item))) offen = null;
+  }
+
+  function bauen() {
+    if (!wagon) return;
+    const vorher = wagon.machines.length;
+    if (game.run(buildMachine(game.state, wagon.id))) {
+      const neu = wagon.machines[vorher];
+      if (neu) offen = neu.id;
+    }
   }
 
   function detach() {
@@ -71,56 +97,97 @@
     </div>
   </div>
 
-  {#if wagon.type === 'ernte'}
-    <p class="eyebrow">Rohstoff</p>
-    <div class="choices">
-      {#each discoveredResources(game.state) as res (res)}
-        <button type="button" class="choice row" class:active={wagon.resource === res} onclick={() => game.run(setResource(game.state, wagon.id, res))}>
-          <ItemChip item={res} have={getStore(game.state, res)} />
-          <span class="text">
-            <span class="name">{itemName(res)}</span>
-            <span class="muted small">{formatRate(harvestRatePerMinute(game.state, wagon, res))}{#if isOnSite(game.state, res)}{` · vor Ort, mal ${BALANCE.onSiteBonus.toString().replace('.', ',')}`}{/if}</span>
-          </span>
-        </button>
-      {/each}
-    </div>
-    {#if !selfLoader}
-      <p class="hint">Ohne Selbstlader erntet der Wagen nur, wenn du kurbelst. Jeder Tipp gibt {BALANCE.crankSeconds} Sekunden.</p>
-      <button type="button" class="btn primary wide" onclick={() => game.run(crank(game.state, wagon.id))}>Kurbeln</button>
-    {/if}
-  {:else if wagon.type === 'lager'}
-    <p class="hint">Erhöht die Kapazität jeder Ware um {BALANCE.storeCapPerLagerwagen}.</p>
-  {:else}
-    <p class="eyebrow">Rezept</p>
-    <div class="choices">
-      {#each unlockedRecipesFor(game.state, wagon.type) as r (r.id)}
-        {@const fehlt = ingredientsOf(game.state, r.id).filter((z) => !z.enough)}
-        <button type="button" class="choice" class:active={wagon.recipe === r.id} onclick={() => game.run(setRecipe(game.state, wagon.id, r.id))}>
-          <span class="kopf">
-            <span class="name">{r.name}</span>
-            <span class="muted small mono">{rateText(r.id)}</span>
-          </span>
-          <RecipeFlow recipe={r.id} />
-          {#if fehlt.length > 0}
-            <span class="small tone-warn">Kein {fehlt.map((z) => itemName(z.item)).join(', kein ')} im Lager.</span>
+  <p class="eyebrow">{machineName(wagon.type)} · {wagon.machines.length} von {machineSlots(game.state)}</p>
+
+  <div class="maschinen">
+    {#each wagon.machines as m, i (m.id)}
+      <div class="maschine" class:offen={offen === m.id}>
+        <div class="zeile">
+          <button type="button" class="auftrag" onclick={() => (offen = offen === m.id ? null : m.id)} disabled={wagon.type === 'lager'}>
+            <span class="nr mono">{i + 1}</span>
+            <span class="was">
+              {#if wagon.type === 'lager'}
+                <span class="small">Regal · plus {BALANCE.storeCapPerRegal} Kapazität je Ware</span>
+              {:else if wagon.type === 'ernte'}
+                {#if m.resource}
+                  <ItemChip item={m.resource} have={getStore(game.state, m.resource)} size="s" showName />
+                {:else}
+                  <span class="small tone-warn">Rohstoff wählen</span>
+                {/if}
+              {:else if m.recipe}
+                <RecipeFlow recipe={m.recipe} size="s" showNames={false} />
+              {:else}
+                <span class="small tone-warn">Auftrag wählen</span>
+              {/if}
+              <span class="status tone-{statusTone(m)}">{machineStatusText(game.state, wagon, m)}</span>
+            </span>
+            {#if wagon.type !== 'lager'}
+              <span class="pfeil" aria-hidden="true">{offen === m.id ? '×' : '›'}</span>
+            {/if}
+          </button>
+          {#if wagon.machines.length > 1}
+            <button type="button" class="btn ghost weg" aria-label="{machineName(wagon.type)} {i + 1} ausbauen" onclick={() => game.run(removeMachine(game.state, wagon.id, m.id))}>×</button>
           {/if}
-        </button>
-      {/each}
-    </div>
-    <p class="hint">
-      {#if neighborBonus}
-        Nachbarschaftsbonus aktiv: Der Wagen davor liefert eine Zutat, plus {Math.round(BALANCE.neighborBonus * 100)} Prozent Tempo.
+        </div>
+
+        {#if offen === m.id}
+          <div class="choices">
+            {#if wagon.type === 'ernte'}
+              {#each discoveredResources(game.state) as res (res)}
+                <button type="button" class="choice row" class:active={m.resource === res} onclick={() => setzeRohstoff(m, res)}>
+                  <ItemChip item={res} have={getStore(game.state, res)} />
+                  <span class="text">
+                    <span class="name">{itemName(res)}</span>
+                    <span class="muted small">{formatRate(harvestRatePerMinute(game.state, wagon, res))}{#if isOnSite(game.state, res)}{` · vor Ort, mal ${BALANCE.onSiteBonus.toString().replace('.', ',')}`}{/if}</span>
+                  </span>
+                </button>
+              {/each}
+            {:else}
+              {#each unlockedRecipesFor(game.state, wagon.type) as r (r.id)}
+                {@const fehlt = ingredientsOf(game.state, r.id).filter((z) => !z.enough)}
+                <button type="button" class="choice" class:active={m.recipe === r.id} onclick={() => setzeRezept(m, r.id)}>
+                  <span class="kopf">
+                    <span class="name">{r.name}</span>
+                    <span class="muted small mono">{rateText(m, r.id)}</span>
+                  </span>
+                  <RecipeFlow recipe={r.id} />
+                  {#if fehlt.length > 0}
+                    <span class="small tone-warn">Kein {fehlt.map((z) => itemName(z.item)).join(', kein ')} im Lager.</span>
+                  {/if}
+                </button>
+              {/each}
+            {/if}
+          </div>
+        {/if}
+      </div>
+    {/each}
+  </div>
+
+  <div class="row">
+    <span class="small">
+      {#if frei > 0}
+        {stackText(machineCost)}
       {:else}
-        Kein Nachbarschaftsbonus. Hängt der Wagen direkt hinter einem, der eine Zutat liefert, arbeitet er {Math.round(BALANCE.neighborBonus * 100)} Prozent schneller.
+        Alle {machineSlots(game.state)} Plätze belegt. Mehr Platz gibt es über die Forschung und eine stärkere Lok.
       {/if}
-    </p>
+    </span>
+    <button type="button" class="btn primary" disabled={frei <= 0 || !canAfford(game.state, machineCost)} onclick={bauen}>
+      {machineName(wagon.type)} bauen
+    </button>
+  </div>
+
+  {#if wagon.type === 'ernte' && !selfLoader}
+    <p class="hint">Ohne Selbstlader erntet der Wagen nur, wenn du kurbelst. Jeder Tipp gibt {BALANCE.crankSeconds} Sekunden für alle Maschinen im Wagen.</p>
+    <button type="button" class="btn primary wide" onclick={() => game.run(crank(game.state, wagon.id))}>Kurbeln</button>
+  {:else if wagon.type !== 'ernte' && wagon.type !== 'lager'}
+    <p class="hint">Kurze Wege: Stellt eine Maschine im selben Wagen eine Zutat her, arbeitet die Maschine daneben {Math.round(BALANCE.neighborBonus * 100)} Prozent schneller.</p>
   {/if}
 
   {#if def.upgradable}
     <p class="eyebrow">Aufstufen</p>
     {#if upgradeCost}
       <div class="row">
-        <span class="small">Stufe {wagon.level + 1}: {stackText(upgradeCost)}<br /><span class="muted">plus {Math.round(BALANCE.levelSpeedStep * 100)} Prozent Tempo</span></span>
+        <span class="small">Stufe {wagon.level + 1}: {stackText(upgradeCost)}<br /><span class="muted">plus {Math.round(BALANCE.levelSpeedStep * 100)} Prozent Tempo für jede Maschine im Wagen</span></span>
         <button type="button" class="btn primary" disabled={!canUpgrade} onclick={() => game.run(upgradeWagon(game.state, wagon.id))}>Aufstufen</button>
       </div>
       {#if !canUpgrade}
@@ -139,7 +206,7 @@
 
   <p class="eyebrow">Abkoppeln</p>
   <div class="row">
-    <span class="small muted">Gibt {stackText(detachRefund(wagon.type))} zurück.</span>
+    <span class="small muted">Gibt {stackText(detachRefund(wagon))} zurück.</span>
     <button type="button" class="btn danger" onclick={detach}>{confirmDetach ? 'Wirklich abkoppeln' : 'Abkoppeln'}</button>
   </div>
 {:else}
@@ -168,10 +235,91 @@
     font-weight: 600;
   }
 
-  .choices {
+  .maschinen {
     display: grid;
     gap: 6px;
     margin-bottom: 10px;
+  }
+
+  .maschine {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  .maschine.offen {
+    border-color: var(--accent);
+  }
+
+  .zeile {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  /* Die ganze Zeile öffnet die Auswahl: Auf dem Handy ist das Ziel gross genug. */
+  .auftrag {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .auftrag:disabled {
+    cursor: default;
+  }
+
+  .nr {
+    flex: none;
+    width: 20px;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+
+  .was {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .status {
+    font-size: 12.5px;
+  }
+
+  /* Der Pfeil sagt, dass die Zeile aufgeht. Offen wird er zum Schliessen-Zeichen. */
+  .pfeil {
+    flex: none;
+    width: 14px;
+    text-align: center;
+    font-size: 17px;
+    color: var(--ink-2);
+  }
+
+  .weg {
+    flex: none;
+    width: 32px;
+    padding: 0;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--ink-2);
+  }
+
+  .choices {
+    display: grid;
+    gap: 6px;
+    padding: 0 10px 10px;
   }
 
   .choice {
@@ -182,7 +330,7 @@
     padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: var(--surface);
+    background: var(--bg);
     color: inherit;
     font: inherit;
     text-align: left;

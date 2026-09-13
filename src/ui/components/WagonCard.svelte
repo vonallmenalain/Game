@@ -1,23 +1,52 @@
 <script lang="ts">
-  import { RECIPE_BY_ID, WAGON_BY_TYPE, crank, getStore, harvestRatePerMinute, hasSelfLoader, productionSpeed, type WagonState } from '../../engine';
+  import {
+    RECIPE_BY_ID,
+    WAGON_BY_TYPE,
+    crank,
+    getStore,
+    harvestRatePerMinute,
+    hasSelfLoader,
+    machineSlots,
+    machineSpeed,
+    type WagonState,
+  } from '../../engine';
   import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { WAGON_COLOR, itemName, statusText, statusTone } from '../labels';
+  import { WAGON_COLOR, machineName, statusText, statusTone } from '../labels';
   import ItemChip from './ItemChip.svelte';
-  import RecipeFlow from './RecipeFlow.svelte';
   import Vehicle from './Vehicle.svelte';
 
-  let { wagon, index }: { wagon: WagonState; index: number } = $props();
+  let { wagon }: { wagon: WagonState } = $props();
 
   const def = $derived(WAGON_BY_TYPE[wagon.type]);
-  const recipe = $derived(wagon.recipe ? RECIPE_BY_ID[wagon.recipe] : undefined);
-  const job = $derived(wagon.type === 'ernte' ? (wagon.resource ? itemName(wagon.resource) : null) : (recipe?.name ?? null));
-  const rate = $derived.by(() => {
-    if (wagon.type === 'ernte') return harvestRatePerMinute(game.state, wagon);
-    if (!recipe) return 0;
-    const out = recipe.outputs[0];
-    return out ? (out.amount / recipe.seconds) * 60 * productionSpeed(game.state, index) : 0;
+
+  /**
+   * Was der Wagen ausstösst, je Ware zusammengezählt: «Koks ×2» statt zweimal Koks.
+   * So sieht man auf der Karte, wofür die Maschinen darin eingeteilt sind.
+   */
+  const ausstoss = $derived.by(() => {
+    const gruppen = new Map<string, { item: string; maschinen: number; rate: number }>();
+    for (const m of wagon.machines) {
+      if (wagon.type === 'ernte') {
+        if (!m.resource) continue;
+        const eintrag = gruppen.get(m.resource) ?? { item: m.resource, maschinen: 0, rate: 0 };
+        eintrag.maschinen += 1;
+        eintrag.rate += harvestRatePerMinute(game.state, wagon, m.resource);
+        gruppen.set(m.resource, eintrag);
+        continue;
+      }
+      const r = m.recipe ? RECIPE_BY_ID[m.recipe] : undefined;
+      const out = r?.outputs[0];
+      if (!r || !out) continue;
+      const eintrag = gruppen.get(out.item) ?? { item: out.item, maschinen: 0, rate: 0 };
+      eintrag.maschinen += 1;
+      eintrag.rate += (out.amount / r.seconds) * 60 * machineSpeed(game.state, wagon, m);
+      gruppen.set(out.item, eintrag);
+    }
+    return [...gruppen.values()].sort((a, b) => b.maschinen - a.maschinen);
   });
+
+  const rate = $derived(ausstoss.reduce((sum, g) => sum + g.rate, 0));
   const needsCrank = $derived(wagon.type === 'ernte' && !hasSelfLoader(game.state));
   const crankLeft = $derived(Math.max(0, wagon.crankUntil - game.state.playedSeconds));
 </script>
@@ -26,19 +55,25 @@
   <button type="button" class="main" onclick={() => (game.sheet = { kind: 'wagen', id: wagon.id })}>
     <span class="silhouette"><Vehicle kind={wagon.type} color={WAGON_COLOR[wagon.type]} rolling={false} /></span>
     <span class="text">
-      <span class="title">{def?.name ?? wagon.type} <span class="muted">Stufe {wagon.level}</span></span>
-      {#if wagon.type === 'ernte' && wagon.resource}
-        <span class="fluss"><ItemChip item={wagon.resource} have={getStore(game.state, wagon.resource)} size="s" /></span>
-      {:else if recipe}
-        <span class="fluss"><RecipeFlow recipe={recipe.id} size="s" showNames={false} /></span>
-      {:else}
-        <span class="job">{statusText(game.state, wagon)}</span>
-      {/if}
-      {#if job}
-        <span class="status tone-{statusTone(wagon)}">
-          {#if wagon.type !== 'lager'}<span class="mono">{formatRate(rate)}</span>{' · '}{/if}{statusText(game.state, wagon)}
+      <span class="title">
+        {def?.name ?? wagon.type} <span class="muted">Stufe {wagon.level}</span>
+        <span class="plaetze mono">{wagon.machines.length}/{machineSlots(game.state)}</span>
+      </span>
+      {#if ausstoss.length > 0}
+        <span class="fluss">
+          {#each ausstoss as g (g.item)}
+            <span class="gruppe">
+              <ItemChip item={g.item} have={getStore(game.state, g.item)} size="s" />
+              {#if g.maschinen > 1}<b class="mono">×{g.maschinen}</b>{/if}
+            </span>
+          {/each}
         </span>
+      {:else if wagon.type !== 'lager'}
+        <span class="job">{machineName(wagon.type)} ohne Auftrag</span>
       {/if}
+      <span class="status tone-{statusTone(wagon)}">
+        {#if wagon.type !== 'lager'}<span class="mono">{formatRate(rate)}</span>{' · '}{/if}{statusText(game.state, wagon)}
+      </span>
     </span>
   </button>
   {#if needsCrank}
@@ -92,13 +127,33 @@
     font-weight: 600;
   }
 
+  .plaetze {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+
   .job {
     font-size: 14px;
   }
 
   .fluss {
-    display: block;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 4px 10px;
     margin: 2px 0 1px;
+  }
+
+  .gruppe {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .gruppe b {
+    font-size: 12px;
+    color: var(--ink-2);
   }
 
   .status {

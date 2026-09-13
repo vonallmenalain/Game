@@ -11,7 +11,7 @@ describe('Sackgassen-Test: der Autospieler spielt den ersten Stand durch', () =>
       .filter((e) => KEY_EVENTS.includes(e.name))
       .map((e) => `${formatDuration(e.at).padStart(12)}  km ${e.km.toFixed(1).padStart(5)}  ${e.name}`);
     const research = result.events.filter((e) => e.name.startsWith('forschung:')).map((e) => `${formatDuration(e.at).padStart(12)}  ${e.name}`);
-    console.info(['Zeitplan des Autospielers:', ...lines, 'Forschung:', ...research, `Ende bei ${formatDuration(result.seconds)}, km ${result.state.km.toFixed(1)}, Stillstand ${formatDuration(result.state.stats.stoppedSeconds)}, Zug: ${result.state.wagons.map((w) => `${w.type}${w.level}`).join(' ')}`].join('\n'));
+    console.info(['Zeitplan des Autospielers:', ...lines, 'Forschung:', ...research, `Ende bei ${formatDuration(result.seconds)}, km ${result.state.km.toFixed(1)}, Stillstand ${formatDuration(result.state.stats.stoppedSeconds)}, Zug: ${result.state.wagons.map((w) => `${w.type} St${w.level} ×${w.machines.length}`).join(', ')}`].join('\n'));
     const at = (name: string) => result.events.find((e) => e.name === name)?.at;
     expect(result.reachedTunnel).toBe(true);
     expect(result.state.standEnde).toBe(true);

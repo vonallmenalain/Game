@@ -33,7 +33,7 @@ page.on('console', (message) => {
 try {
   const started = Date.now();
   await page.goto(base);
-  await page.getByRole('button', { name: /Wagen anhängen, \d+ frei/ }).waitFor({ timeout: 15000 });
+  await page.getByRole('group', { name: 'Wagen des Zuges' }).waitFor({ timeout: 15000 });
   const ladezeit = Date.now() - started;
   await page.screenshot({ path: shot('01-zug.png') });
 
@@ -81,13 +81,54 @@ try {
   const beschriftet = zutatName === 'Kohle' && ergebnisName === 'Koks' && ergebnisBestand === 1;
   await page.screenshot({ path: shot('03-werkstatt.png') });
 
+  // Material für den Ausbau ins Lager legen, sonst bleibt der Knopf aus.
+  // Vorher speichern lassen: Sonst geht beim Neuladen verloren, was bisher gespielt wurde.
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.waitForTimeout(400);
+  await page.evaluate(
+    async (vorrat) =>
+      new Promise((resolve, reject) => {
+        const open = indexedDB.open('keyval-store');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const tx = open.result.transaction('keyval', 'readwrite');
+          const store = tx.objectStore('keyval');
+          const get = store.get('loco/save');
+          get.onsuccess = () => {
+            const save = JSON.parse(get.result);
+            for (const [item, amount] of Object.entries(vorrat)) save.store[item] = amount;
+            store.put(JSON.stringify(save), 'loco/save');
+            tx.oncomplete = () => resolve(true);
+          };
+          get.onerror = () => reject(get.error);
+        };
+      }),
+    { zahnrad: 40, bretter: 60 },
+  );
+  await page.reload();
+  await page.getByRole('group', { name: 'Wagen des Zuges' }).waitFor({ timeout: 15000 });
   await page.getByRole('button', { name: 'Zug', exact: true }).click();
   await page.getByRole('button', { name: /Erntewagen/ }).first().click();
   await page.waitForTimeout(300);
+
+  // Maschinen im Wagen: Eine zweite Erntemaschine bauen und ihr einen Rohstoff geben.
+  const maschinenVorher = await page.locator('.maschine').count();
+  await page.getByRole('button', { name: /Erntemaschine bauen/ }).click();
+  await page.waitForTimeout(300);
+  const maschinenNachher = await page.locator('.maschine').count();
+  // Die frische Maschine öffnet ihre Auswahl von selbst
+  await page.locator('.maschine.offen .choice', { hasText: 'Kohle' }).first().click();
+  await page.waitForTimeout(300);
+  const zweite = (await page.locator('.maschine').nth(1).innerText()).replace(/\s+/g, ' ');
   await page.screenshot({ path: shot('04-wagen.png') });
+  const maschinenGebaut = maschinenNachher === maschinenVorher + 1 && /Kohle/.test(zweite);
   await page.getByRole('button', { name: 'Schliessen' }).click();
 
-  await page.getByRole('button', { name: /Wagen anhängen, \d+ frei/ }).click();
+  // Auf der Wagenkarte muss die zweite Maschine sichtbar werden
+  const karte = (await page.locator('.card.wagon').first().innerText()).replace(/\s+/g, ' ');
+  const karteZeigtMaschinen = /2\/\d+/.test(karte);
+
+  await page.locator('section.list button.add').click();
   await page.waitForTimeout(300);
   await page.screenshot({ path: shot('05-bauen.png') });
   await page.getByRole('button', { name: 'Schliessen' }).click();
@@ -99,7 +140,7 @@ try {
 
   await page.waitForTimeout(3000);
   await page.reload();
-  await page.getByRole('button', { name: /Wagen anhängen, \d+ frei/ }).waitFor({ timeout: 15000 });
+  await page.getByRole('group', { name: 'Wagen des Zuges' }).waitFor({ timeout: 15000 });
   await page.getByRole('button', { name: 'Mehr', exact: true }).click();
   const spielzeit = await page.getByText(/Spielzeit:/).innerText();
   await page.screenshot({ path: shot('08-mehr.png'), fullPage: true });
@@ -145,7 +186,7 @@ try {
   await page.screenshot({ path: shot('11-bericht.png'), fullPage: true });
   const bericht = (await page.getByRole('dialog', { name: 'Während du weg warst' }).innerText()).replace(/\s+/g, ' ');
   await page.getByRole('button', { name: 'Weiter', exact: true }).click();
-  await page.getByRole('button', { name: /Wagen anhängen, \d+ frei/ }).waitFor({ timeout: 15000 });
+  await page.getByRole('group', { name: 'Wagen des Zuges' }).waitFor({ timeout: 15000 });
   const nachRueckkehr = (await page.locator('.readout').innerText()).replace(/\s+/g, ' ');
 
   // Meilenstein: vor der Schlucht stehen, Brücke braucht nur noch den letzten Träger
@@ -224,7 +265,20 @@ try {
         const tx = open.result.transaction('keyval', 'readwrite');
         const store = tx.objectStore('keyval');
         store.put(
-          JSON.stringify({ version: 1, playedSeconds: 4242, pos: 1234, lastSavedAt: Date.now(), store: { kohle: 77 }, techs: { done: ['selbstlader'], current: null } }),
+          // Alte Form: mehrere Wagen desselben Typs, je ein Auftrag. Daraus muss ein Wagen mit Maschinen werden.
+          JSON.stringify({
+            version: 1,
+            playedSeconds: 4242,
+            pos: 1234,
+            lastSavedAt: Date.now(),
+            store: { kohle: 77 },
+            techs: { done: ['selbstlader', 'schmelzwagen'], current: null },
+            wagons: [
+              { id: 1, type: 'ernte', level: 2, resource: 'eisenerz' },
+              { id: 2, type: 'ernte', level: 1, resource: 'kohle' },
+              { id: 3, type: 'schmelz', level: 1, recipe: 'koks' },
+            ],
+          }),
           'linie-null/save',
         );
         store.delete('loco/save');
@@ -234,7 +288,7 @@ try {
     });
   });
   await page.reload();
-  await page.getByRole('button', { name: /Wagen anhängen, \d+ frei/ }).waitFor({ timeout: 15000 });
+  await page.getByRole('group', { name: 'Wagen des Zuges' }).waitFor({ timeout: 15000 });
   await page.waitForTimeout(1200);
   const nachMigration = (await page.locator('.readout').innerText()).replace(/\s+/g, ' ');
   const schluessel = await page.evaluate(
@@ -247,16 +301,23 @@ try {
         };
       }),
   );
-  const migriert = /12,3 km/.test(nachMigration) && schluessel.includes('loco/save') && !schluessel.includes('linie-null/save');
+  // Aus zwei Erntewagen wird ein Erntewagen mit zwei Maschinen, die Stufe ist die höhere
+  const zugNachMigration = (await page.locator('.card.wagon').first().innerText()).replace(/\s+/g, ' ');
+  const migriert =
+    /12,3 km/.test(nachMigration) &&
+    schluessel.includes('loco/save') &&
+    !schluessel.includes('linie-null/save') &&
+    /Stufe 2/.test(zugNachMigration) &&
+    /2\/\d+/.test(zugNachMigration);
 
   const offline = cloudRequests.length === 0 && !firebaseGeladen;
   const alleScrollen = Object.values(scrollbar).every(Boolean) && leisteSichtbar;
   const kette = kettenKnopf === '+2' && /Koks/.test(queue) && /Eisenbarren/.test(queue);
-  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, beschriftet, zutatName, ergebnisName, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, scrollbar, leisteSichtbar }, null, 2));
+  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, beschriftet, zutatName, ergebnisName, maschinenGebaut, karte, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, zugNachMigration, scrollbar, leisteSichtbar }, null, 2));
   // Erfolgskriterium aus Abschnitt 15.3 des Konzepts: unter zwei Sekunden bis zum ersten Bild
   const schnell = ladezeit < 2000;
-  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen || !beschriftet) {
-    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen, beschriftet });
+  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen || !beschriftet || !maschinenGebaut || !karteZeigtMaschinen) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen, beschriftet, maschinenGebaut, karteZeigtMaschinen });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');

@@ -146,13 +146,15 @@ Holz gilt als Rohstoff des Tals, der Wald ist sein reiches Vorkommen: Dort gilt 
 
 Die Lok bestimmt drei Dinge: wie viele Wagen sie zieht, wie schnell der Zug höchstens fährt, und womit sie fährt. Jede neue Lok ist ein Bauprojekt (Abschnitt 9) und der sichtbarste Fortschritt im Spiel.
 
-| Lok | Wagen | Höchsttempo | Brennstoff | Verbrauch je km | Im ersten Stand |
-|---|---|---|---|---|---|
-| Dampflok | 8 | 14 km/h | Kohle | 30 | ja, Start |
-| Schwere Dampflok | 12 | 19 km/h | Koks | 25 | ja |
-| Diesellok | 18 | 20 km/h | Diesel | 15 | nein |
-| E-Lok | 28 | 30 km/h | Strom aus Generatorwagen | | nein |
-| Maglev | 40 | 60 km/h | Strom, Supraleiter | | nein |
+| Lok | Wagen | Maschinen je Wagen | Höchsttempo | Brennstoff | Verbrauch je km | Im ersten Stand |
+|---|---|---|---|---|---|---|
+| Dampflok | 8 | 10 | 14 km/h | Kohle | 30 | ja, Start |
+| Schwere Dampflok | 12 | 12 | 19 km/h | Koks | 25 | ja |
+| Diesellok | 18 | 14 | 20 km/h | Diesel | 15 | nein |
+| E-Lok | 28 | 16 | 30 km/h | Strom aus Generatorwagen | | nein |
+| Maglev | 40 | 20 | 60 km/h | Strom, Supraleiter | | nein |
+
+Die Wagenzahl begrenzt im ersten Stand nichts: Es gibt sieben Wagentypen und die Dampflok zieht acht Wagen. Die Zugkraft wirkt über die Maschinenplätze, und die zählen wirklich.
 
 Brennstoff wird nur beim Fahren verbraucht und automatisch aus dem Lager genommen. Ein stehender Zug kostet nichts.
 
@@ -164,30 +166,35 @@ Brennstoff wird nur beim Fahren verbraucht und automatisch aus dem Lager genomme
 - Ohne mindestens ein Stück Brennstoff im Lager fährt der Zug nicht an. Der Verbrauch wird über die Strecke aufsummiert und bei jedem vollen Stück abgebucht.
 - Beim Erreichen eines Bioms erscheint ein Fahrtenbuch-Eintrag, die neuen Rohstoffe werden freigeschaltet, und die Landschaft wechselt.
 
-### 6.3 Die Wagen
+### 6.3 Die Wagen und ihre Maschinen
 
-Ein Wagen belegt einen Platz hinter der Lok. Jeder Wagentyp hat eine Aufgabe, ein aktives Rezept und eine Stufe.
+Ein Wagen ist eine Abteilung, keine einzelne Maschine. Von jedem Typ hängt genau einer im Zug, und er belegt einen Platz hinter der Lok. Gebaut wird nicht in die Breite, sondern nach innen: In jeden Wagen passen **10 Maschinen**, jede mit eigenem Auftrag. Ein Schmelzwagen kann also gleichzeitig Koks und Eisenbarren machen, und wer mehr Schienen will, stellt eine zweite Walzstrasse in den Walzwagen.
 
-| Wagentyp | Aufgabe | Baukosten | Freischaltung |
-|---|---|---|---|
-| Erntewagen | Erntet einen Rohstoff | 1 Fahrgestell, 6 Zahnrad, 10 Bretter | Start |
-| Schmelzwagen | Koks, Barren, Teer, Stahl | 1 Fahrgestell, 20 Stein, 8 Eisenbarren | Technologie Schmelzwagen |
-| Walzwagen | Schienen, Träger, Draht | 1 Fahrgestell, 12 Eisenbarren, 6 Zahnrad | Technologie Walzwagen |
-| Werkwagen | Bretter, Zahnräder, Nieten, Bauteile | 1 Fahrgestell, 8 Eisenbarren, 12 Bretter | Technologie Werkwagen |
-| Konstruktionsbüro | Blaupausen | 1 Fahrgestell, 20 Bretter, 4 Zahnrad | Technologie Konstruktionsbüro |
-| Lagerwagen | Erhöht jede Lagerkapazität um 200 | 1 Fahrgestell, 16 Bretter, 8 Nieten | Technologie Lagerwagen |
-| Chemiewagen | Sprengstoff, Mörtel | 1 Fahrgestell, 10 Stahl, 8 Kupferdraht | Technologie Chemiewagen |
+| Wagentyp | Maschine darin | Aufgabe | Baukosten | Grundpreis einer Maschine | Freischaltung |
+|---|---|---|---|---|---|
+| Erntewagen | Erntemaschine | Erntet einen Rohstoff | 1 Fahrgestell, 6 Zahnrad, 10 Bretter | 4 Zahnrad, 6 Bretter | Start |
+| Schmelzwagen | Schmelzofen | Koks, Barren, Teer, Stahl | 1 Fahrgestell, 20 Stein, 8 Eisenbarren | 12 Stein, 5 Eisenbarren | Technologie Schmelzwagen |
+| Walzwagen | Walzstrasse | Schienen, Träger, Draht | 1 Fahrgestell, 12 Eisenbarren, 6 Zahnrad | 8 Eisenbarren, 4 Zahnrad | Technologie Walzwagen |
+| Werkwagen | Montagetisch | Bretter, Zahnräder, Nieten, Bauteile | 1 Fahrgestell, 8 Eisenbarren, 12 Bretter | 5 Eisenbarren, 8 Bretter | Technologie Werkwagen |
+| Konstruktionsbüro | Zeichentisch | Blaupausen | 1 Fahrgestell, 20 Bretter, 4 Zahnrad | 12 Bretter, 3 Zahnrad | Technologie Konstruktionsbüro |
+| Lagerwagen | Regal | Jedes Regal erhöht jede Lagerkapazität um 200 | 1 Fahrgestell, 16 Bretter, 8 Nieten | 10 Bretter, 5 Nieten | Technologie Lagerwagen |
+| Chemiewagen | Reaktor | Sprengstoff, Mörtel | 1 Fahrgestell, 10 Stahl, 8 Kupferdraht | 6 Stahl, 5 Kupferdraht | Technologie Chemiewagen |
 
 Regeln:
 
-- **Stufen.** Jeder Wagen hat Stufe 1 bis 5. Jede Stufe bringt 20 Prozent mehr Tempo, Stufe 5 also Faktor 1,8. Das Aufstufen auf Stufe n kostet n-mal die Baukosten ohne Fahrgestell. Ein Erntewagen auf Stufe 2 kostet also 12 Zahnrad und 20 Bretter.
-- **Rezeptwechsel** ist jederzeit möglich und kostenlos. Der laufende Fortschritt geht verloren.
-- **Abkoppeln** gibt die Hälfte der Baukosten zurück.
-- **Umkoppeln** (Reihenfolge ändern) ist per Ziehen möglich.
-- **Nachbarschaftsbonus.** Verbraucht ein Wagen ein Produkt, das der Wagen direkt vor ihm (Richtung Lok) herstellt oder erntet, arbeitet er 10 Prozent schneller. Das ist die einzige Regel, die von der Reihenfolge abhängt. Sie belohnt eine sinnvoll sortierte Kette, ohne etwas zu blockieren.
-- **Status.** Ein Wagen ist entweder aktiv, wartet auf Eingabe (Zutat fehlt), oder blockiert (Lager für sein Produkt voll). Der Status ist in der Liste sofort erkennbar.
-- **Knappe Zutaten.** Wagen werden in Zugreihenfolge bedient: Wer weiter vorne hängt und gerade frei ist, bekommt zuerst. Ein schneller Verbraucher weiter hinten kann einem langsamen weiter vorne trotzdem Zutaten wegnehmen, weil er öfter frei ist. Das ist gewollt, der Engpass ist am Status ablesbar und mit Umkoppeln oder einem zweiten Wagen lösbar.
-- **Weiche Kapazität.** Ein Wagen startet keinen Zyklus, wenn seine Ausgabe am Limit ist. Ein laufender Zyklus liefert aber noch ab, darum kann das Lager um eine Rezeptausgabe überlaufen.
+- **Die erste Maschine ist im Preis dabei.** Ein frisch angekoppelter Wagen kann sofort arbeiten.
+- **Jede weitere Maschine kostet mehr.** Die n-te Maschine kostet das n-fache des Grundpreises: Die zweite Erntemaschine kostet 8 Zahnrad und 12 Bretter, die zehnte 40 und 60. Der Ausbau bleibt so über Stunden ein Ziel, statt an einem Nachmittag erledigt zu sein.
+- **Plätze.** 10 je Wagen, plus die Zugkraft der Lok (schwere Dampflok: 2) und plus Forschung (Maschinenhalle I: 4). Im ersten Stand sind 16 erreichbar.
+- **Stufen.** Jeder Wagen hat Stufe 1 bis 5. Jede Stufe bringt 20 Prozent mehr Tempo **für jede Maschine darin**, Stufe 5 also Faktor 1,8. Das Aufstufen auf Stufe n kostet n-mal die Baukosten ohne Fahrgestell. Je voller der Wagen, desto mehr lohnt die Stufe.
+- **Auftragswechsel** ist jederzeit möglich und kostenlos. Der laufende Fortschritt dieser Maschine geht verloren.
+- **Ausbauen** einer Maschine gibt die Hälfte ihres Preises zurück. Die letzte Maschine bleibt im Wagen, sonst stünde eine leere Hülle im Zug.
+- **Abkoppeln** gibt die Hälfte von Wagen und allen Maschinen zurück.
+- **Umkoppeln** (Reihenfolge ändern) ist möglich, ändert aber nur das Bild: Die Produktion hängt nicht mehr von der Reihenfolge ab.
+- **Kurze Wege.** Stellt eine Maschine im selben Wagen eine Zutat für eine andere her, arbeitet die andere 10 Prozent schneller. Wer Koks und Eisenbarren in denselben Schmelzwagen stellt, bekommt den Bonus geschenkt. Das ist der Nachfolger des Nachbarschaftsbonus und belohnt jetzt, wie man einen Wagen belegt, statt wie man den Zug sortiert.
+- **Handkurbel.** Sie sitzt am Wagen, nicht an der Maschine: Ein Tipp treibt alle Erntemaschinen darin an.
+- **Status.** Jede Maschine ist aktiv, wartet auf eine Zutat, ist blockiert (Lager voll) oder hat keinen Auftrag. Der Wagen fasst zusammen: «5 Maschinen laufen» oder «2 von 5 laufen · wartet auf Koks».
+- **Knappe Zutaten.** Maschinen werden in Zugreihenfolge bedient, im Wagen von vorne nach hinten. Wer zuerst frei ist, bekommt zuerst. Das ist gewollt, der Engpass ist am Status ablesbar und mit einer Maschine mehr lösbar.
+- **Weiche Kapazität.** Eine Maschine startet keinen Zyklus, wenn ihre Ausgabe am Limit ist. Ein laufender Zyklus liefert aber noch ab, darum kann das Lager um eine Rezeptausgabe überlaufen.
 
 ### 6.4 Die Werkstatt
 
@@ -203,8 +210,8 @@ Nach den ersten Minuten ist nichts davon Pflicht. Die Werkbank bleibt nützlich,
 ### 6.5 Das Lager
 
 - Der Zug hat ein gemeinsames Lager. Alle Wagen nehmen daraus und legen dort ab.
-- Jede Ware hat eine Kapazität von 200 Stück, plus 200 pro Lagerwagen. Blaupausen zählen wie Waren.
-- Ist die Kapazität einer Ware erreicht, blockiert der Wagen, der sie herstellt. Das ist der Grund, zurückzukommen, und der Grund für Lagerwagen.
+- Jede Ware hat eine Kapazität von 200 Stück, plus 200 pro Regal im Lagerwagen. Blaupausen zählen wie Waren.
+- Ist die Kapazität einer Ware erreicht, blockiert die Maschine, die sie herstellt. Das ist der Grund, zurückzukommen, und der Grund für Regale.
 - Baustellen (Abschnitt 9) ziehen Material aus dem Lager, sobald es da ist. Die Kapazität begrenzt also nie ein Bauprojekt.
 
 ## 7. Produktion
@@ -279,17 +286,17 @@ Zusammen: 8 Rohstoffe, 19 hergestellte Waren, 3 Blaupausen, 22 Rezepte.
 
 Beispiel: Ein Zug, der die Dampflok mit 20 Schienen pro Minute am Limit fährt.
 
-| Wagen | Rezept | Braucht pro Minute | Liefert pro Minute |
-|---|---|---|---|
-| Erntewagen | Eisenerz | | 30 Eisenerz |
-| Erntewagen | Kohle | | 30 Kohle |
-| Schmelzwagen | Koks | 30 Kohle | 30 Koks |
-| Schmelzwagen | Eisenbarren | 30 Eisenerz, 15 Koks | 15 Eisenbarren |
-| Walzwagen | Schienen | 10 Eisenbarren | 20 Schienen |
-| Werkwagen | Zahnrad, Bretter im Wechsel | 5 Eisenbarren, Holz | Zahnräder, Bretter |
-| Konstruktionsbüro | Eiserne Blaupause | Zahnrad, Bretter | bis 6 Blaupausen |
+| Wagen | Maschine | Auftrag | Braucht pro Minute | Liefert pro Minute |
+|---|---|---|---|---|
+| Erntewagen | 1 | Eisenerz | | 30 Eisenerz |
+| Erntewagen | 2 | Kohle | | 30 Kohle |
+| Schmelzwagen | 1 | Koks | 30 Kohle | 30 Koks |
+| Schmelzwagen | 2 | Eisenbarren | 30 Eisenerz, 15 Koks | 15 Eisenbarren |
+| Walzwagen | 1 | Schienen | 10 Eisenbarren | 20 Schienen |
+| Werkwagen | 1 | Zahnrad, Bretter im Wechsel | 5 Eisenbarren, Holz | Zahnräder, Bretter |
+| Konstruktionsbüro | 1 | Eiserne Blaupause | Zahnrad, Bretter | bis 6 Blaupausen |
 
-Das sind 7 Wagen von 8. Die Kohle ist knapp: Der Koks-Wagen nimmt, was da ist, bis sein Lager voll ist, erst dann bleibt Kohle für den Kessel. Der achte Platz ist die erste echte Entscheidung: ein zweiter Kohle-Erntewagen, Holz-Ernte, oder ein Lagerwagen. Genau so soll sich der Anfang anfühlen: Alles läuft, aber alles ist knapp.
+Das sind fünf Wagen mit je einer oder zwei Maschinen. Die Kohle ist knapp: Der Schmelzofen für Koks nimmt, was da ist, bis sein Lager voll ist, erst dann bleibt Kohle für den Kessel. Die erste echte Entscheidung ist die nächste Maschine: eine zweite Erntemaschine für Kohle, eine für Holz, oder ein zweiter Schmelzofen. Genau so soll sich der Anfang anfühlen: Alles läuft, aber alles ist knapp.
 
 Alle Zahlen in diesem Konzept sind Startwerte. Sie liegen im Code in einer einzigen Datei (`balance.ts`) und werden im Spieltest angepasst.
 
@@ -304,13 +311,14 @@ Forschung kostet Blaupausen und Zeit. Die Blaupausen werden beim Start bezahlt, 
 | Werkwagen | 4 Eiserne | 45 s | Selbstlader | Werkwagen baubar |
 | Walzwagen | 6 Eiserne | 60 s | Schmelzwagen | Walzwagen baubar, Schienen automatisch |
 | Konstruktionsbüro | 8 Eiserne | 60 s | Werkwagen | Konstruktionsbüro baubar |
-| Lagerwagen | 8 Eiserne | 60 s | Werkwagen | Lagerwagen baubar |
+| Lagerwagen | 8 Eiserne | 60 s | Werkwagen | Lagerwagen baubar, jedes Regal darin plus 200 Kapazität |
 | Erntetechnik I | 12 Eiserne | 90 s | Selbstlader | Ernte plus 25 Prozent |
 | Stahlwerk | 20 Eiserne | 120 s | Walzwagen | Stahl, Stahlträger, Dampfkessel |
 | Teerofen | 15 Eiserne | 90 s | Schmelzwagen, Wald entdeckt | Teer, Bohlen |
 | Brückenbau | 10 Stahl | 120 s | Stahlwerk, Teerofen | Bauprojekt Brücke |
 | Schwere Dampflok | 15 Stahl | 180 s | Stahlwerk | Bauprojekt Schwere Dampflok |
 | Schmelztechnik I | 12 Stahl | 120 s | Stahlwerk | Schmelzwagen plus 25 Prozent |
+| Maschinenhalle I | 14 Stahl | 150 s | Stahlwerk | Vier Maschinenplätze mehr in jedem Wagen |
 | Nachtschicht I | 10 Stahl | 120 s | Stahlwerk | Offline-Deckel 12 Stunden |
 | Kupferhütte | 20 Stahl | 180 s | Berg entdeckt | Kupferbarren, Kupferdraht, Kupferspule |
 | Chemiewagen | 20 Stahl | 180 s | Kupferhütte | Chemiewagen, Sprengstoff, Mörtel |
@@ -333,6 +341,7 @@ flowchart TD
   teer --> bruecke
   stahl --> lok2["Schwere Dampflok"]
   stahl --> schmelz1["Schmelztechnik I"]
+  stahl --> halle1["Maschinenhalle I"]
   stahl --> nacht1["Nachtschicht I"]
   stahl --> kupfer["Kupferhütte"]
   kupfer --> chemie["Chemiewagen"]
@@ -383,26 +392,30 @@ Zielbild für den ersten spielbaren Stand. Aktive Zeit, Wartezeiten kommen dazu.
 | Zeit | Phase | Was die Spielerin tut | Was sich öffnet |
 |---|---|---|---|
 | 0 bis 10 min | Handarbeit | Kohle schaufeln, Erz kurbeln. Werkbank: Koks, Eisenbarren, Zahnrad, Bretter, 3 Eiserne Blaupausen. Selbstlader forschen | Der Erntewagen läuft von selbst |
-| 10 bis 30 min | Erste Automation | Schmelz-, Werk- und Walzwagen bauen. Erster automatischer Schienenfluss. Konstruktionsbüro | Der Zug fährt ohne Zutun. Die 8 Plätze sind voll |
-| 30 bis 60 min | Ende des Tals | Lagerwagen, Erntetechnik I, Stahlwerk. Wagen aufstufen | Wald bei km 6. Harz |
-| 1 bis 2 h | Wald | Teerofen, Teer und Bohlen bevorraten. Schwere Dampflok bauen. Stahlkette aufbauen | 12 Plätze. Schlucht bei km 18 |
+| 10 bis 30 min | Erste Automation | Schmelz-, Werk- und Walzwagen ankoppeln. Erster automatischer Schienenfluss. Konstruktionsbüro | Der Zug fährt ohne Zutun. Jeder Wagen hat noch neun freie Plätze |
+| 30 bis 60 min | Ende des Tals | Lagerwagen, Erntetechnik I, Stahlwerk. Zweite und dritte Maschine in die Engpass-Wagen, Wagen aufstufen | Wald bei km 6. Harz |
+| 1 bis 2 h | Wald | Teerofen, Teer und Bohlen bevorraten. Schwere Dampflok bauen. Stahlkette aufbauen | 12 Maschinenplätze je Wagen. Schlucht bei km 18 |
 | 2 bis 3 h | Brücke | Baustelle füllen, Engpässe beheben, erste Nacht offline | Erster Meilenstein-Moment. Berg |
-| 3 bis 5 h | Berg | Kupferhütte, Chemiewagen, Bohrtechnik, Tunnel-Baustelle | Zweiter Meilenstein-Moment |
+| 3 bis 5 h | Berg | Kupferhütte, Chemiewagen, Bohrtechnik, Maschinenhalle I, Tunnel-Baustelle | Zweiter Meilenstein-Moment |
 | 5 bis 6 h | Ausklang | Berg bis km 40, Walztechnik, Erntetechnik II | Wüstenstrecke als Ausblick, Ende des Stands |
 
 Die Zahlen sind Zielwerte. Ob sie stimmen, zeigt erst der Spieltest, dafür gibt es die Balancing-Datei und die Simulationstests in Abschnitt 14.
 
 **Messlatte.** Der Autospieler (`src/engine/sim/autoplay.ts`) spielt den ersten Stand mit einer einfachen, dauernd aktiven Strategie und ohne Wartezeiten durch. Er ist die Untergrenze: Ein Mensch, der nicht alle fünf Sekunden umdisponiert, braucht länger.
 
-| Ereignis | Ziel | Erster Entwurf | Nach dem Balancing |
-|---|---|---|---|
-| Wald | 30 bis 60 min | 1 h 17 min | 1 h 5 min |
-| Schlucht erreicht | 1 bis 2,5 h | 2 h 37 min | 2 h |
-| Brücke fertig | 2 bis 3 h | 3 h 26 min | 2 h 51 min |
-| Tunnel fertig | 3 bis 5 h | 7 h 25 min | 4 h 41 min |
-| Ende des Stands | 5 bis 6 h | über 12 h | 4 h 57 min |
+| Ereignis | Ziel | Erster Entwurf | Nach dem Balancing | Mit Maschinen im Wagen |
+|---|---|---|---|---|
+| Wald | 30 bis 60 min | 1 h 17 min | 1 h 5 min | 1 h 8 min |
+| Schlucht erreicht | 1 bis 2,5 h | 2 h 37 min | 2 h | 1 h 36 min |
+| Brücke fertig | 2 bis 3 h | 3 h 26 min | 2 h 51 min | 2 h 4 min |
+| Tunnel fertig | 3 bis 5 h | 7 h 25 min | 4 h 41 min | 3 h 26 min |
+| Ende des Stands | 5 bis 6 h | über 12 h | 4 h 57 min | 3 h 33 min |
 
 Drei Hebel haben gewirkt, in dieser Reihenfolge: die Strecke um ein Drittel kürzen (die reine Fahrzeit war der grösste Posten), die Loks schneller machen, und die Stücklisten von Brücke und Tunnel um rund ein Viertel senken. Ein vierter Hebel lag beim Autospieler selbst: Er hielt bis zuletzt vier Erntewagen, obwohl alle Rohstofflager voll waren. Mit zwei Erntewagen und mehr Verarbeitung misst er ehrlicher.
+
+Die letzte Spalte ist der Stand, seit ein Wagen mehrere Maschinen fasst. Der Anfang bleibt gleich lang, danach zieht es an: Zehn Maschinen je Wagen liefern mehr als acht Wagen mit je einer, und der Autospieler baut sie voll, sobald er kann. Das Ende des Stands liegt damit rund eineinhalb Stunden unter dem vorherigen Wert und unter dem Zielband. Der Autospieler ist die Untergrenze, ein Mensch braucht länger, aber der Abstand ist gross genug, um im nächsten Spieltest zu prüfen, ob Stücklisten und Forschungsdauern mitwachsen müssen.
+
+Der Autospieler musste dafür umlernen: Er legt Material für das nächste Bauziel zurück, statt es von Maschinen wegfressen zu lassen, er baut die nächste Maschine in den Wagen mit dem grössten offenen Bedarf statt nach fester Quote, und er verteilt die Aufträge, statt zehn Maschinen auf dasselbe leere Lager zu hetzen.
 
 Die Messlatte läuft als Test bei jedem Build mit, `npx vitest run src/engine/autoplay.test.ts` zeigt den Zeitplan.
 
@@ -419,13 +432,13 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 |  [Lok][Ernte][Schmelz][Walz]...  |
 |  km 6,4   Wald in 1,6 km   12 km/h|
 +----------------------------------+
-|  Wagen                    8 von 8|
-|  > Erntewagen  Eisenerz          |
-|    30/min  aktiv                 |
-|  > Schmelzwagen  Eisenbarren     |
-|    15/min  wartet auf Koks       |
-|  > Walzwagen  Schienen           |
-|    20/min  Lager voll            |
+|  Wagen        5 mit 16 Maschinen |
+|  > Erntewagen St2          4/10  |
+|    [Erz ×2][Kohle][Holz]         |
+|    216/min  4 Maschinen laufen   |
+|  > Schmelzwagen St2        5/10  |
+|    [Koks ×2][Barren ×2][Stahl]   |
+|    124/min  wartet auf Koks      |
 |  + Wagen anhängen                |
 +----------------------------------+
 | Zug  Werkstatt  Lager  Forschung  Strecke  Mehr |
@@ -434,14 +447,14 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 
 - Der **Zugstreifen** ist die Bühne: Lok und Wagen als Silhouetten, Landschaft im Parallax, Räder drehen sich nur, wenn der Zug fährt. Antippen eines Wagens öffnet ihn. Der Streifen ist nie höher als ein Drittel des Bildschirms. Er trägt auch den Kilometerstand, den Fahrzustand und das nächste Ereignis, darum entfällt auf diesem Bildschirm die Statuszeile.
 - Die Bühne ist eine Illustration, keine massstabsgetreue Karte. Die Landschaft zieht mit gefühlter Geschwindigkeit vorbei, nicht mit den echten 12 km/h, sonst stünde das Bild still. Ein Hindernis erscheint, sobald der Zug davorsteht, und der Zug rückt ein Stück zurück, um Platz dafür zu machen.
-- Die **Wagenliste** ist die Arbeitsfläche: Reihenfolge wie im Zug, Status als Farbe und Wort, Rate pro Minute. Umkoppeln geht im Wagen-Detail mit «Nach vorne» und «Nach hinten», Ziehen kommt mit der Bühne in Phase 4.
+- Die **Wagenliste** ist die Arbeitsfläche: Reihenfolge wie im Zug, belegte von freien Maschinenplätzen, was der Wagen ausstösst als Glyphen mit Stückzahl («Koks ×2»), Status als Farbe und Wort, Rate pro Minute für den ganzen Wagen. Umkoppeln geht im Wagen-Detail mit «Nach vorne» und «Nach hinten», Ziehen kommt mit der Bühne in Phase 4.
 - Die **Leiste unten** hat sechs Ziele: Zug, Werkstatt, Lager, Forschung, Strecke, Mehr. Ein Punkt an einem Ziel bedeutet: Dort wartet etwas (Forschung fertig, Baustelle fertig, Lager voll).
 
 ### 12.2 Weitere Bildschirme
 
 | Bildschirm | Inhalt |
 |---|---|
-| Wagen-Detail (Bottom Sheet) | Rezeptwahl mit Eingabe und Ausgabe pro Minute, Status mit Grund, Stufe mit Kosten und Knopf, Nachbarschaftsbonus, Abkoppeln |
+| Wagen-Detail (Bottom Sheet) | Liste der Maschinen im Wagen, je Zeile ihr Auftrag als Fluss und ihr Status. Antippen klappt die Auftragswahl auf, mit Ausgabe pro Minute je Rezept. Darunter «Maschine bauen» mit Preis, Stufe mit Kosten und Knopf, kurze Wege, Reihenfolge, Abkoppeln |
 | Werkstatt (eigener Bildschirm) | Kohle schaufeln und die Werkbank stehen fest oben, nur die Rezepte darunter scrollen. Die Werkbank zeigt den laufenden Auftrag mit Fortschritt und die Warteschlange, gleiche Aufträge zusammengezogen («Koks ×5»). Ihr Bereich hat eine feste Höhe, damit die Liste nicht springt, wenn Aufträge dazukommen: Man kann denselben Knopf mehrmals antippen, ohne ihn zu suchen |
 | Lager | Alle Waren nach Stufe, Bestand von Kapazität, Nettorate pro Minute mit Vorzeichen. Volle und leere Waren stehen oben |
 | Forschung | Technologien nach Stufe, Kosten in Blaupausen, laufende Forschung mit Balken, Voraussetzungen als Text |
@@ -526,12 +539,19 @@ interface Recipe {
   tech?: TechId;
 }
 
-interface WagonState {
-  id: string; type: WagonType; level: 1 | 2 | 3 | 4 | 5;
+interface MachineState {
+  id: number;
   recipe?: RecipeId;   // Produktionswagen
   resource?: ItemId;   // Erntewagen
-  progress: number;    // 0 bis 1
-  status: 'aktiv' | 'wartet' | 'blockiert';
+  progress: number;    // Sekunden im Zyklus, bei Ernte Bruchteile
+  status: 'aktiv' | 'wartet' | 'blockiert' | 'leer';
+}
+
+interface WagonState {
+  id: number; type: WagonType; level: 1 | 2 | 3 | 4 | 5;
+  machines: MachineState[];   // höchstens so viele wie Plätze
+  status: 'aktiv' | 'wartet' | 'blockiert' | 'leer';  // Zusammenfassung
+  crankUntil: number;         // die Kurbel gilt für den ganzen Wagen
 }
 
 interface GameState {
@@ -649,7 +669,8 @@ Offen, mit Entscheidung im Spieltest:
 | Begriff | Bedeutung |
 |---|---|
 | Lok | Zieht den Zug. Bestimmt Wagenzahl, Tempo, Brennstoff |
-| Wagen | Eine Maschine im Zug mit Rezept und Stufe |
+| Wagen | Eine Abteilung im Zug mit Stufe. Von jedem Typ genau einer |
+| Maschine | Der Arbeitsplatz im Wagen mit einem eigenen Auftrag. 10 passen hinein, mehr mit Lok und Forschung |
 | Werkstatt | Fester Wagen hinter der Lok für Handarbeit: Werkbank, Handkurbel, Kohle schaufeln |
 | Lager | Gemeinsamer Vorrat des Zugs, mit Kapazität je Ware |
 | Blaupause | Forschungswährung. Eine je Stufe |
@@ -657,7 +678,7 @@ Offen, mit Entscheidung im Spieltest:
 | Biom | Streckenabschnitt mit eigenen Rohstoffen |
 | Hindernis | Stelle auf der Strecke, die ein Bauprojekt verlangt |
 | Vor-Ort-Bonus | Ernte mal 1,5 im Heimat-Biom des Rohstoffs |
-| Nachbarschaftsbonus | 10 Prozent Tempo, wenn der Wagen davor die Zutat liefert |
+| Kurze Wege | 10 Prozent Tempo, wenn eine Maschine im selben Wagen die Zutat liefert |
 | Nachtschicht | Offline-Deckel und die Technologien, die ihn verlängern |
 | Fahrtenbuch | Ereignisliste mit Kilometerstand |
 | Rückkehr-Bericht | Zusammenfassung der Offline-Zeit beim Öffnen |

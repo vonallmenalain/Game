@@ -4,16 +4,17 @@
  */
 import { ITEMS, ITEM_BY_ID, PROJECTS, RECIPE_BY_ID, TECHS, producerOf } from '../data';
 import {
+  buildMachine,
   buildWagon,
   canAfford,
   clearWorkbench,
   crank,
-  detachWagon,
   isTechAvailable,
   missingFor,
+  nextMachineCost,
   queueWorkbench,
-  setRecipe,
-  setResource,
+  setMachineRecipe,
+  setMachineResource,
   shovelCoal,
   startResearch,
   upgradeWagon,
@@ -23,11 +24,10 @@ import {
 import { BALANCE } from '../balance';
 import {
   createInitialState,
-  currentBiome,
   currentLoco,
   discoveredResources,
+  freeMachineSlots,
   getStore,
-  harvestMultiplier,
   hasSelfLoader,
   isProjectUnlocked,
   isRecipeUnlocked,
@@ -36,10 +36,11 @@ import {
   levelMultiplier,
   storeCap,
   unlockedRecipesFor,
+  wagonOfType,
   wagonTypeMultiplier,
 } from '../state';
 import { harvestRatePerMinute, tick, workbenchStalled } from '../tick';
-import type { GameState, ItemId, RecipeDef, TechId, WagonState, WagonType } from '../types';
+import type { GameState, ItemId, MachineState, RecipeDef, TechId, WagonState, WagonType } from '../types';
 
 export interface AutoplayOptions {
   maxSeconds: number;
@@ -83,10 +84,8 @@ const TECH_PRIORITY: TechId[] = [
   'wuestenausruestung',
 ];
 
-const PHASE_A: WagonType[] = ['ernte', 'schmelz', 'ernte', 'werk', 'walz', 'schmelz', 'buero', 'schmelz'];
-const PHASE_B: WagonType[] = [...PHASE_A, 'lager', 'werk', 'schmelz', 'ernte'];
-/** Ab der Kupferzeit zählt Verarbeitung, nicht Ernte: die Rohstofflager laufen ohnehin voll. */
-const PHASE_C: WagonType[] = ['ernte', 'schmelz', 'ernte', 'werk', 'walz', 'schmelz', 'buero', 'werk', 'lager', 'chemie', 'chemie', 'schmelz'];
+/** In dieser Reihenfolge werden Wagen angekoppelt, sobald sie freigeschaltet und bezahlbar sind. */
+const WAGON_ORDER: WagonType[] = ['ernte', 'schmelz', 'werk', 'walz', 'buero', 'lager', 'chemie'];
 
 const UPGRADE_ORDER: WagonType[] = ['ernte', 'schmelz', 'walz', 'werk', 'buero', 'chemie'];
 
@@ -107,40 +106,53 @@ function depthOf(item: ItemId): number {
 }
 const ITEMS_BY_DEPTH_DESC = [...ITEMS].sort((a, b) => depthOf(b.id) - depthOf(a.id));
 
-function desiredComposition(state: GameState): WagonType[] {
-  if (isTechDone(state, 'chemiewagen')) return PHASE_C;
-  if (currentLoco(state).slots >= 12) return PHASE_B;
-  return PHASE_A;
-}
-
-function countByType(wagons: WagonState[]): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const w of wagons) counts[w.type] = (counts[w.type] ?? 0) + 1;
-  return counts;
-}
-
 interface Plan {
   nextTech: TechId | null;
   upcomingTechs: TechId[];
+  /** Wagentyp, der als nächster angekoppelt wird */
   nextBuild: WagonType | null;
+  /** Wagen, der als nächster eine Maschine mehr bekommt */
+  nextMachine: WagonState | null;
 }
 
-export function planGoals(state: GameState): Plan {
+/**
+ * Wie sehr ein Wagen klemmt: offener Bedarf für das, was er herstellt, geteilt durch
+ * seine Maschinen. Das ersetzt eine feste Wunschquote, denn der Engpass wandert.
+ */
+function pressure(state: GameState, w: WagonState, demand: Record<ItemId, number>, cap: number): number {
+  const deficit = (item: ItemId) => Math.max(0, Math.min(demand[item] ?? 0, cap) - getStore(state, item));
+  let offen = 0;
+  if (w.type === 'ernte') {
+    for (const r of discoveredResources(state)) offen += deficit(r);
+  } else if (w.type === 'lager') {
+    // Ein Regal lohnt erst, wenn mehrere Waren am Anschlag stehen
+    const voll = Object.keys(state.store).filter((item) => getStore(state, item) >= cap).length;
+    offen = Math.max(0, voll - 2) * 40;
+  } else {
+    for (const r of unlockedRecipesFor(state, w.type)) for (const o of r.outputs) offen += deficit(o.item);
+  }
+  return offen / (w.machines.length + 1);
+}
+
+/**
+ * Wagen mit freiem Platz und offenem Bedarf, der dringendste zuerst. Wagen ohne Bedarf
+ * fehlen ganz: Sonst landet jedes übrige Brett im Lagerwagen, bloss weil er billig ist.
+ */
+function expansionOrder(state: GameState, demand: Record<ItemId, number>): WagonState[] {
+  const cap = storeCap(state);
+  return state.wagons
+    .filter((w) => freeMachineSlots(state, w) > 0 && pressure(state, w, demand, cap) > 1)
+    .sort((a, b) => pressure(state, b, demand, cap) - pressure(state, a, demand, cap));
+}
+
+
+export function planGoals(state: GameState, demand: Record<ItemId, number> = {}): Plan {
   const upcoming = TECH_PRIORITY.filter((id) => !isTechDone(state, id));
   const nextTech = upcoming.find((id) => isTechAvailable(state, id)) ?? null;
-
-  const desired = desiredComposition(state);
-  const want = countByType(desired.map((type) => ({ type }) as WagonState));
-  const have = countByType(state.wagons);
-  let nextBuild: WagonType | null = null;
-  for (const type of desired) {
-    if ((have[type] ?? 0) < (want[type] ?? 0) && isWagonTypeUnlocked(state, type)) {
-      nextBuild = type;
-      break;
-    }
-    if ((have[type] ?? 0) < (want[type] ?? 0)) continue;
-  }
-  return { nextTech, upcomingTechs: upcoming.slice(0, 3), nextBuild };
+  const nextBuild = WAGON_ORDER.find((type) => !wagonOfType(state, type) && isWagonTypeUnlocked(state, type)) ?? null;
+  const order = expansionOrder(state, demand);
+  const nextMachine = order[0] ?? null;
+  return { nextTech, upcomingTechs: upcoming.slice(0, 3), nextBuild, nextMachine };
 }
 
 export function computeDemand(state: GameState, plan: Plan): Record<ItemId, number> {
@@ -163,6 +175,7 @@ export function computeDemand(state: GameState, plan: Plan): Record<ItemId, numb
     if (def) add(def.cost.item, def.cost.amount);
   }
   if (plan.nextBuild) for (const s of wagonBuildCost(plan.nextBuild)) add(s.item, s.amount);
+  if (plan.nextMachine) for (const s of nextMachineCost(plan.nextMachine)) add(s.item, s.amount);
   for (const def of PROJECTS) {
     const st = state.projects[def.id];
     if (!st || st.done || st.paused || !isProjectUnlocked(state, def.id)) continue;
@@ -182,78 +195,124 @@ export function computeDemand(state: GameState, plan: Plan): Record<ItemId, numb
 }
 
 function assignHarvesters(state: GameState, demand: Record<ItemId, number>): void {
-  const harvesters = state.wagons.filter((w) => w.type === 'ernte');
-  if (harvesters.length === 0) return;
+  const wagons = state.wagons.filter((w) => w.type === 'ernte');
+  if (wagons.length === 0) return;
   const resources = discoveredResources(state);
   const cap = storeCap(state);
   const deficit: Record<ItemId, number> = {};
   for (const r of resources) deficit[r] = Math.max(0, Math.min(demand[r] ?? 0, cap) - getStore(state, r));
 
+  // Knappheit zählt, nicht die schiere Menge: Ein leeres Holzlager muss einen
+  // grossen offenen Eisenerz-Bedarf schlagen, sonst fehlen ewig die Bretter.
   const horizonMinutes = 10;
-  const scoreOf = (w: WagonState, r: ItemId) => (deficit[r] ?? 0) / Math.max(1, harvestRatePerMinute(state, w, r));
+  const scoreOf = (w: WagonState, r: ItemId) =>
+    ((deficit[r] ?? 0) / Math.max(1, getStore(state, r))) * Math.max(1, harvestRatePerMinute(state, w, r) / 30);
 
-  for (const w of harvesters) {
-    let best: ItemId | null = null;
-    let bestScore = 0;
-    for (const r of resources) {
-      const s = scoreOf(w, r);
-      if (s > bestScore) {
-        bestScore = s;
-        best = r;
+  for (const w of wagons) {
+    for (const m of w.machines) {
+      let best: ItemId | null = null;
+      let bestScore = 0;
+      for (const r of resources) {
+        const s = scoreOf(w, r);
+        if (s > bestScore) {
+          bestScore = s;
+          best = r;
+        }
       }
+      const current = m.resource && resources.includes(m.resource) ? m.resource : null;
+      let target: ItemId;
+      if (best) {
+        const keep = current !== null && scoreOf(w, current) >= 0.6 * bestScore;
+        target = keep && current ? current : best;
+      } else if (current && getStore(state, current) < cap) {
+        target = current;
+      } else {
+        // Nichts fehlt: den am wenigsten gefüllten Rohstoff nehmen
+        target = [...resources].sort((a, b) => getStore(state, a) - getStore(state, b))[0] ?? 'eisenerz';
+      }
+      if (m.resource !== target) setMachineResource(state, w.id, m.id, target);
+      deficit[target] = Math.max(0, (deficit[target] ?? 0) - harvestRatePerMinute(state, w, target) * horizonMinutes);
     }
-    const current = w.resource && resources.includes(w.resource) ? w.resource : null;
-    let target: ItemId;
-    if (best) {
-      const keep = current !== null && scoreOf(w, current) >= 0.6 * bestScore;
-      target = keep && current ? current : best;
-    } else if (current && getStore(state, current) < cap) {
-      target = current;
-    } else {
-      // Nichts fehlt: den am wenigsten gefüllten Rohstoff nehmen
-      target = [...resources].sort((a, b) => getStore(state, a) - getStore(state, b))[0] ?? 'eisenerz';
-    }
-    if (w.resource !== target) setResource(state, w.id, target);
-    deficit[target] = Math.max(0, (deficit[target] ?? 0) - harvestRatePerMinute(state, w, target) * horizonMinutes);
   }
 }
 
-function recipeScore(state: GameState, r: RecipeDef, demand: Record<ItemId, number>, cap: number): number {
+/**
+ * Waren, die für das nächste Bauziel zusammengespart werden. Ohne das frisst eine
+ * Maschine den Stahl weg, kaum ist er da, und der Chemiewagen kommt nie zustande.
+ */
+function reservedItems(state: GameState, plan: Plan): Set<ItemId> {
+  const reserved = new Set<ItemId>();
+  if (plan.nextTech) {
+    const def = TECHS.find((t) => t.id === plan.nextTech);
+    if (def) for (const s of missingFor(state, [def.cost])) reserved.add(s.item);
+  }
+  if (plan.nextBuild) for (const s of missingFor(state, wagonBuildCost(plan.nextBuild))) reserved.add(s.item);
+  return reserved;
+}
+
+function recipeScore(state: GameState, r: RecipeDef, demand: Record<ItemId, number>, cap: number, reserved?: Set<ItemId>): number {
+  if (reserved && r.inputs.some((s) => reserved.has(s.item))) return 0;
   let score = 0;
   for (const o of r.outputs) score += (Math.max(0, Math.min(demand[o.item] ?? 0, cap) - getStore(state, o.item)) * o.amount) / r.seconds;
+  if (reserved && r.outputs.some((o) => reserved.has(o.item))) score = Math.max(score, 1) * 5;
   const inputsReady = r.inputs.every((s) => getStore(state, s.item) >= s.amount);
   return inputsReady ? score : score * 0.3;
 }
 
+/**
+ * Wenn nichts fehlt: das Rezept nehmen, dessen Ware am wenigsten im Lager liegt.
+ * `assumed` zählt mit, was die schon zugeteilten Maschinen liefern werden, sonst
+ * stürzen sich alle zehn auf dasselbe leere Lager.
+ */
+function emptiestOutput(state: GameState, candidates: RecipeDef[], assumed: Record<ItemId, number>): RecipeDef | null {
+  let best: RecipeDef | null = null;
+  let bestFill = Infinity;
+  for (const r of candidates) {
+    const fill = Math.min(...r.outputs.map((o) => getStore(state, o.item) + (assumed[o.item] ?? 0)));
+    if (fill < bestFill) {
+      bestFill = fill;
+      best = r;
+    }
+  }
+  return best;
+}
+
 const PRODUCTION_TYPES: WagonType[] = ['schmelz', 'walz', 'werk', 'buero', 'chemie'];
 
-function assignProduction(state: GameState, demand: Record<ItemId, number>, memory: BotMemory): void {
-  // Was ein Wagen in fünf Minuten schafft, gilt als gedeckt. Kürzer, und mehrere
-  // Wagen stürzen sich auf dasselbe Rezept, statt die Arbeit zu teilen.
+function assignProduction(state: GameState, demand: Record<ItemId, number>, memory: BotMemory, reserved: Set<ItemId>): void {
+  // Was eine Maschine in fünf Minuten schafft, gilt als gedeckt. Kürzer, und mehrere
+  // Maschinen stürzen sich auf dasselbe Rezept, statt die Arbeit zu teilen.
   const horizonSeconds = 300;
   const cap = storeCap(state);
+  const assumed: Record<ItemId, number> = {};
   for (const w of state.wagons) {
     if (w.type === 'ernte' || w.type === 'lager') continue;
     const candidates = unlockedRecipesFor(state, w.type);
     if (candidates.length === 0) continue;
-    let best: RecipeDef | null = null;
-    let bestScore = -1;
-    for (const r of candidates) {
-      const s = recipeScore(state, r, demand, cap);
-      if (s > bestScore) {
-        bestScore = s;
-        best = r;
-      }
-    }
-    if (!best) continue;
-    const current = w.recipe ? RECIPE_BY_ID[w.recipe] : undefined;
-    const keep = current && recipeScore(state, current, demand, cap) >= 0.7 * bestScore;
-    const target = keep && current ? current : best;
-    if (w.recipe !== target.id) setRecipe(state, w.id, target.id);
     const speed = levelMultiplier(w.level) * wagonTypeMultiplier(state, w.type);
-    for (const o of target.outputs) {
-      const produced = ((o.amount * speed) / target.seconds) * horizonSeconds;
-      demand[o.item] = Math.max(0, (demand[o.item] ?? 0) - produced);
+    const frei = candidates.filter((r) => !r.inputs.some((s) => reserved.has(s.item)));
+    for (const m of w.machines) {
+      let best: RecipeDef | null = null;
+      let bestScore = 0;
+      for (const r of candidates) {
+        const s = recipeScore(state, r, demand, cap, reserved);
+        if (s > bestScore) {
+          bestScore = s;
+          best = r;
+        }
+      }
+      // Nichts fehlt: die Maschine füllt das leerste Lager, statt blind Zutaten zu verbrauchen
+      if (!best) best = emptiestOutput(state, frei.length > 0 ? frei : candidates, assumed);
+      if (!best) continue;
+      const current = m.recipe ? RECIPE_BY_ID[m.recipe] : undefined;
+      const keep = current && recipeScore(state, current, demand, cap, reserved) >= 0.7 * bestScore && bestScore > 0;
+      const target = keep && current ? current : best;
+      if (m.recipe !== target.id) setMachineRecipe(state, w.id, m.id, target.id);
+      for (const o of target.outputs) {
+        const produced = ((o.amount * speed) / target.seconds) * horizonSeconds;
+        demand[o.item] = Math.max(0, (demand[o.item] ?? 0) - produced);
+        assumed[o.item] = (assumed[o.item] ?? 0) + produced;
+      }
     }
   }
   coverStarved(state, demand, cap, memory);
@@ -266,15 +325,15 @@ interface BotMemory {
 
 /**
  * Schutz vor Verhungern: Hat ein Rezept seit fünf Minuten Bedarf, liegt seine Ware bei null
- * und kocht sie niemand, bekommt es den entbehrlichsten Wagen seines Typs.
+ * und kocht sie niemand, bekommt es die entbehrlichste Maschine seines Wagens.
  */
 function coverStarved(state: GameState, demand: Record<ItemId, number>, cap: number, memory: BotMemory): void {
   const patience = 300;
   for (const type of PRODUCTION_TYPES) {
-    const wagons = state.wagons.filter((w) => w.type === type);
-    if (wagons.length < 2) continue;
+    const wagon = wagonOfType(state, type);
+    if (!wagon || wagon.machines.length < 2) continue;
     const counts: Record<string, number> = {};
-    for (const w of wagons) if (w.recipe) counts[w.recipe] = (counts[w.recipe] ?? 0) + 1;
+    for (const m of wagon.machines) if (m.recipe) counts[m.recipe] = (counts[m.recipe] ?? 0) + 1;
     let candidate: RecipeDef | null = null;
     let candidateScore = 0;
     for (const r of unlockedRecipesFor(state, type)) {
@@ -293,8 +352,9 @@ function coverStarved(state: GameState, demand: Record<ItemId, number>, cap: num
       }
     }
     if (!candidate) continue;
-    const redundant = [...wagons].reverse().find((w) => w.recipe && (counts[w.recipe] ?? 0) > 1) ?? wagons[wagons.length - 1]!;
-    setRecipe(state, redundant.id, candidate.id);
+    const machines: MachineState[] = wagon.machines;
+    const redundant = [...machines].reverse().find((m) => m.recipe && (counts[m.recipe] ?? 0) > 1) ?? machines[machines.length - 1]!;
+    setMachineRecipe(state, wagon.id, redundant.id, candidate.id);
     delete memory.starvedSince[candidate.id];
   }
 }
@@ -333,6 +393,7 @@ function planWorkbench(state: GameState, plan: Plan): void {
     if (def) goals.push(...missingFor(state, [def.cost]));
   }
   if (plan.nextBuild) goals.push(...missingFor(state, wagonBuildCost(plan.nextBuild)));
+  else if (plan.nextMachine) goals.push(...missingFor(state, nextMachineCost(plan.nextMachine)));
   for (const g of goals) craft(g.item, g.amount, 0);
 
   for (const id of queue) queueWorkbench(state, id);
@@ -350,20 +411,17 @@ function tryUpgrades(state: GameState): void {
 }
 
 function tryBuild(state: GameState, plan: Plan): void {
-  if (!plan.nextBuild) return;
-  const loco = currentLoco(state);
-  if (state.wagons.length >= loco.slots) {
-    const desired = desiredComposition(state);
-    const want = countByType(desired.map((type) => ({ type }) as WagonState));
-    const have = countByType(state.wagons);
-    const surplusTypes = Object.keys(have).filter((t) => (have[t] ?? 0) > (want[t] ?? 0));
-    const victim = [...state.wagons].reverse().find((w) => surplusTypes.includes(w.type));
-    if (!victim) return;
-    detachWagon(state, victim.id);
+  if (plan.nextBuild) {
+    if (state.wagons.length >= currentLoco(state).slots) return;
+    if (!canAfford(state, wagonBuildCost(plan.nextBuild))) return;
+    const init = plan.nextBuild === 'ernte' ? { resource: 'kohle' } : {};
+    buildWagon(state, plan.nextBuild, init);
+    return;
   }
-  if (!canAfford(state, wagonBuildCost(plan.nextBuild))) return;
-  const init = plan.nextBuild === 'ernte' ? { resource: 'kohle' } : {};
-  buildWagon(state, plan.nextBuild, init);
+  // Steht jeder Wagen, wächst der Zug nach innen: eine Maschine mehr im dünnsten Wagen.
+  const wagon = plan.nextMachine;
+  if (!wagon || !canAfford(state, nextMachineCost(wagon))) return;
+  buildMachine(state, wagon.id);
 }
 
 function decide(state: GameState, memory: BotMemory): void {
@@ -371,19 +429,20 @@ function decide(state: GameState, memory: BotMemory): void {
   if (!selfLoader) {
     for (const w of state.wagons) if (w.type === 'ernte') crank(state, w.id);
   }
-  const hasCoalHarvester = state.wagons.some((w) => w.type === 'ernte' && w.resource === 'kohle');
+  const hasCoalHarvester = state.wagons.some((w) => w.type === 'ernte' && w.machines.some((m) => m.resource === 'kohle'));
   if (!hasCoalHarvester && getStore(state, 'kohle') < 40) {
     for (let i = 0; i < 3; i += 1) shovelCoal(state);
   }
 
-  const plan = planGoals(state);
+  const plan = planGoals(state, computeDemand(state, planGoals(state)));
   if (!state.techs.current && plan.nextTech) startResearch(state, plan.nextTech);
 
   tryBuild(state, plan);
-  const demand = computeDemand(state, planGoals(state));
+  const demand = computeDemand(state, plan);
+  const nachher = planGoals(state, demand);
   assignHarvesters(state, demand);
-  assignProduction(state, demand, memory);
-  planWorkbench(state, planGoals(state));
+  assignProduction(state, demand, memory, reservedItems(state, nachher));
+  planWorkbench(state, nachher);
   tryUpgrades(state);
 }
 

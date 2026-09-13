@@ -47,8 +47,12 @@ export interface RecipeDef {
 export interface WagonDef {
   type: WagonType;
   name: string;
-  /** Baukosten inklusive Fahrgestell */
+  /** Wie eine einzelne Maschine in diesem Wagen heisst */
+  machineName: string;
+  /** Baukosten inklusive Fahrgestell. Die erste Maschine ist darin enthalten. */
   cost: Stack[];
+  /** Grundkosten einer weiteren Maschine. Jede weitere wird teurer. */
+  machineCost: Stack[];
   upgradable: boolean;
   /** null = ab Start baubar */
   tech: TechId | null;
@@ -57,7 +61,10 @@ export interface WagonDef {
 export interface LocoDef {
   id: LocoId;
   name: string;
+  /** Wie viele Wagen die Lok zieht */
   slots: number;
+  /** Zusätzliche Maschinenplätze in jedem Wagen */
+  machineBonus: number;
   speedKmh: number;
   fuel: ItemId;
   fuelPerKm: number;
@@ -68,6 +75,7 @@ export type TechEffect =
   | { kind: 'projekt'; project: ProjectId }
   | { kind: 'ernte_bonus'; value: number }
   | { kind: 'wagen_tempo'; wagon: WagonType; value: number }
+  | { kind: 'maschinen_plaetze'; value: number }
   | { kind: 'selbstlader' }
   | { kind: 'offline_deckel'; hours: number }
   | { kind: 'stand_ende' };
@@ -115,10 +123,12 @@ export interface ProjectDef {
 
 export type WagonStatus = 'aktiv' | 'wartet' | 'blockiert' | 'leer';
 
-export interface WagonState {
+/**
+ * Eine Maschine im Wagen. Sie hat den Auftrag, nicht der Wagen: Ein Schmelzwagen
+ * kann gleichzeitig Koks und Eisenbarren machen, wenn zwei Maschinen drinstehen.
+ */
+export interface MachineState {
   id: number;
-  type: WagonType;
-  level: number;
   /** Produktionswagen: aktives Rezept */
   recipe: RecipeId | null;
   /** Erntewagen: geernteter Rohstoff */
@@ -128,7 +138,17 @@ export interface WagonState {
   /** Produktion: Zutaten des laufenden Zyklus sind eingezogen */
   cycleActive: boolean;
   status: WagonStatus;
-  /** Spielzeit in Sekunden, bis zu der die Handkurbel wirkt */
+}
+
+export interface WagonState {
+  id: number;
+  type: WagonType;
+  level: number;
+  /** Die Maschinen im Wagen, höchstens so viele wie Plätze da sind */
+  machines: MachineState[];
+  /** Zusammenfassung der Maschinen, jeden Tick neu bestimmt */
+  status: WagonStatus;
+  /** Spielzeit in Sekunden, bis zu der die Handkurbel wirkt. Gilt für den ganzen Wagen. */
   crankUntil: number;
 }
 
@@ -158,6 +178,7 @@ export interface Warning {
   code: WarningCode;
   item?: ItemId;
   wagonId?: number;
+  machineId?: number;
 }
 
 export interface GameState {
@@ -177,6 +198,7 @@ export interface GameState {
   stop: StopReason;
   loco: LocoId;
   nextWagonId: number;
+  nextMachineId: number;
   /** Reihenfolge = Position hinter der Werkstatt, Index 0 ist der Lok am nächsten */
   wagons: WagonState[];
   store: Record<ItemId, number>;

@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { WAGONS, TECH_BY_ID, buildWagon, canAfford, currentLoco, getStore, isWagonTypeUnlocked, wagonBuildCost } from '../../engine';
+  import { WAGONS, TECH_BY_ID, buildWagon, canAfford, currentLoco, getStore, isWagonTypeUnlocked, machineSlots, wagonBuildCost, wagonOfType } from '../../engine';
   import { game } from '../game.svelte';
-  import { WAGON_COLOR, itemName } from '../labels';
+  import { WAGON_COLOR, itemName, machineName } from '../labels';
   import Vehicle from './Vehicle.svelte';
 
   const free = $derived(currentLoco(game.state).slots - game.state.wagons.length);
+  const offen = $derived(WAGONS.filter((w) => !wagonOfType(game.state, w.type)));
 
   function build(type: (typeof WAGONS)[number]['type']) {
     if (game.run(buildWagon(game.state, type))) {
@@ -14,17 +15,20 @@
   }
 </script>
 
-<p class="muted small">{free} von {currentLoco(game.state).slots} Plätzen frei. Jeder Wagen braucht ein Fahrgestell aus dem Werkwagen oder der Werkbank.</p>
+<p class="muted small">
+  Von jedem Wagentyp zieht die Lok einen, {free} von {currentLoco(game.state).slots} Plätzen sind frei. Ausgebaut wird ein Wagen von innen: In jeden passen
+  {machineSlots(game.state)} Maschinen. Die erste ist im Preis dabei, jeder Wagen braucht ein Fahrgestell aus dem Werkwagen oder der Werkbank.
+</p>
 
 <div class="list">
-  {#each WAGONS as w (w.type)}
+  {#each offen as w (w.type)}
     {@const unlocked = isWagonTypeUnlocked(game.state, w.type)}
     {@const cost = wagonBuildCost(w.type)}
     {@const affordable = canAfford(game.state, cost)}
     <div class="card entry" class:locked={!unlocked}>
       <span class="silhouette"><Vehicle kind={w.type} color={WAGON_COLOR[w.type]} rolling={false} /></span>
       <div class="text">
-        <div class="title">{w.name}</div>
+        <div class="title">{w.name} <span class="muted small">mit {machineName(w.type)}</span></div>
         {#if unlocked}
           <div class="cost">
             {#each cost as s (s.item)}
@@ -38,6 +42,9 @@
       <button type="button" class="btn primary" disabled={!unlocked || !affordable || free <= 0} onclick={() => build(w.type)}>Anhängen</button>
     </div>
   {/each}
+  {#if offen.length === 0}
+    <p class="muted small">Jeder Wagentyp hängt bereits im Zug. Mehr Leistung kommt jetzt aus Maschinen und Stufen.</p>
+  {/if}
 </div>
 
 <style>

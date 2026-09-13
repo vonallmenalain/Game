@@ -65,10 +65,11 @@
     opacity: 0.45;
   }
 
+  /* Oben rechts, nicht unten: Unten steht der Bestand, den die Marke sonst verdeckt. */
   .need {
     position: absolute;
     right: -5px;
-    bottom: -4px;
+    top: -4px;
     min-width: 15px;
     padding: 0 3px;
     border-radius: 8px;
