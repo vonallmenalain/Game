@@ -1,7 +1,7 @@
 import { deserialize, type GameState } from '../engine';
 import { SAVE_COLLECTION } from './config';
 import { describeAuthError, loadFirebase } from './firebase';
-import { decideSync, deviceName, type CloudSave, type SyncDecision } from './sync';
+import { buildCloudSave, decideSync, type CloudSave, type SyncDecision } from './sync';
 
 /** Merkt, dass jemand angemeldet war, damit das SDK beim Start gleich mitlädt. */
 const HINT_KEY = 'loco/konto';
@@ -222,14 +222,7 @@ class Account {
     try {
       const { db, api } = await loadFirebase();
       const { json, state } = this.getSnapshot();
-      await api.setDoc(api.doc(db, SAVE_COLLECTION, this.uid), {
-        json,
-        playedSeconds: Math.round(state.playedSeconds),
-        km: Number(state.km.toFixed(2)),
-        version: state.version,
-        aktualisiert: Date.now(),
-        geraet: deviceName(),
-      });
+      await api.setDoc(api.doc(db, SAVE_COLLECTION, this.uid), { ...buildCloudSave(json, state) });
       this.sync = 'fertig';
       this.syncedAt = Date.now();
       return true;
