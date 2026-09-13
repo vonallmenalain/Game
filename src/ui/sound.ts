@@ -2,11 +2,13 @@
  * Ton beim Meilenstein: ein kurzer Akkord aus der Web Audio API, keine Datei.
  * Standard aus, in «Mehr» einschaltbar.
  */
-const KEY = 'linie-null/ton';
+const KEY = 'loco/ton';
+const LEGACY_KEY = 'linie-null/ton';
 
 export function soundEnabled(): boolean {
   try {
-    return localStorage.getItem(KEY) === 'an';
+    const value = localStorage.getItem(KEY) ?? localStorage.getItem(LEGACY_KEY);
+    return value === 'an';
   } catch {
     return false;
   }
@@ -15,6 +17,7 @@ export function soundEnabled(): boolean {
 export function setSoundEnabled(on: boolean): void {
   try {
     localStorage.setItem(KEY, on ? 'an' : 'aus');
+    localStorage.removeItem(LEGACY_KEY);
   } catch {
     // Privates Fenster oder gesperrter Speicher: dann eben ohne Merken
   }

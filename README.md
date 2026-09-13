@@ -1,6 +1,8 @@
-# Linie Null
+# Loco
 
 Ein Idle-Aufbauspiel mit Produktionsketten als Progressive Web App, in der Tradition von Idle Planet Miner und Dyson Sphere Program.
+
+Läuft auf [loco.alae.app](https://loco.alae.app).
 
 Dein Zug ist deine Fabrik. Jeder Wagen ist eine Maschine, Schienen sind ein Produkt, und ohne Schienen steht der Zug. Vor dir liegen Biome mit neuen Rohstoffen und Hindernisse, die nur ein Bauprojekt überwindet: Brücke, Tunnel, Fähre, Raumbahnhof.
 

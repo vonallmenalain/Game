@@ -48,7 +48,7 @@
 {#if game.returning}
   <ReturnScreen />
 {:else if !game.loaded}
-  <main class="loading">Linie Null lädt …</main>
+  <main class="loading">Loco lädt …</main>
 {:else}
   {#if tab !== 'zug'}
     <StatusLine />

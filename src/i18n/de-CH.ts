@@ -15,7 +15,7 @@ function kmText(km: number): string {
 export function formatLog(entry: LogEntry): string {
   switch (entry.kind) {
     case 'start':
-      return `${kmText(entry.km)}. Linie Null nimmt den Betrieb auf.`;
+      return `${kmText(entry.km)}. Die Linie Null nimmt den Betrieb auf.`;
     case 'biom': {
       const biome = BIOME_BY_ID[entry.ref];
       if (!biome) return `${kmText(entry.km)}. Neues Gebiet.`;

@@ -55,9 +55,20 @@ jobs:
           echo "pfad=$RUNNER_TEMP/firebase-dienstkonto.json" >> "$GITHUB_OUTPUT"
 
       - name: Regeln veröffentlichen
+        id: veroeffentlichen
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.dienstkonto.outputs.pfad }}
         run: npx --yes firebase-tools@15 deploy --only firestore:rules --non-interactive
+
+      - name: Hinweis bei fehlenden Rechten
+        if: failure() && steps.veroeffentlichen.outcome == 'failure'
+        run: |
+          echo "::error::Das Veröffentlichen ist fehlgeschlagen. Häufigste Ursache: Dem Dienstkonto fehlen Rollen."
+          echo "Nötig sind in der Google-Cloud-Konsole unter IAM für das Dienstkonto firebase-adminsdk-…:"
+          echo "  - Firebase Rules Admin        (roles/firebaserules.admin)"
+          echo "  - Service Usage Consumer      (roles/serviceusage.serviceUsageConsumer)"
+          echo "Die zweite Rolle braucht die Firebase-CLI, um zu prüfen, ob die Firestore-API aktiv ist."
+          echo "Danach diesen Workflow noch einmal starten. Siehe docs/firebase.md."
 
       - name: Dienstkonto wieder entfernen
         if: always()

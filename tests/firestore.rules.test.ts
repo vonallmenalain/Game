@@ -26,7 +26,7 @@ function gueltigerStand(overrides: Record<string, unknown> = {}) {
 
 beforeAll(async () => {
   env = await initializeTestEnvironment({
-    projectId: 'linie-null-test',
+    projectId: 'loco-test',
     firestore: { rules: readFileSync('firestore.rules', 'utf8'), host: '127.0.0.1', port: 8080 },
   });
 });

@@ -4,7 +4,8 @@ import { describeAuthError, loadFirebase } from './firebase';
 import { decideSync, deviceName, type CloudSave, type SyncDecision } from './sync';
 
 /** Merkt, dass jemand angemeldet war, damit das SDK beim Start gleich mitlädt. */
-const HINT_KEY = 'linie-null/konto';
+const HINT_KEY = 'loco/konto';
+const LEGACY_HINT_KEY = 'linie-null/konto';
 
 export type AccountStatus = 'abgemeldet' | 'laedt' | 'angemeldet';
 export type SyncStatus = 'ruht' | 'laeuft' | 'fehler' | 'fertig';
@@ -18,6 +19,7 @@ function rememberSignedIn(on: boolean): void {
   try {
     if (on) localStorage.setItem(HINT_KEY, 'ja');
     else localStorage.removeItem(HINT_KEY);
+    localStorage.removeItem(LEGACY_HINT_KEY);
   } catch {
     // Gesperrter Speicher: dann lädt das SDK eben erst beim Antippen
   }
@@ -25,7 +27,7 @@ function rememberSignedIn(on: boolean): void {
 
 export function wasSignedIn(): boolean {
   try {
-    return localStorage.getItem(HINT_KEY) === 'ja';
+    return localStorage.getItem(HINT_KEY) === 'ja' || localStorage.getItem(LEGACY_HINT_KEY) === 'ja';
   } catch {
     return false;
   }

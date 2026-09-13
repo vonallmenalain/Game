@@ -15,8 +15,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['icons/icon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'Linie Null',
-        short_name: 'Linie Null',
+        name: 'Loco',
+        short_name: 'Loco',
         description: 'Idle-Aufbauspiel mit Produktionsketten. Dein Zug ist deine Fabrik.',
         lang: 'de-CH',
         display: 'standalone',

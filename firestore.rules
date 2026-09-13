@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Linie Null: Jedes Konto hat genau einen Spielstand und sieht nur den eigenen.
+// Loco: Jedes Konto hat genau einen Spielstand und sieht nur den eigenen.
 // Geändert wird diese Datei über einen Pull Request; die GitHub Action
 // «Firestore-Regeln» prüft sie mit dem Emulator und veröffentlicht sie danach.
 service cloud.firestore {
