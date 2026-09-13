@@ -4,3 +4,4 @@ dev-dist/
 .netlify/
 *.local
 .DS_Store
+smoke-shots/

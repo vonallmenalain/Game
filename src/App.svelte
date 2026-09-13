@@ -1,132 +1,115 @@
 <script lang="ts">
   import { registerSW } from 'virtual:pwa-register';
-  import { formatCount } from './lib/format';
+  import { canResearch, TECHS, isTechDone } from './engine';
+  import { game } from './ui/game.svelte';
+  import type { Tab } from './ui/tabs';
+  import BuildSheet from './ui/components/BuildSheet.svelte';
+  import MorePanel from './ui/components/MorePanel.svelte';
+  import ResearchPanel from './ui/components/ResearchPanel.svelte';
+  import Sheet from './ui/components/Sheet.svelte';
+  import StatusLine from './ui/components/StatusLine.svelte';
+  import StorePanel from './ui/components/StorePanel.svelte';
+  import TabBar from './ui/components/TabBar.svelte';
+  import Toast from './ui/components/Toast.svelte';
+  import TrackPanel from './ui/components/TrackPanel.svelte';
+  import TrainStrip from './ui/components/TrainStrip.svelte';
+  import WagonList from './ui/components/WagonList.svelte';
+  import WagonSheet from './ui/components/WagonSheet.svelte';
+  import WorkshopSheet from './ui/components/WorkshopSheet.svelte';
 
+  let tab = $state<Tab>('zug');
   let needRefresh = $state(false);
-  let offlineReady = $state(false);
 
   const updateSW = registerSW({
     onNeedRefresh() {
       needRefresh = true;
     },
-    onOfflineReady() {
-      offlineReady = true;
-    },
   });
 
-  const version = __APP_VERSION__;
-  const railsPerKm = 100;
+  $effect(() => {
+    void game.boot();
+    return () => game.stop();
+  });
+
+  const dots = $derived.by(() => {
+    const s = game.state;
+    const researchReady = !s.techs.current && TECHS.some((t) => !isTechDone(s, t.id) && canResearch(s, t.id).ok);
+    const projectDone = s.log.some((e) => e.kind === 'projekt' && s.playedSeconds - e.at < 120);
+    const storeFull = s.warnings.some((w) => w.code === 'lager_voll');
+    const wagonWaiting = s.warnings.some((w) => w.code === 'zutat_fehlt' || w.code === 'handkurbel');
+    return { forschung: researchReady, strecke: projectDone, lager: storeFull, zug: wagonWaiting } as Partial<Record<Tab, boolean>>;
+  });
+
+  const sheetTitle = $derived(game.sheet.kind === 'wagen' ? 'Wagen' : game.sheet.kind === 'bauen' ? 'Wagen anhängen' : game.sheet.kind === 'werkstatt' ? 'Werkstatt' : '');
 </script>
 
-<main class="page">
-  <p class="eyebrow">Phase 0 · Fundament</p>
-  <h1>Linie Null</h1>
-  <p class="lede">
-    Idle-Aufbauspiel mit Produktionsketten. Dein Zug ist deine Fabrik. Jeder Wagen ist eine Maschine,
-    Schienen sind ein Produkt, und ohne Schienen steht der Zug.
-  </p>
-
-  <dl class="facts">
-    <dt>Stand</dt>
-    <dd>Projektgerüst steht. Die Engine entsteht in Phase 1, die Bedienung in Phase 2.</dd>
-    <dt>Ein Kilometer</dt>
-    <dd>{formatCount(railsPerKm)} Schienen</dd>
-    <dt>Version</dt>
-    <dd class="mono">{version}</dd>
-  </dl>
-
-  {#if offlineReady}
-    <p class="note good">Offline bereit. Die App läuft jetzt auch ohne Netz.</p>
-  {/if}
+{#if !game.loaded}
+  <main class="loading">Linie Null lädt …</main>
+{:else}
+  <StatusLine />
   {#if needRefresh}
-    <p class="note">
+    <div class="update">
       Neue Version bereit.
-      <button type="button" onclick={() => updateSW(true)}>Neu laden</button>
-    </p>
+      <button type="button" class="btn small primary" onclick={() => updateSW(true)}>Neu laden</button>
+    </div>
   {/if}
-</main>
+  {#if game.state.standEnde}
+    <div class="update">Ende des ersten Stands erreicht. Die Wüste wartet auf den nächsten Ausbau.</div>
+  {/if}
+  <main class="content">
+    {#if tab === 'zug'}
+      <TrainStrip />
+      <WagonList />
+    {:else if tab === 'lager'}
+      <StorePanel />
+    {:else if tab === 'forschung'}
+      <ResearchPanel />
+    {:else if tab === 'strecke'}
+      <TrackPanel />
+    {:else}
+      <MorePanel />
+    {/if}
+  </main>
+  <TabBar active={tab} {dots} onchange={(t) => (tab = t)} />
+
+  <Sheet open={game.sheet.kind !== 'none'} title={sheetTitle} onclose={() => (game.sheet = { kind: 'none' })}>
+    {#if game.sheet.kind === 'wagen'}
+      {#key game.sheet.id}
+        <WagonSheet id={game.sheet.id} />
+      {/key}
+    {:else if game.sheet.kind === 'bauen'}
+      <BuildSheet />
+    {:else if game.sheet.kind === 'werkstatt'}
+      <WorkshopSheet />
+    {/if}
+  </Sheet>
+  <Toast />
+{/if}
 
 <style>
-  .page {
-    max-width: 40rem;
-    margin-inline: auto;
-    padding-inline: clamp(16px, 5vw, 32px);
-    padding-block: 48px 64px;
-  }
-
-  .eyebrow {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--accent-ink);
-    margin: 0 0 12px;
-  }
-
-  h1 {
-    font-family: var(--display);
-    font-size: clamp(44px, 10vw, 72px);
-    font-weight: 700;
-    line-height: 0.95;
-    margin: 0 0 16px;
-  }
-
-  .lede {
-    font-size: 18px;
-    margin: 0 0 28px;
-    max-width: 34em;
-  }
-
-  .facts {
+  .loading {
     display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
-    gap: 8px 16px;
-    margin: 0 0 24px;
-    font-size: 15px;
+    place-items: center;
+    min-height: 60vh;
+    font-family: var(--display);
+    font-size: 24px;
   }
 
-  .facts dt {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-2);
-    padding-top: 3px;
+  .content {
+    padding-bottom: calc(72px + var(--safe-bottom));
   }
 
-  .facts dd {
-    margin: 0;
-  }
-
-  .mono {
-    font-family: var(--mono);
-  }
-
-  .note {
+  .update {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 8px 12px;
-    padding: 12px 14px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    background: var(--surface);
-    margin: 0 0 12px;
-  }
-
-  .note.good {
-    border-color: var(--good);
-    color: var(--good);
-    background: var(--good-soft);
-  }
-
-  button {
-    padding: 6px 12px;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 10px 16px 0;
+    padding: 10px 12px;
     border: 1px solid var(--accent);
-    border-radius: 6px;
+    border-radius: 8px;
     background: var(--accent-soft);
     color: var(--accent-ink);
-    font-weight: 600;
-    cursor: pointer;
+    font-size: 14px;
   }
 </style>

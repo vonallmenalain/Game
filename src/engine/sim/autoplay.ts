@@ -38,7 +38,7 @@ import {
   unlockedRecipesFor,
   wagonTypeMultiplier,
 } from '../state';
-import { tick, workbenchStalled } from '../tick';
+import { harvestRatePerMinute, tick, workbenchStalled } from '../tick';
 import type { GameState, ItemId, RecipeDef, TechId, WagonState, WagonType } from '../types';
 
 export interface AutoplayOptions {
@@ -116,13 +116,6 @@ function countByType(wagons: WagonState[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const w of wagons) counts[w.type] = (counts[w.type] ?? 0) + 1;
   return counts;
-}
-
-function harvestRatePerMinute(state: GameState, w: WagonState, item: ItemId): number {
-  const def = ITEM_BY_ID[item];
-  if (!def) return 0;
-  const onSite = def.homeBiomes?.includes(currentBiome(state).id) ? BALANCE.onSiteBonus : 1;
-  return (def.harvestPerMinute ?? 0) * levelMultiplier(w.level) * harvestMultiplier(state) * onSite;
 }
 
 interface Plan {
