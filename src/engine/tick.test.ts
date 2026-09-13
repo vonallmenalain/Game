@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BALANCE } from './balance';
 import { BIOME_BY_ID, LOCO_BY_ID, OBSTACLE_BY_ID, PROJECT_BY_ID } from './data';
 import { createInitialState, getStore, storeCap } from './state';
-import { machineRatePerMinute, machineSpeed, tick } from './tick';
+import { flowPerMinute, machineRatePerMinute, machineSpeed, tick } from './tick';
 import { addMachine, addWagon, clone, grant, research, runFor } from './sim/testkit';
 import { startResearch } from './actions';
 
@@ -127,6 +127,62 @@ describe('Ausstoss je Maschine', () => {
     expect(machineRatePerMinute(s, schmelz, barren)).toBeCloseTo(16.5);
     schmelz.level = 2;
     expect(machineRatePerMinute(s, schmelz, barren)).toBeCloseTo(19.8);
+  });
+});
+
+describe('Fluss je Ware', () => {
+  it('rechnet Herstellung minus Verbrauch aus dem, was gerade eingestellt ist', () => {
+    const s = createInitialState();
+    research(s, 'selbstlader', 'schmelzwagen');
+    grant(s, { kohle: 100, eisenerz: 100 });
+    const schmelz = addWagon(s, 'schmelz', { recipe: 'koks' });
+    addMachine(s, schmelz, { recipe: 'eisenbarren' });
+
+    const flow = flowPerMinute(s);
+    // Ernte 45, Eisenbarren frisst 2 je Lauf bei 16,5 Läufen
+    expect(flow['eisenerz']).toBeCloseTo(45 - 33);
+    // Koks: 30 aus dem einen Ofen, davon 16,5 in die Barren
+    expect(flow['koks']).toBeCloseTo(30 - 16.5);
+    // 30 in den Ofen, dazu 7 in den Kessel der fahrenden Lok
+    expect(flow['kohle']).toBeCloseTo(-37, 1);
+    expect(flow['eisenbarren']).toBeCloseTo(16.5);
+  });
+
+  it('zählt nicht mit, was gerade nicht laufen kann', () => {
+    const s = createInitialState();
+    research(s, 'schmelzwagen');
+    const schmelz = addWagon(s, 'schmelz', { recipe: 'koks' });
+
+    // Ohne Selbstlader steht die Ernte, bis jemand kurbelt
+    expect(flowPerMinute(s)['eisenerz'] ?? 0).toBe(0);
+    s.wagons[0]!.crankUntil = s.playedSeconds + 5;
+    expect(flowPerMinute(s)['eisenerz']).toBeCloseTo(45);
+
+    // Volles Ausgabelager: Der Ofen zählt nicht mehr mit, nur noch der Kessel
+    expect(flowPerMinute(s)['kohle']).toBeCloseTo(-37, 1);
+    s.store['koks'] = storeCap(s);
+    expect(flowPerMinute(s)['kohle']).toBeCloseTo(-7, 1);
+
+    // Pausiert zählt die Maschine gar nicht mehr
+    s.store['koks'] = 0;
+    schmelz.machines[0]!.recipe = null;
+    expect(flowPerMinute(s)['kohle']).toBeCloseTo(-7, 1);
+  });
+
+  it('zieht Schienen und Brennstoff der Fahrt ab und rechnet die Werkbank mit', () => {
+    const s = createInitialState();
+    grant(s, { schienen: 100 });
+    runFor(s, 1);
+    expect(s.stop).toBe('faehrt');
+    // 14 km/h sind 0,2333 km je Minute: rund 23 Schienen und 7 Kohle
+    const fahrend = flowPerMinute(s);
+    expect(fahrend['schienen']).toBeCloseTo(-23.33, 1);
+    expect(fahrend['kohle']).toBeCloseTo(-7, 1);
+
+    s.workbench.queue = ['koks'];
+    const mitWerkbank = flowPerMinute(s);
+    expect(mitWerkbank['koks']).toBeCloseTo(30);
+    expect(mitWerkbank['kohle']).toBeCloseTo(-7 - 30, 1);
   });
 });
 

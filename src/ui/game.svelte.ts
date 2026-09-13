@@ -1,6 +1,7 @@
 import {
   BALANCE,
   createInitialState,
+  flowPerMinute,
   needsCatchUp,
   serialize,
   simulateOffline,
@@ -18,7 +19,6 @@ import { exportFileName, exportSave } from './transfer';
 const TICK = BALANCE.tickSeconds;
 /** So viel Zeit holt ein einzelnes Bild höchstens auf, etwa nach einem gedrosselten Tab */
 const MAX_FRAME_CATCHUP_SECONDS = 120;
-const RATE_WINDOW_SECONDS = 60;
 const AUTOSAVE_MS = 10_000;
 /** Der Rückkehr-Bildschirm steht mindestens so lange, damit die Rückkehr einen Auftritt hat */
 const RETURN_ANIMATION_MS = 1400;
@@ -26,12 +26,6 @@ const RETURN_ANIMATION_MS = 1400;
 export const EXPORT_REMINDER_MS = 7 * 24 * 3600 * 1000;
 /** So oft schiebt ein angemeldetes Gerät seinen Stand in die Cloud */
 const CLOUD_PUSH_MS = 2 * 60 * 1000;
-
-interface RateSample {
-  t: number;
-  produced: Record<string, number>;
-  consumed: Record<string, number>;
-}
 
 export type SheetKind = { kind: 'none' } | { kind: 'wagen'; id: number } | { kind: 'bauen' };
 
@@ -58,8 +52,12 @@ function prefersReducedMotion(): boolean {
 
 class Game {
   state = $state<GameState>(createInitialState());
-  /** Nettorate je Ware in Stück pro Minute über die letzte Minute */
-  rates = $state<Record<string, number>>({});
+  /**
+   * Nettofluss je Ware in Stück pro Minute, aus dem laufenden Zustand gerechnet.
+   * Wer eine Maschine pausiert, sieht die Zahl sofort fallen, statt eine Minute
+   * auf den Durchschnitt zu warten.
+   */
+  rates: Record<string, number> = $derived(flowPerMinute(this.state));
   toast = $state<{ text: string; id: number } | null>(null);
   sheet = $state<SheetKind>({ kind: 'none' });
   loaded = $state(false);
@@ -77,8 +75,6 @@ class Game {
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastNow = 0;
   private accumulated = 0;
-  private samples: RateSample[] = [];
-  private lastSampleAt = -1;
   private lastSaveAt = 0;
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
   private milestoneTimer: ReturnType<typeof setTimeout> | null = null;
@@ -193,7 +189,6 @@ class Game {
       steps += 1;
     }
     if (steps > 0) {
-      this.sampleRates();
       this.catchMilestones();
     }
     const now2 = Date.now();
@@ -232,25 +227,6 @@ class Game {
   dismissMilestone(): void {
     if (this.milestoneTimer) clearTimeout(this.milestoneTimer);
     this.milestone = null;
-  }
-
-  private sampleRates(): void {
-    const t = this.state.playedSeconds;
-    if (t - this.lastSampleAt < 1) return;
-    this.lastSampleAt = t;
-    this.samples.push({ t, produced: { ...this.state.stats.produced }, consumed: { ...this.state.stats.consumed } });
-    while (this.samples.length > 1 && t - this.samples[0]!.t > RATE_WINDOW_SECONDS) this.samples.shift();
-    const first = this.samples[0]!;
-    const span = t - first.t;
-    if (span < 5) return;
-    const rates: Record<string, number> = {};
-    const items = new Set([...Object.keys(this.state.stats.produced), ...Object.keys(this.state.stats.consumed)]);
-    for (const item of items) {
-      const produced = (this.state.stats.produced[item] ?? 0) - (first.produced[item] ?? 0);
-      const consumed = (this.state.stats.consumed[item] ?? 0) - (first.consumed[item] ?? 0);
-      rates[item] = ((produced - consumed) / span) * 60;
-    }
-    this.rates = rates;
   }
 
   private snapshotJson(): string {
@@ -295,9 +271,6 @@ class Game {
   async adopt(state: GameState): Promise<void> {
     this.stop();
     this.state = state;
-    this.samples = [];
-    this.rates = {};
-    this.lastSampleAt = -1;
     this.accumulated = 0;
     this.sheet = { kind: 'none' };
     this.report = null;
@@ -311,9 +284,6 @@ class Game {
     this.stop();
     await clearSave();
     this.state = createInitialState();
-    this.samples = [];
-    this.rates = {};
-    this.lastSampleAt = -1;
     this.accumulated = 0;
     this.sheet = { kind: 'none' };
     this.report = null;
