@@ -41,6 +41,21 @@ export function decideSync(local: GameState | null, cloud: CloudSave | null): Sy
   return { kind: 'nichts' };
 }
 
+/**
+ * Baut das Dokument, das in Firestore landet. Als eigene Funktion, damit der Regeltest
+ * genau das schreibt, was die App schreibt, und nicht eine Nachbildung davon.
+ */
+export function buildCloudSave(json: string, state: GameState, now = Date.now(), geraet = deviceName()): CloudSave {
+  return {
+    json,
+    playedSeconds: Math.round(state.playedSeconds),
+    km: Number(state.km.toFixed(2)),
+    version: state.version,
+    aktualisiert: now,
+    geraet,
+  };
+}
+
 /** Kurzer Name des Geräts, damit der Bericht sagen kann, woher ein Stand kommt. */
 export function deviceName(): string {
   if (typeof navigator === 'undefined') return 'unbekannt';

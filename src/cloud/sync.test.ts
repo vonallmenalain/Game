@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createInitialState } from '../engine';
-import { decideSync, type CloudSave } from './sync';
+import { buildCloudSave, decideSync, type CloudSave } from './sync';
 
 function cloud(playedSeconds: number, km = 0): CloudSave {
   return { json: '{}', playedSeconds, km, version: 1, aktualisiert: 0, geraet: 'Android' };
@@ -40,5 +40,18 @@ describe('Abgleich zwischen Gerät und Cloud', () => {
 
   it('lädt ungefragt hoch, wenn das Gerät weiter ist: dabei geht nichts verloren', () => {
     expect(decideSync(local(3600), cloud(300))).toEqual({ kind: 'hochladen', grund: 'lokal_weiter' });
+  });
+});
+
+describe('Das Dokument für die Cloud', () => {
+  it('trägt genau die Felder, die die Regeln erlauben', () => {
+    const state = local(1234.6, 18.456);
+    const dokument = buildCloudSave('{"a":1}', state, 1_700_000_000_000, 'Mac');
+    expect(Object.keys(dokument).sort()).toEqual(['aktualisiert', 'geraet', 'json', 'km', 'playedSeconds', 'version']);
+    expect(dokument.playedSeconds).toBe(1235);
+    expect(dokument.km).toBe(18.46);
+    expect(dokument.version).toBe(state.version);
+    expect(dokument.aktualisiert).toBe(1_700_000_000_000);
+    expect(dokument.geraet).toBe('Mac');
   });
 });
