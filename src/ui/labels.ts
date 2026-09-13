@@ -109,7 +109,7 @@ export function machineStatusText(state: GameState, wagon: WagonState, m: Machin
       return out ? `Lager voll: ${itemName(out)}` : 'Lager voll';
     }
     default:
-      return wagon.type === 'ernte' ? 'kein Rohstoff gewählt' : wagon.type === 'lager' ? 'erhöht die Kapazität' : 'kein Auftrag gewählt';
+      return wagon.type === 'lager' ? 'erhöht die Kapazität' : 'pausiert';
   }
 }
 
@@ -122,8 +122,14 @@ export function statusText(state: GameState, w: WagonState): string {
   if (w.type === 'lager') return `${n} ${n === 1 ? 'Regal' : 'Regale'} · plus ${n * BALANCE.storeCapPerRegal} je Ware`;
   const laufen = w.machines.filter((m) => m.status === 'aktiv').length;
   if (laufen > 0 && laufen === n) return n === 1 ? 'aktiv' : `${n} Maschinen laufen`;
-  const klemmt = w.machines.find((m) => m.status === w.status);
-  const text = klemmt ? machineStatusText(state, w, klemmt) : 'leer';
+  // Was klemmt, ist die dringlichste Meldung einer Maschine, die gerade nicht läuft
+  const klemmt =
+    w.machines.find((m) => m.status === 'blockiert') ?? w.machines.find((m) => m.status === 'wartet') ?? w.machines.find((m) => m.status === 'leer');
+  let text = klemmt ? machineStatusText(state, w, klemmt) : 'leer';
+  if (klemmt?.status === 'leer') {
+    const pausiert = w.machines.filter((m) => m.status === 'leer').length;
+    text = pausiert > 1 ? `${pausiert} pausiert` : 'pausiert';
+  }
   return laufen > 0 ? `${laufen} von ${n} laufen · ${text}` : text;
 }
 

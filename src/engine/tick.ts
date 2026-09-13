@@ -168,6 +168,19 @@ export function wagonBaseSpeed(state: GameState, w: WagonState): number {
   return levelMultiplier(w.level) * wagonTypeMultiplier(state, w.type);
 }
 
+/**
+ * Was eine Maschine pro Minute liefert, wenn ihr nichts fehlt: die Ernterate oder
+ * die erste Ausgabe ihres Rezepts. Ohne Auftrag null. Das ist die Zahl zum Abstimmen,
+ * darum steht daneben immer der Status.
+ */
+export function machineRatePerMinute(state: GameState, w: WagonState, m: MachineState): number {
+  if (w.type === 'ernte') return harvestRatePerMinute(state, w, m.resource);
+  const r = m.recipe ? RECIPE_BY_ID[m.recipe] : undefined;
+  const out = r?.outputs[0];
+  if (!r || !out) return 0;
+  return (out.amount / r.seconds) * 60 * machineSpeed(state, w, m);
+}
+
 interface CycleHolder {
   progress: number;
   cycleActive: boolean;
