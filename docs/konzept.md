@@ -579,7 +579,7 @@ interface GameState {
 ### 14.4 Speichern
 
 - Automatisch alle 10 Sekunden und bei jedem Wechsel in den Hintergrund (`visibilitychange`, `pagehide`).
-- Mit Konto zusätzlich alle zwei Minuten und beim Wechsel in den Hintergrund in die Cloud. Verglichen wird beim Anmelden die gespielte Zeit, nicht die Uhrzeit: Ist die Cloud mehr als eine Minute weiter, fragt das Spiel nach und zeigt beide Stände; ist das Gerät weiter, lädt es ungefragt hoch. Ohne Konto läuft alles wie bisher rein lokal.
+- Mit Konto zusätzlich alle zwei Minuten und beim Wechsel in den Hintergrund in die Cloud. Beim Start wird zuerst die Cloud gefragt und erst danach die Abwesenheit nachgeholt. Verglichen wird nicht die Spielzeit, sondern die Abstammung: Jedes Gerät merkt sich den Stempel des Cloud-Dokuments, auf dem sein Stand aufbaut. Trägt die Cloud noch diesen Stempel, wird hochgeladen, was hier weiterging. Trägt sie einen anderen, hat ein anderes Gerät geschrieben: Wurde hier seither nichts gespielt, übernimmt das Gerät den Cloud-Stand samt Nachholen; sonst fragt das Spiel nach und zeigt beide Stände mit dem weiteren markiert. Die Nachsimulation zählt nicht als Spielen. Geschrieben wird nur, wenn die Cloud noch den erwarteten Stempel trägt. Ohne Konto läuft alles rein lokal, siehe `docs/firebase.md`.
 - Ein Schlüssel `loco/save` in IndexedDB (Stände aus der Zeit als «Linie Null» werden beim Laden übernommen), dazu eine Kopie des letzten funktionierenden Stands als Rückfall.
 - `version` im Spielstand, Migrationen als Liste von Funktionen.
 - Keine Sicherung als Datei. Der Stand liegt auf dem Gerät und mit Konto in der Cloud; ein zweiter Weg mit eigener Dateiauswahl, eigener Rückfrage und eigener Erinnerung war mehr Oberfläche, als er wert war.

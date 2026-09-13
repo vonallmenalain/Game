@@ -51,3 +51,19 @@ export function formatDuration(seconds: number): string {
   if (m > 0) return s > 0 ? `${m} min ${s} s` : `${m} min`;
   return `${s} s`;
 }
+
+/**
+ * Wie lange ein Zeitpunkt her ist, grob: 0 → unbekannt, unter einer Minute → gerade eben,
+ * sonst «vor 3 min» oder «vor 2 h 10 min». Sekunden bleiben weg, sie ändern sich zu schnell.
+ */
+export function formatAgo(at: number, now = Date.now()): string {
+  if (!at) return 'unbekannt';
+  const seconds = Math.max(0, (now - at) / 1000);
+  if (seconds < 60) return 'gerade eben';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `vor ${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h < 48) return m > 0 ? `vor ${h} h ${m} min` : `vor ${h} h`;
+  return `vor ${Math.floor(h / 24)} Tagen`;
+}

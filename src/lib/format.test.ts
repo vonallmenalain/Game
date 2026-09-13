@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCount, formatDecimal, formatDuration, formatKm, formatRate } from './format';
+import { formatAgo, formatCount, formatDecimal, formatDuration, formatKm, formatRate } from './format';
 
 describe('Zahlenformat de-CH', () => {
   it('trennt Tausender mit Apostroph und rundet ab', () => {
@@ -25,5 +25,16 @@ describe('Zahlenformat de-CH', () => {
     expect(formatDuration(7200)).toBe('2 h');
     expect(formatDuration(185)).toBe('3 min 5 s');
     expect(formatDuration(45)).toBe('45 s');
+  });
+
+  it('sagt grob, wie lange ein Zeitpunkt her ist', () => {
+    const now = 10_000_000_000;
+    expect(formatAgo(0, now)).toBe('unbekannt');
+    expect(formatAgo(now - 20_000, now)).toBe('gerade eben');
+    expect(formatAgo(now - 3 * 60_000, now)).toBe('vor 3 min');
+    expect(formatAgo(now - (2 * 3600 + 10 * 60) * 1000, now)).toBe('vor 2 h 10 min');
+    expect(formatAgo(now - 5 * 3600 * 1000, now)).toBe('vor 5 h');
+    expect(formatAgo(now - 3 * 24 * 3600 * 1000, now)).toBe('vor 3 Tagen');
+    expect(formatAgo(now + 60_000, now)).toBe('gerade eben');
   });
 });

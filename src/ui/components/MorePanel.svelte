@@ -24,7 +24,7 @@
 <section class="more">
   <h3 class="section-title">Spielstand</h3>
   <div class="card">
-    <p class="small">Wird alle zehn Sekunden und beim Verlassen automatisch gespeichert, lokal auf diesem Gerät. Mit einem Konto liegt er zusätzlich in der Cloud und kommt auf jedes angemeldete Gerät.</p>
+    <p class="small">Wird alle zehn Sekunden und beim Verlassen automatisch gespeichert, lokal auf diesem Gerät. Mit einem Konto liegt er zusätzlich in der Cloud und kommt auf jedes angemeldete Gerät, dort weiter, wo du zuletzt warst.</p>
     <p class="small muted">Spielzeit: {formatDuration(game.state.playedSeconds)} · Nachtschicht rechnet bis {cap} nach.</p>
   </div>
 
@@ -51,7 +51,7 @@
 
   <h3 class="section-title">Neu anfangen</h3>
   <div class="card">
-    <p class="small">Löscht den Spielstand auf diesem Gerät.</p>
+    <p class="small">Löscht den Spielstand auf diesem Gerät. Bist du angemeldet, fängt auch die Cloud von vorn an.</p>
     <div class="row">
       <button type="button" class="btn danger" onclick={reset}>{confirmReset ? 'Wirklich alles löschen' : 'Neu anfangen'}</button>
       {#if confirmReset}

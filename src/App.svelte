@@ -9,6 +9,7 @@
   import ResearchPanel from './ui/components/ResearchPanel.svelte';
   import StatusLine from './ui/components/StatusLine.svelte';
   import StorePanel from './ui/components/StorePanel.svelte';
+  import SyncChoice from './ui/components/SyncChoice.svelte';
   import TabBar from './ui/components/TabBar.svelte';
   import Toast from './ui/components/Toast.svelte';
   import TrackPanel from './ui/components/TrackPanel.svelte';
@@ -43,7 +44,7 @@
 {#if game.returning}
   <ReturnScreen />
 {:else if !game.loaded}
-  <main class="loading">Loco lädt …</main>
+  <main class="loading">{game.bootPhase === 'cloud' ? 'Loco holt den Spielstand aus der Cloud …' : 'Loco lädt …'}</main>
 {:else}
   <div class="app">
     {#if game.tab === 'mehr'}
@@ -84,6 +85,8 @@
   {#if game.report}
     <ReturnReport report={game.report} />
   {/if}
+  <!-- Die Rückfrage steht auf jedem Register: Sie kommt auch mitten im Spiel -->
+  <SyncChoice />
   <Toast />
 {/if}
 

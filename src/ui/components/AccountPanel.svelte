@@ -1,6 +1,5 @@
 <script lang="ts">
   import { account } from '../../cloud/account.svelte';
-  import { formatDuration, formatKm } from '../../lib/format';
   import { game } from '../game.svelte';
 
   let mode = $state<'anmelden' | 'registrieren'>('anmelden');
@@ -56,7 +55,9 @@
 <div class="card">
   {#if account.signedIn}
     <p class="small"><b>{account.name}</b></p>
-    <p class="small muted">Der Spielstand wird alle zwei Minuten und beim Verlassen in die Cloud gesichert. Status: {syncText}.</p>
+    <p class="small muted">
+      Der Spielstand wird alle zwei Minuten und beim Verlassen in die Cloud gesichert. Beim Start holt Loco zuerst den Stand aus der Cloud, wenn er dort weiter ist. Haben beide Seiten etwas, das der anderen fehlt, fragt das Spiel nach. Status: {syncText}.
+    </p>
     <div class="row">
       <button type="button" class="btn" disabled={account.sync === 'laeuft'} onclick={() => account.push()}>Jetzt sichern</button>
       <button type="button" class="btn" disabled={account.sync === 'laeuft'} onclick={() => account.pull()}>Aus der Cloud laden</button>
@@ -112,28 +113,6 @@
   {/if}
 </div>
 
-{#if account.conflict}
-  <div class="backdrop" role="presentation"></div>
-  <div class="conflict" role="dialog" aria-modal="true" aria-label="Zwei Spielstände">
-    <h3>Zwei Spielstände</h3>
-    <p class="small">In der Cloud liegt ein Stand, der weiter ist als der auf diesem Gerät. Welcher soll gelten? Der andere geht dabei verloren.</p>
-    <div class="choice">
-      <div>
-        <p class="eyebrow">In der Cloud</p>
-        <p class="big">{formatKm(account.conflict.cloud.km)}</p>
-        <p class="small muted">{formatDuration(account.conflict.cloud.playedSeconds)} gespielt</p>
-        <button type="button" class="btn primary wide" onclick={() => account.resolveWithCloud()}>Diesen nehmen</button>
-      </div>
-      <div>
-        <p class="eyebrow">Auf diesem Gerät</p>
-        <p class="big">{formatKm(account.conflict.lokal.km)}</p>
-        <p class="small muted">{formatDuration(account.conflict.lokal.playedSeconds)} gespielt</p>
-        <button type="button" class="btn wide" onclick={() => account.resolveWithLocal()}>Diesen behalten</button>
-      </div>
-    </div>
-  </div>
-{/if}
-
 <style>
   .small {
     font-size: 14px;
@@ -172,71 +151,5 @@
   .field input:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 1px;
-  }
-
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(10, 16, 24, 0.5);
-    z-index: 40;
-  }
-
-  .conflict {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 41;
-    padding: 18px;
-    border-radius: 14px;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    max-width: 460px;
-    margin-inline: auto;
-  }
-
-  .conflict h3 {
-    font-family: var(--display);
-    font-size: 26px;
-    font-weight: 700;
-    margin: 0 0 6px;
-  }
-
-  .choice {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-top: 14px;
-  }
-
-  .choice > div {
-    display: grid;
-    gap: 2px;
-    align-content: start;
-  }
-
-  .choice .eyebrow {
-    margin: 0;
-  }
-
-  .big {
-    font-family: var(--display);
-    font-size: 26px;
-    font-weight: 700;
-    margin: 0;
-    color: var(--accent-ink);
-  }
-
-  .wide {
-    width: 100%;
-    margin-top: 8px;
-  }
-
-  @media (max-width: 420px) {
-    .choice {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

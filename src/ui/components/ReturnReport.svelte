@@ -27,6 +27,10 @@
       <span class="muted">gefahren, jetzt bei {formatKm(report.kmAfter)}</span>
     </div>
 
+    {#if game.reportSource}
+      <p class="note">Dieser Stand kommt aus der Cloud, zuletzt gespielt auf {game.reportSource.geraet}. Er hat die Abwesenheit genauso nachgeholt.</p>
+    {/if}
+
     {#if report.lostSeconds > 60}
       <p class="note">Die Nachtschicht rechnet höchstens {formatDuration(report.simulatedSeconds)}. {formatDuration(report.lostSeconds)} sind verfallen, die Mannschaft hat geschlafen.</p>
     {/if}

@@ -23,6 +23,7 @@ export interface FirebaseBundle {
     getDoc: typeof import('firebase/firestore').getDoc;
     setDoc: typeof import('firebase/firestore').setDoc;
     deleteDoc: typeof import('firebase/firestore').deleteDoc;
+    runTransaction: typeof import('firebase/firestore').runTransaction;
   };
 }
 
@@ -52,6 +53,7 @@ export function loadFirebase(): Promise<FirebaseBundle> {
         getDoc: storeMod.getDoc,
         setDoc: storeMod.setDoc,
         deleteDoc: storeMod.deleteDoc,
+        runTransaction: storeMod.runTransaction,
       },
     };
   })();
