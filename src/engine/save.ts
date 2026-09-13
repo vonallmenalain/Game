@@ -161,6 +161,7 @@ export function fillDefaults(raw: Raw): GameState {
     techs: {
       done: Array.isArray(rawTechs['done']) ? (rawTechs['done'].filter((t) => typeof t === 'string') as string[]) : [],
       current: rawCurrent && typeof rawCurrent['id'] === 'string' ? { id: rawCurrent['id'], progress: num(rawCurrent['progress'], 0) } : null,
+      queue: Array.isArray(rawTechs['queue']) ? (rawTechs['queue'].filter((t) => typeof t === 'string') as string[]) : [],
     },
     projects,
     workbench: {

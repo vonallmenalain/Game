@@ -13,7 +13,9 @@ import {
   isRecipeUnlocked,
   isResourceDiscovered,
   isTechDone,
+  isTechPlanned,
   isWagonTypeUnlocked,
+  plannedTechs,
   storeCap,
   takeFromStore,
   wagonOfType,
@@ -283,17 +285,38 @@ export function moveWagon(state: GameState, wagonId: number, toIndex: number): A
 
 // Forschung
 
+/**
+ * Ob sich eine Technologie jetzt einreihen lässt. Voraussetzungen dürfen selbst noch
+ * in der Warteschlange stehen: So plant man eine ganze Kette auf einmal. Biome und
+ * Bauprojekte müssen dagegen schon da sein, denn darauf wartet die Forschung nicht.
+ */
 export function canResearch(state: GameState, techId: TechId): ActionResult {
   const def = TECH_BY_ID[techId];
   if (!def) return fail('unbekannt');
   if (isTechDone(state, techId)) return fail('forschung_fertig');
-  if (state.techs.current) return fail('forschung_laeuft');
-  if (!def.requires.every((t) => isTechDone(state, t))) return fail('voraussetzung_fehlt');
+  if (isTechPlanned(state, techId)) return fail('forschung_laeuft');
+  if (state.techs.current && state.techs.queue.length >= BALANCE.researchQueueMax) return fail('warteschlange_voll');
+  const geplant = plannedTechs(state);
+  if (!def.requires.every((t) => isTechDone(state, t) || geplant.includes(t))) return fail('voraussetzung_fehlt');
   if (def.requiresBiome && !state.discoveredBiomes.includes(def.requiresBiome)) return fail('voraussetzung_fehlt');
   if (def.requiresProject && !state.projects[def.requiresProject]?.done) return fail('voraussetzung_fehlt');
   const missing = missingFor(state, [def.cost]);
   if (missing.length > 0) return fail('material_fehlt', missing);
   return OK;
+}
+
+/**
+ * Ob sich eine Technologie einreihen liesse, wenn die Blaupausen da wären. Anders als
+ * `isTechAvailable` zählen Voraussetzungen mit, die selbst noch in der Warteschlange stehen.
+ */
+export function isTechPlannable(state: GameState, techId: TechId): boolean {
+  const def = TECH_BY_ID[techId];
+  if (!def || isTechDone(state, techId) || isTechPlanned(state, techId)) return false;
+  const geplant = plannedTechs(state);
+  if (!def.requires.every((t) => isTechDone(state, t) || geplant.includes(t))) return false;
+  if (def.requiresBiome && !state.discoveredBiomes.includes(def.requiresBiome)) return false;
+  if (def.requiresProject && !state.projects[def.requiresProject]?.done) return false;
+  return true;
 }
 
 /** Voraussetzungen erfüllt, unabhängig von Blaupausen und laufender Forschung */
@@ -306,12 +329,37 @@ export function isTechAvailable(state: GameState, techId: TechId): boolean {
   return true;
 }
 
+/** Startet die Forschung oder reiht sie ein. Die Blaupausen werden sofort bezahlt. */
 export function startResearch(state: GameState, techId: TechId): ActionResult {
   const check = canResearch(state, techId);
   if (!check.ok) return check;
   const def = TECH_BY_ID[techId]!;
   pay(state, [def.cost]);
-  state.techs.current = { id: techId, progress: 0 };
+  if (state.techs.current) state.techs.queue.push(techId);
+  else state.techs.current = { id: techId, progress: 0 };
+  return OK;
+}
+
+/**
+ * Nimmt eine wartende Forschung wieder aus der Warteschlange und gibt die Blaupausen
+ * zurück. Die laufende bleibt: Ihr Fortschritt wäre sonst verloren.
+ */
+export function cancelQueuedResearch(state: GameState, techId: TechId): ActionResult {
+  const index = state.techs.queue.indexOf(techId);
+  if (index < 0) return fail('unbekannt');
+  const def = TECH_BY_ID[techId];
+  if (!def) return fail('unbekannt');
+  // Was hinter ihr steht und sie braucht, muss mit: sonst wartet es auf nichts
+  const raus = [techId];
+  for (const id of state.techs.queue.slice(index + 1)) {
+    const andere = TECH_BY_ID[id];
+    if (andere?.requires.some((t) => raus.includes(t))) raus.push(id);
+  }
+  state.techs.queue = state.techs.queue.filter((id) => !raus.includes(id));
+  for (const id of raus) {
+    const zurueck = TECH_BY_ID[id];
+    if (zurueck) addToStore(state, zurueck.cost.item, zurueck.cost.amount);
+  }
   return OK;
 }
 

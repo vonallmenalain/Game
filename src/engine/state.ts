@@ -37,7 +37,7 @@ export function createInitialState(): GameState {
     store,
     discoveredBiomes: ['tal'],
     reachedObstacles: [],
-    techs: { done: [], current: null },
+    techs: { done: [], current: null, queue: [] },
     projects,
     workbench: { queue: [], progress: 0, cycleActive: false },
     log: [{ at: 0, km: 0, kind: 'start', ref: 'linie_null' }],
@@ -135,6 +135,16 @@ export function isWagonTypeUnlocked(state: GameState, type: WagonType): boolean 
   const def = WAGON_BY_TYPE[type];
   if (!def) return false;
   return def.tech === null || isTechDone(state, def.tech);
+}
+
+/** Was erforscht ist oder schon eingereiht wurde, also demnächst da sein wird */
+export function plannedTechs(state: GameState): TechId[] {
+  const geplant = state.techs.current ? [state.techs.current.id] : [];
+  return [...geplant, ...state.techs.queue];
+}
+
+export function isTechPlanned(state: GameState, id: TechId): boolean {
+  return plannedTechs(state).includes(id);
 }
 
 export function isRecipeUnlocked(state: GameState, recipeId: string): boolean {

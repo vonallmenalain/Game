@@ -8,6 +8,7 @@ import {
   moveWagon,
   queueWorkbench,
   removeMachine,
+  cancelQueuedResearch,
   pauseMachine,
   setMachineRecipe,
   setMachineResource,
@@ -205,20 +206,70 @@ describe('Erntewagen', () => {
 });
 
 describe('Forschung starten', () => {
-  it('prüft Voraussetzungen, Biome, Blaupausen und laufende Forschung', () => {
+  it('prüft Voraussetzungen, Biome und Blaupausen', () => {
     const s = createInitialState();
     expect(startResearch(s, 'schmelzwagen')).toMatchObject({ ok: false, code: 'voraussetzung_fehlt' });
     expect(startResearch(s, 'selbstlader')).toMatchObject({ ok: false, code: 'material_fehlt' });
     grant(s, { bp_eisen: 30 });
     expect(startResearch(s, 'selbstlader').ok).toBe(true);
     expect(getStore(s, 'bp_eisen')).toBe(27);
-    expect(startResearch(s, 'erntetechnik1')).toMatchObject({ ok: false, code: 'forschung_laeuft' });
+    expect(startResearch(s, 'selbstlader')).toMatchObject({ ok: false, code: 'forschung_laeuft' });
     s.techs.current = null;
     research(s, 'selbstlader', 'schmelzwagen');
     expect(startResearch(s, 'teerofen')).toMatchObject({ ok: false, code: 'voraussetzung_fehlt' });
     s.discoveredBiomes.push('wald');
     expect(startResearch(s, 'teerofen').ok).toBe(true);
     expect(startResearch(s, 'selbstlader')).toMatchObject({ ok: false, code: 'forschung_fertig' });
+  });
+
+  it('reiht weitere Forschungen ein, solange Blaupausen da sind', () => {
+    const s = createInitialState();
+    grant(s, { bp_eisen: 100 });
+    expect(startResearch(s, 'selbstlader').ok).toBe(true);
+    // Die Voraussetzung darf selbst noch in der Warteschlange stehen
+    expect(startResearch(s, 'schmelzwagen').ok).toBe(true);
+    expect(startResearch(s, 'walzwagen').ok).toBe(true);
+    expect(s.techs.current?.id).toBe('selbstlader');
+    expect(s.techs.queue).toEqual(['schmelzwagen', 'walzwagen']);
+    // Bezahlt wird sofort: 3 plus 4 plus 6
+    expect(getStore(s, 'bp_eisen')).toBe(87);
+    // Was nicht einmal geplant ist, geht weiterhin nicht
+    expect(startResearch(s, 'brueckenbau')).toMatchObject({ ok: false, code: 'voraussetzung_fehlt' });
+
+    while (s.techs.queue.length < BALANCE.researchQueueMax) expect(startResearch(s, 'werkwagen').ok || startResearch(s, 'erntetechnik1').ok || startResearch(s, 'konstruktionsbuero').ok || startResearch(s, 'lagerwagen').ok).toBe(true);
+    expect(startResearch(s, 'stahlwerk')).toMatchObject({ ok: false, code: 'warteschlange_voll' });
+  });
+
+  it('arbeitet die Warteschlange der Reihe nach ab', () => {
+    const s = createInitialState();
+    grant(s, { bp_eisen: 100 });
+    addWagon(s, 'buero');
+    startResearch(s, 'selbstlader');
+    startResearch(s, 'schmelzwagen');
+    runFor(s, 30);
+    expect(s.techs.done).toEqual(['selbstlader']);
+    expect(s.techs.current?.id).toBe('schmelzwagen');
+    runFor(s, 45);
+    expect(s.techs.done).toEqual(['selbstlader', 'schmelzwagen']);
+    expect(s.techs.current).toBeNull();
+    expect(s.techs.queue).toEqual([]);
+  });
+
+  it('gibt eine wartende Forschung samt allem, was auf ihr aufbaut, wieder her', () => {
+    const s = createInitialState();
+    grant(s, { bp_eisen: 100 });
+    startResearch(s, 'selbstlader');
+    startResearch(s, 'schmelzwagen');
+    startResearch(s, 'walzwagen');
+    expect(getStore(s, 'bp_eisen')).toBe(87);
+
+    // Der Schmelzwagen fällt weg, der Walzwagen kann ohne ihn nicht warten
+    expect(cancelQueuedResearch(s, 'schmelzwagen').ok).toBe(true);
+    expect(s.techs.queue).toEqual([]);
+    expect(getStore(s, 'bp_eisen')).toBe(97);
+    // Die laufende Forschung bleibt, ihr Fortschritt wäre sonst verloren
+    expect(s.techs.current?.id).toBe('selbstlader');
+    expect(cancelQueuedResearch(s, 'selbstlader')).toMatchObject({ ok: false, code: 'unbekannt' });
   });
 });
 

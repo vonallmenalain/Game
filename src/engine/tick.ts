@@ -169,11 +169,31 @@ export function wagonBaseSpeed(state: GameState, w: WagonState): number {
 }
 
 /**
- * Was eine Maschine pro Minute liefert, wenn ihr nichts fehlt: die Ernterate oder
- * die erste Ausgabe ihres Rezepts. Ohne Auftrag null. Das ist die Zahl zum Abstimmen,
- * darum steht daneben immer der Status.
+ * Ob eine Maschine gerade arbeiten kann. Fehlende Zutaten zählen hier nicht: Eine
+ * Maschine, die auf Nachschub wartet, ist eingeteilt und zählt weiter. So zeigt das
+ * Minus im Lager, dass die Kette mehr verlangt, als sie liefert.
+ */
+function canRun(state: GameState, w: WagonState, m: MachineState, cap: number, selfLoader: boolean): boolean {
+  if (w.type === 'ernte') {
+    if (!m.resource) return false;
+    if (!selfLoader && w.crankUntil <= state.playedSeconds) return false;
+    return getStore(state, m.resource) < cap;
+  }
+  const r = m.recipe ? RECIPE_BY_ID[m.recipe] : undefined;
+  return Boolean(r && hasOutputRoom(state, r, cap));
+}
+
+export function machineCanRun(state: GameState, w: WagonState, m: MachineState): boolean {
+  return canRun(state, w, m, storeCap(state), hasSelfLoader(state));
+}
+
+/**
+ * Was eine Maschine gerade pro Minute liefert: die Ernterate oder die erste Ausgabe
+ * ihres Rezepts. Null, sobald sie nicht arbeiten kann, also ohne Auftrag, ohne Kurbel
+ * oder mit vollem Ausgabelager. Daneben steht immer der Status, der den Grund nennt.
  */
 export function machineRatePerMinute(state: GameState, w: WagonState, m: MachineState): number {
+  if (!machineCanRun(state, w, m)) return 0;
   if (w.type === 'ernte') return harvestRatePerMinute(state, w, m.resource);
   const r = m.recipe ? RECIPE_BY_ID[m.recipe] : undefined;
   const out = r?.outputs[0];
@@ -199,17 +219,13 @@ export function flowPerMinute(state: GameState): Record<ItemId, number> {
   const selfLoader = hasSelfLoader(state);
 
   for (const w of state.wagons) {
-    if (w.type === 'ernte') {
-      if (!selfLoader && w.crankUntil <= state.playedSeconds) continue;
-      for (const m of w.machines) {
-        if (!m.resource || getStore(state, m.resource) >= cap) continue;
-        add(m.resource, harvestRatePerMinute(state, w, m.resource));
-      }
-      continue;
-    }
     for (const m of w.machines) {
-      const r = m.recipe ? RECIPE_BY_ID[m.recipe] : undefined;
-      if (!r || !hasOutputRoom(state, r, cap)) continue;
+      if (!canRun(state, w, m, cap, selfLoader)) continue;
+      if (w.type === 'ernte') {
+        add(m.resource!, harvestRatePerMinute(state, w, m.resource));
+        continue;
+      }
+      const r = RECIPE_BY_ID[m.recipe!]!;
       const cyclesPerMinute = (60 / r.seconds) * machineSpeed(state, w, m);
       for (const o of r.outputs) add(o.item, o.amount * cyclesPerMinute);
       for (const i of r.inputs) add(i.item, -i.amount * cyclesPerMinute);
@@ -400,22 +416,45 @@ function tickProjects(state: GameState): void {
 
 // 5. Forschung
 
+/**
+ * Forscht mit der Arbeitszeit dieses Schritts. Wird eine Technologie fertig, rückt die
+ * nächste aus der Warteschlange nach, notfalls mehrmals: Über Nacht liegt sonst die
+ * halbe Warteschlange brach, obwohl sie längst bezahlt ist.
+ */
 function tickResearch(state: GameState, dt: number, ctx: TickContext): void {
-  const current = state.techs.current;
-  if (!current) return;
-  const def = TECH_BY_ID[current.id];
-  if (!def) {
+  /** Die nächste aus der Warteschlange aufziehen, damit nie eine Lücke entsteht */
+  const nachruecken = () => {
+    if (state.techs.current) return;
+    const next = state.techs.queue.shift();
+    if (next) state.techs.current = { id: next, progress: 0 };
+  };
+
+  nachruecken();
+  let remaining = dt * (ctx.hasBuero ? 1 : BALANCE.workbenchResearchFactor);
+  let guard = 0;
+  while (remaining > 1e-9 && state.techs.current && guard < 1000) {
+    guard += 1;
+    const current = state.techs.current;
+    const def = TECH_BY_ID[current.id];
+    if (!def) {
+      state.techs.current = null;
+      nachruecken();
+      continue;
+    }
+    const need = def.seconds - current.progress;
+    if (remaining < need) {
+      current.progress += remaining;
+      return;
+    }
+    remaining -= need;
+    state.techs.done.push(def.id);
     state.techs.current = null;
-    return;
-  }
-  current.progress += dt * (ctx.hasBuero ? 1 : BALANCE.workbenchResearchFactor);
-  if (current.progress < def.seconds) return;
-  state.techs.done.push(def.id);
-  state.techs.current = null;
-  log(state, 'forschung', def.id);
-  if (def.effects.some((e) => e.kind === 'stand_ende')) {
-    state.standEnde = true;
-    log(state, 'stand_ende', def.id);
+    log(state, 'forschung', def.id);
+    if (def.effects.some((e) => e.kind === 'stand_ende')) {
+      state.standEnde = true;
+      log(state, 'stand_ende', def.id);
+    }
+    nachruecken();
   }
 }
 

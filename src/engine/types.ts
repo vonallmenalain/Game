@@ -207,6 +207,8 @@ export interface GameState {
   techs: {
     done: TechId[];
     current: { id: TechId; progress: number } | null;
+    /** Wartet auf ihren Lauf, in dieser Reihenfolge. Bezahlt ist sie schon. */
+    queue: TechId[];
   };
   projects: Record<ProjectId, ProjectState>;
   workbench: {
