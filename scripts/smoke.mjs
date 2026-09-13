@@ -16,6 +16,15 @@ const browser = await chromium.launch({ executablePath, args: ['--no-sandbox'] }
 const context = await browser.newContext({ viewport: { width: 400, height: 860 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 const page = await context.newPage();
 const errors = [];
+/**
+ * Ohne Konto darf die App keine Verbindung zu Firebase aufbauen. Gemeint sind die
+ * Dienste von Firebase, nicht Chromes eigene Aufrufe wie content-autofill.
+ */
+const cloudRequests = [];
+page.on('request', (request) => {
+  const url = request.url();
+  if (/identitytoolkit|securetoken|firestore\.googleapis|firebaseio|firebaseinstallations/.test(url)) cloudRequests.push(url);
+});
 page.on('pageerror', (error) => errors.push(`pageerror: ${error}`));
 page.on('console', (message) => {
   if (message.type() === 'error') errors.push(`console: ${message.text()}`);
@@ -68,7 +77,14 @@ try {
   await page.getByRole('button', { name: /Wagen anhängen, \d+ frei/ }).waitFor({ timeout: 15000 });
   await page.getByRole('button', { name: 'Mehr', exact: true }).click();
   const spielzeit = await page.getByText(/Spielzeit:/).innerText();
-  await page.screenshot({ path: shot('08-mehr.png') });
+  await page.screenshot({ path: shot('08-mehr.png'), fullPage: true });
+
+  // Konto: Der Bereich ist da, aber ohne Anmeldung bleibt Firebase ungeladen
+  await page.getByRole('button', { name: 'Mit Google anmelden' }).waitFor({ timeout: 10000 });
+  const firebaseGeladen = await page.evaluate(() =>
+    performance.getEntriesByType('resource').some((entry) => /firebase|index\.esm/.test(entry.name)),
+  );
+  await page.screenshot({ path: shot('09-konto.png'), clip: { x: 0, y: 0, width: 400, height: 620 } });
 
   // Rückkehr: Spielstand um drei Stunden zurückdatieren und mit Vorräten ausstatten
   const prepared = await page.evaluate(async () => {
@@ -98,10 +114,10 @@ try {
 
   await page.reload();
   await page.getByText('Der Zug ist gefahren').waitFor({ timeout: 15000 });
-  await page.screenshot({ path: shot('09-rueckkehr.png') });
+  await page.screenshot({ path: shot('10-rueckkehr.png') });
   await page.getByRole('dialog', { name: 'Während du weg warst' }).waitFor({ timeout: 15000 });
   await page.waitForTimeout(300);
-  await page.screenshot({ path: shot('10-bericht.png'), fullPage: true });
+  await page.screenshot({ path: shot('11-bericht.png'), fullPage: true });
   const bericht = (await page.getByRole('dialog', { name: 'Während du weg warst' }).innerText()).replace(/\s+/g, ' ');
   await page.getByRole('button', { name: 'Weiter', exact: true }).click();
   await page.getByRole('button', { name: /Wagen anhängen, \d+ frei/ }).waitFor({ timeout: 15000 });
@@ -141,11 +157,11 @@ try {
   await page.getByRole('group', { name: 'Wagen des Zuges' }).waitFor({ timeout: 15000 });
   await page.getByText('Geschafft').waitFor({ timeout: 15000 });
   await page.waitForTimeout(1200);
-  await page.screenshot({ path: shot('11-meilenstein.png') });
+  await page.screenshot({ path: shot('12-meilenstein.png') });
   const banner = (await page.locator('.milestone').innerText()).replace(/\s+/g, ' ');
   await page.locator('.milestone').click();
   await page.waitForTimeout(2500);
-  await page.screenshot({ path: shot('12-buehne.png') });
+  await page.screenshot({ path: shot('13-buehne.png') });
   const unterwegs = (await page.locator('.readout').innerText()).replace(/\s+/g, ' ');
 
   const gefeiert = /Brücke über die Schlucht/.test(banner);
@@ -154,11 +170,12 @@ try {
   const persisted = /Spielzeit: (?!0 s)/.test(spielzeit);
   const gefahren = /6,0 km gefahren/.test(bericht);
   const gewarnt = /Schienen alle/.test(bericht);
-  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, eisen, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs }, null, 2));
+  const offline = cloudRequests.length === 0 && !firebaseGeladen;
+  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs }, null, 2));
   // Erfolgskriterium aus Abschnitt 15.3 des Konzepts: unter zwei Sekunden bis zum ersten Bild
   const schnell = ladezeit < 2000;
-  if (errors.length > 0 || !(harvested > 0) || !queue.includes('Koks') || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell) {
-    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit });
+  if (errors.length > 0 || !(harvested > 0) || !queue.includes('Koks') || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');

@@ -29,6 +29,7 @@ npm run dev      # Entwicklungsserver
 npm run check    # Typprüfung mit svelte-check
 npm test         # Tests mit Vitest
 npm run build    # Produktionsbuild nach dist/
+npm run test:rules  # Firestore-Regeln gegen den Emulator, braucht Java
 ```
 
 Die Engine liegt in `src/engine` und läuft ohne Browser. `npx vitest run src/engine/autoplay.test.ts` spielt den ersten Stand mit dem Autospieler durch und zeigt, wann Wald, Schlucht, Brücke und Tunnel erreicht werden.
@@ -37,6 +38,13 @@ Die Engine liegt in `src/engine` und läuft ohne Browser. `npx vitest run src/en
 
 Die App ist eine Progressive Web App: installierbar, offline lauffähig, Updates per Hinweis in der App. Gehostet wird auf Netlify, der Build läuft mit `netlify.toml`.
 
+## Konto und Cloud
+
+Das Spiel läuft ohne Konto vollständig. Wer sich anmeldet, bekommt seinen Spielstand
+zusätzlich in die Cloud gelegt und spielt auf mehreren Geräten weiter. Die Einrichtung
+steht in [docs/firebase.md](docs/firebase.md).
+
 ## Dokumente
 
 - [Spielkonzept](docs/konzept.md): Pitch, Säulen, Kern-Loop, Welt, Zug, Rezepte, Forschung, Bauprojekte, Offline, Oberfläche, Technik, Umfang des ersten Stands.
+- [Firebase](docs/firebase.md): Konten, Cloud-Spielstände, Firestore-Regeln und die GitHub Action, die sie veröffentlicht.

@@ -1,0 +1,64 @@
+name: Firestore-Regeln
+
+# Veröffentlicht firestore.rules, sobald sie auf main landen. Vorher laufen die
+# Regeltests gegen den Emulator: Was den Zugriff aufreissen würde, kommt nicht durch.
+# Nötig dafür ist das Repository-Secret FIREBASE_SERVICE_ACCOUNT, siehe docs/firebase.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'firestore.rules'
+      - 'firestore.indexes.json'
+      - 'firebase.json'
+      - '.firebaserc'
+      - 'tests/**'
+      - '.github/workflows/firebase-rules.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: firestore-rules
+  cancel-in-progress: false
+
+jobs:
+  pruefen-und-veroeffentlichen:
+    name: Regeln prüfen und veröffentlichen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm ci
+
+      - name: Regeln gegen den Emulator prüfen
+        run: npm run test:rules
+
+      - name: Dienstkonto bereitstellen
+        id: dienstkonto
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::Das Secret FIREBASE_SERVICE_ACCOUNT fehlt. Siehe docs/firebase.md, Abschnitt «GitHub Action einrichten»."
+            exit 1
+          fi
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-dienstkonto.json"
+          echo "pfad=$RUNNER_TEMP/firebase-dienstkonto.json" >> "$GITHUB_OUTPUT"
+
+      - name: Regeln veröffentlichen
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.dienstkonto.outputs.pfad }}
+        run: npx --yes firebase-tools@15 deploy --only firestore:rules --non-interactive
+
+      - name: Dienstkonto wieder entfernen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-dienstkonto.json"

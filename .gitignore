@@ -5,3 +5,12 @@ dev-dist/
 *.local
 .DS_Store
 smoke-shots/
+
+# Firebase: Dienstkonto-Schlüssel gehören nie ins Repository
+*serviceaccount*.json
+*service-account*.json
+*dienstkonto*.json
+firebase-adminsdk-*.json
+.firebase/
+firebase-debug.log
+firestore-debug.log

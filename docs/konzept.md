@@ -476,7 +476,8 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 | Speicher | IndexedDB über idb-keyval | ein Spielstand als JSON-Blob, versioniert |
 | Tests | Vitest | Engine ohne Browser testbar |
 | Hosting | Netlify | wie die anderen Projekte, statisches Deploy |
-| Später | Firebase | Cloud-Save und Push, nicht im ersten Stand |
+| Cloud | Firebase Authentication und Firestore | Konten und Cloud-Spielstände, seit dem Nachbau in `docs/firebase.md` |
+| Später | Firebase Cloud Messaging | Push-Nachrichten, noch nicht gebaut |
 
 ### 14.2 Architektur
 
@@ -546,6 +547,7 @@ interface GameState {
 ### 14.4 Speichern
 
 - Automatisch alle 10 Sekunden und bei jedem Wechsel in den Hintergrund (`visibilitychange`, `pagehide`).
+- Mit Konto zusätzlich alle zwei Minuten und beim Wechsel in den Hintergrund in die Cloud. Verglichen wird beim Anmelden die gespielte Zeit, nicht die Uhrzeit: Ist die Cloud mehr als eine Minute weiter, fragt das Spiel nach und zeigt beide Stände; ist das Gerät weiter, lädt es ungefragt hoch. Ohne Konto läuft alles wie bisher rein lokal.
 - Ein Schlüssel `linie-null/save` in IndexedDB, dazu eine Kopie des letzten funktionierenden Stands als Rückfall.
 - `version` im Spielstand, Migrationen als Liste von Funktionen.
 - Export als JSON-Datei über Teilen (Web Share, wo vorhanden) oder Download, Import über Dateiauswahl mit Rückfrage, die Kilometerstand und Spielzeit der Datei zeigt. Der Bildschirm «Mehr» erinnert nach sieben Tagen ohne Export daran, sichtbar auch als Punkt an der Leiste unten.
@@ -617,7 +619,7 @@ In dieser Reihenfolge, jede Stufe erst, wenn die vorherige im Spieltest trägt.
 5. **Fahrplan:** Autopilot, der Rezepte nach Bedarf wechselt und Wagengruppen als Vorlage kopiert.
 6. **Vulkan, Hochgebirge, Weltende:** Elektrik, Hochtechnologie, E-Lok, Maglev, Raumbahnhof.
 7. **Prestige «Neue Linie»:** ein neuer Kontinent mit anderer Biomfolge, Startboni durch erfahrene Ingenieure.
-8. **Push und Cloud-Save** über Firebase, wenn es Spielerinnen ausserhalb des eigenen Handys gibt.
+8. **Push** über Firebase Cloud Messaging, wenn es Spielerinnen ausserhalb des eigenen Handys gibt. Konten und Cloud-Spielstände sind gebaut, siehe `docs/firebase.md`.
 
 **Plan B, der Turm.** Sollte sich das Hochformat als wichtiger erweisen als die Schiene, bleibt die Engine gleich: Wagen werden Stockwerke, Kilometer werden Höhenmeter, Schienen werden Träger, Zugkraft wird Statik, Biome werden Höhenschichten, Brücke und Tunnel werden Wolkendecke und Jetstream. Nur der Zugstreifen und die Fiktion ändern sich.
 
@@ -629,7 +631,7 @@ In dieser Reihenfolge, jede Stufe erst, wenn die vorherige im Spieltest trägt.
 | 8 Wagenplätze fühlen sich eng statt spannend an | Wert ist ein Parameter. Alternative: Werkstatt kann ein zweites Rezept fahren |
 | Die Werkbank macht Wagen überflüssig | Warteschlange 10, einfaches Tempo, kein Nachbarschaftsbonus, keine Stufen |
 | Baustellen saugen das Lager leer und stoppen den Wagenbau | Pausieren pro Baustelle. Falls das nicht reicht: Reserve pro Ware einstellbar |
-| Safari löscht Daten nach sieben Tagen | Export-Erinnerung, Rückfallkopie, später Cloud-Save |
+| Safari löscht Daten nach sieben Tagen | Export-Erinnerung, Rückfallkopie, und mit Konto der Spielstand in der Cloud |
 | Der Zugstreifen kostet mehr Zeit als die ganze Engine | Phase 4 kommt nach der spielbaren Version. Der Stand ist auch mit Buchstabenmarken und stehendem Zug spielbar |
 | Der Vor-Ort-Bonus wird nicht bemerkt | Im Erntemenü als «vor Ort, mal 1,5» beschriften. Falls wirkungslos: streichen |
 

@@ -1,0 +1,43 @@
+rules_version = '2';
+
+// Linie Null: Jedes Konto hat genau einen Spielstand und sieht nur den eigenen.
+// Geändert wird diese Datei über einen Pull Request; die GitHub Action
+// «Firestore-Regeln» prüft sie mit dem Emulator und veröffentlicht sie danach.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /spielstaende/{uid} {
+      function eigenerStand() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+
+      // Der Spielstand reist als JSON-Text. Die Grenze liegt weit unter dem
+      // Firestore-Limit von einem Mebibyte je Dokument.
+      function gueltig(data) {
+        return data.keys().hasOnly(['json', 'playedSeconds', 'km', 'version', 'aktualisiert', 'geraet'])
+          && data.keys().hasAll(['json', 'playedSeconds', 'km', 'version', 'aktualisiert'])
+          && data.json is string
+          && data.json.size() > 0
+          && data.json.size() <= 400000
+          && data.playedSeconds is number
+          && data.playedSeconds >= 0
+          && data.km is number
+          && data.km >= 0
+          && data.version is int
+          && data.version >= 1
+          && data.aktualisiert is number
+          && (!data.keys().hasAny(['geraet']) || (data.geraet is string && data.geraet.size() <= 64));
+      }
+
+      allow get, delete: if eigenerStand();
+      allow create, update: if eigenerStand() && gueltig(request.resource.data);
+      // Niemand darf die Sammlung durchsuchen, auch nicht angemeldet.
+      allow list: if false;
+    }
+
+    // Alles, was hier nicht ausdrücklich erlaubt ist, bleibt zu.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
