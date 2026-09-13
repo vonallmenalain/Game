@@ -9,6 +9,7 @@ import {
   type GameState,
   type OfflineReport,
 } from '../engine';
+import { account, wasSignedIn } from '../cloud/account.svelte';
 import { describeError } from './labels';
 import { clearSave, lastExportAt, loadSave, noteExport, storeSave } from './persist';
 import { buzz, playMilestone } from './sound';
@@ -23,6 +24,8 @@ const AUTOSAVE_MS = 10_000;
 const RETURN_ANIMATION_MS = 1400;
 /** Nach so langer Zeit ohne Export erinnert der Bildschirm «Mehr» daran */
 export const EXPORT_REMINDER_MS = 7 * 24 * 3600 * 1000;
+/** So oft schiebt ein angemeldetes Gerät seinen Stand in die Cloud */
+const CLOUD_PUSH_MS = 2 * 60 * 1000;
 
 interface RateSample {
   t: number;
@@ -80,6 +83,7 @@ class Game {
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
   private milestoneTimer: ReturnType<typeof setTimeout> | null = null;
   private logSeen = 0;
+  private lastCloudPush = 0;
   private booted = false;
 
   get exportOverdue(): boolean {
@@ -100,12 +104,34 @@ class Game {
     this.logSeen = this.state.log.length;
     this.loaded = true;
     this.start();
+    this.connectAccount();
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') void this.save();
+        if (document.visibilityState === 'hidden') {
+          void this.save();
+          if (account.signedIn) void account.push();
+        }
       });
       window.addEventListener('pagehide', () => void this.save());
     }
+  }
+
+  /**
+   * Verbindet den Spielstand mit dem Konto. Das Firebase-SDK lädt nur nach, wenn
+   * hier schon einmal jemand angemeldet war oder es später von Hand angestossen wird.
+   */
+  private connectAccount(): void {
+    account.getSnapshot = () => ({ json: this.snapshotJson(), state: $state.snapshot(this.state) });
+    account.onAdopt = async (state) => {
+      await this.adopt(state);
+      this.showToast('Spielstand aus der Cloud übernommen.');
+    };
+    if (wasSignedIn()) void account.watch();
+  }
+
+  /** Meldet an und verbindet dabei das Konto, falls das SDK noch nicht läuft. */
+  async openAccount(): Promise<void> {
+    await account.watch();
   }
 
   /** Holt die Abwesenheit nach und lässt den Kilometerzähler dabei hochlaufen. */
@@ -170,7 +196,12 @@ class Game {
       this.sampleRates();
       this.catchMilestones();
     }
-    if (Date.now() - this.lastSaveAt > AUTOSAVE_MS) void this.save();
+    const now2 = Date.now();
+    if (now2 - this.lastSaveAt > AUTOSAVE_MS) void this.save();
+    if (account.signedIn && now2 - this.lastCloudPush > CLOUD_PUSH_MS) {
+      this.lastCloudPush = now2;
+      void account.push();
+    }
   }
 
   /**

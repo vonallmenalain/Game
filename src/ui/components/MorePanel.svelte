@@ -4,6 +4,7 @@
   import { game } from '../game.svelte';
   import { playMilestone, setSoundEnabled, soundEnabled } from '../sound';
   import { ImportError, importSave } from '../transfer';
+  import AccountPanel from './AccountPanel.svelte';
 
   let confirmReset = $state(false);
   let sound = $state(soundEnabled());
@@ -52,12 +53,15 @@
     <p class="small muted">Spielzeit: {formatDuration(game.state.playedSeconds)} · Nachtschicht rechnet bis {cap} nach.</p>
   </div>
 
-  <h3 class="section-title">Sicherung</h3>
+  <h3 class="section-title">Konto</h3>
+  <AccountPanel />
+
+  <h3 class="section-title">Sicherung als Datei</h3>
   <div class="card">
     {#if game.exportOverdue}
       <p class="small warnbox">Browser dürfen ihren Speicher aufräumen. Sichere den Spielstand als Datei, dann ist er in Sicherheit.</p>
     {:else}
-      <p class="small">Browser dürfen ihren Speicher aufräumen. Eine Datei als Sicherung schützt davor und bringt den Stand auf ein anderes Gerät.</p>
+      <p class="small">Browser dürfen ihren Speicher aufräumen. Eine Datei als Sicherung schützt davor, auch ohne Konto.</p>
     {/if}
     <p class="small muted">{exported ? `Zuletzt gesichert am ${exported}.` : 'Noch nie gesichert.'}</p>
     <div class="row">
