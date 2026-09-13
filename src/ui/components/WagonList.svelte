@@ -9,7 +9,6 @@
 <section class="list">
   <div class="head">
     <span class="eyebrow">Wagen · {game.state.wagons.length} von {currentLoco(game.state).slots}</span>
-    <button type="button" class="btn small" onclick={() => (game.sheet = { kind: 'werkstatt' })}>Werkstatt</button>
   </div>
   {#each game.state.wagons as w, i (w.id)}
     <WagonCard wagon={w} index={i} />

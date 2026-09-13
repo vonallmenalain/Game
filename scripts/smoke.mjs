@@ -48,8 +48,7 @@ try {
   await page.screenshot({ path: shot('02-lager.png') });
   const eisen = (await page.locator('div.row', { hasText: 'Eisenerz' }).first().innerText()).replace(/\s+/g, ' ');
 
-  await page.getByRole('button', { name: 'Zug', exact: true }).click();
-  await page.getByRole('button', { name: 'Werkstatt', exact: true }).last().click();
+  await page.getByRole('button', { name: 'Werkstatt', exact: true }).click();
   await page.getByRole('button', { name: /Kohle schaufeln/ }).click();
 
   // Kette: Eisenbarren braucht Koks. Antippen muss Koks von selbst voranstellen.
@@ -68,9 +67,9 @@ try {
   await page.waitForTimeout(250);
   const knopfNachher = await koksRezept.getByRole('button').boundingBox();
   const knopfWandert = Math.abs((knopfVorher?.y ?? 0) - (knopfNachher?.y ?? 0));
-  await page.screenshot({ path: shot('03-werkstatt.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Schliessen' }).click();
+  await page.screenshot({ path: shot('03-werkstatt.png') });
 
+  await page.getByRole('button', { name: 'Zug', exact: true }).click();
   await page.getByRole('button', { name: /Erntewagen/ }).first().click();
   await page.waitForTimeout(300);
   await page.screenshot({ path: shot('04-wagen.png') });
@@ -184,6 +183,26 @@ try {
   const persisted = /Spielzeit: (?!0 s)/.test(spielzeit);
   const gefahren = /6,0 km gefahren/.test(bericht);
   const gewarnt = /Schienen alle/.test(bericht);
+  // Jeder Bildschirm muss seinen Inhalt erreichbar machen: Das Gerüst hält Kopf und
+  // Leiste fest, gescrollt wird innen. Bricht das, ist Inhalt unerreichbar.
+  const scrollbar = {};
+  for (const ziel of ['Lager', 'Forschung', 'Strecke', 'Mehr', 'Werkstatt']) {
+    await page.getByRole('button', { name: ziel, exact: true }).click();
+    await page.waitForTimeout(300);
+    const bereich = page.locator('.scrollbereich, .liste').first();
+    const mass = await bereich.evaluate((el) => ({ scroll: el.scrollHeight, sicht: el.clientHeight }));
+    if (mass.scroll > mass.sicht + 4) {
+      await bereich.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+      await page.waitForTimeout(200);
+      scrollbar[ziel] = (await bereich.evaluate((el) => el.scrollTop)) > 10;
+    } else {
+      scrollbar[ziel] = true;
+    }
+  }
+  const leiste = await page.locator('nav.tabs').boundingBox();
+  const leisteSichtbar = Boolean(leiste && leiste.y + leiste.height <= 861);
+  await page.getByRole('button', { name: 'Zug', exact: true }).click();
+
   // Spielstände aus der Zeit als «Linie Null» müssen weiterlaufen
   await page.evaluate(async () => {
     await new Promise((resolve, reject) => {
@@ -219,12 +238,13 @@ try {
   const migriert = /12,3 km/.test(nachMigration) && schluessel.includes('loco/save') && !schluessel.includes('linie-null/save');
 
   const offline = cloudRequests.length === 0 && !firebaseGeladen;
+  const alleScrollen = Object.values(scrollbar).every(Boolean) && leisteSichtbar;
   const kette = kettenKnopf === '+2' && /Koks/.test(queue) && /Eisenbarren/.test(queue);
-  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration }, null, 2));
+  console.log(JSON.stringify({ errors, ladezeitMs: ladezeit, ohneKontoOffline: offline, cloudRequests: cloudRequests.slice(0, 3), eisen, kettenKnopf, knopfWandert, queue, spielzeit, bericht: bericht.slice(0, 400), nachRueckkehr, banner, unterwegs, nachMigration, scrollbar, leisteSichtbar }, null, 2));
   // Erfolgskriterium aus Abschnitt 15.3 des Konzepts: unter zwei Sekunden bis zum ersten Bild
   const schnell = ladezeit < 2000;
-  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert) {
-    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert });
+  if (errors.length > 0 || !(harvested > 0) || !kette || knopfWandert > 1 || !persisted || !gefahren || !gewarnt || !gefeiert || !faehrt || !schnell || !offline || !migriert || !alleScrollen) {
+    console.error('Smoke-Test fehlgeschlagen.', { harvested, persisted, gefahren, gewarnt, gefeiert, faehrt, ladezeit, offline, migriert, kette, knopfWandert, alleScrollen });
     process.exitCode = 1;
   } else {
     console.log('Smoke-Test bestanden.');

@@ -1,13 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  let {
-    open,
-    title,
-    onclose,
-    scroll = true,
-    children,
-  }: { open: boolean; title: string; onclose: () => void; scroll?: boolean; children: Snippet } = $props();
+  let { open, title, onclose, children }: { open: boolean; title: string; onclose: () => void; children: Snippet } = $props();
 
   function onkeydown(event: KeyboardEvent) {
     if (open && event.key === 'Escape') onclose();
@@ -23,7 +17,7 @@
       <h2>{title}</h2>
       <button class="btn ghost" type="button" onclick={onclose} aria-label="Schliessen">✕</button>
     </header>
-    <div class="body" class:eigenerScroll={!scroll}>{@render children()}</div>
+    <div class="body">{@render children()}</div>
   </div>
 {/if}
 
@@ -72,12 +66,4 @@
     padding: 14px 16px 20px;
   }
 
-  /* Der Inhalt regelt sein Scrollen selbst, etwa um einen Kopfbereich festzuhalten. */
-  .body.eigenerScroll {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-    padding-bottom: 0;
-  }
 </style>

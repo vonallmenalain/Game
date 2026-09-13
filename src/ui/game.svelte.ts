@@ -33,7 +33,7 @@ interface RateSample {
   consumed: Record<string, number>;
 }
 
-export type SheetKind = { kind: 'none' } | { kind: 'wagen'; id: number } | { kind: 'bauen' } | { kind: 'werkstatt' };
+export type SheetKind = { kind: 'none' } | { kind: 'wagen'; id: number } | { kind: 'bauen' };
 
 /** Ein Meilenstein, der gerade gefeiert wird. */
 export interface Milestone {

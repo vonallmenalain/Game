@@ -191,7 +191,7 @@ Regeln:
 
 ### 6.4 Die Werkstatt
 
-Direkt hinter der Lok hängt die Werkstatt. Sie belegt keinen Wagenplatz und kann nicht abgekoppelt werden. Sie ist das Werkzeug der Handarbeit:
+Die Werkstatt ist kein Wagen, sondern ein eigener Bildschirm in der Leiste unten. Sie gehört zum Zug, belegt aber keinen Platz und lässt sich nicht abkoppeln. Sie ist das Werkzeug der Handarbeit:
 
 - **Werkbank.** Jedes freigeschaltete Rezept kann hier von Hand gebaut werden, ohne den passenden Wagen. Aufträge werden in eine Warteschlange von höchstens 30 gestellt und mit einfachem Tempo abgearbeitet. Damit baut man den ersten Werkwagen, bevor es einen Werkwagen gibt. Die Warteschlange blockiert nicht: Der erste Auftrag, dessen Zutaten da sind, kommt dran, auch wenn ein früherer noch wartet.
 - **Vorstufen kommen automatisch.** Wer Eisenbarren antippt und keinen Koks hat, bekommt zuerst Koks in die Warteschlange und danach die Eisenbarren. Die Kette wird so tief geplant, wie Rezepte und Bestände es hergeben, vorhandene Ware wird angerechnet, und Überschüsse aus einem Lauf zählen für den nächsten Schritt. Was sich nicht herstellen lässt, also Rohstoffe, wird benannt statt eingeplant: «Es fehlt 2 Eisenerz. Das musst du ernten.» Der Knopf zeigt vorher, wie viele Aufträge daraus werden.
@@ -416,7 +416,7 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 +----------------------------------+
 |  Zugstreifen, seitlich scrollbar |
 |  Himmel, Hügel, Biomfarbe        |
-|  [Lok][Werk][Ernte][Schmelz]...  |
+|  [Lok][Ernte][Schmelz][Walz]...  |
 |  km 6,4   Wald in 1,6 km   12 km/h|
 +----------------------------------+
 |  Wagen                    8 von 8|
@@ -428,21 +428,21 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 |    20/min  Lager voll            |
 |  + Wagen anhängen                |
 +----------------------------------+
-|  Zug   Lager   Forschung   Strecke   Mehr |
+| Zug  Werkstatt  Lager  Forschung  Strecke  Mehr |
 +----------------------------------+
 ```
 
 - Der **Zugstreifen** ist die Bühne: Lok und Wagen als Silhouetten, Landschaft im Parallax, Räder drehen sich nur, wenn der Zug fährt. Antippen eines Wagens öffnet ihn. Der Streifen ist nie höher als ein Drittel des Bildschirms. Er trägt auch den Kilometerstand, den Fahrzustand und das nächste Ereignis, darum entfällt auf diesem Bildschirm die Statuszeile.
 - Die Bühne ist eine Illustration, keine massstabsgetreue Karte. Die Landschaft zieht mit gefühlter Geschwindigkeit vorbei, nicht mit den echten 12 km/h, sonst stünde das Bild still. Ein Hindernis erscheint, sobald der Zug davorsteht, und der Zug rückt ein Stück zurück, um Platz dafür zu machen.
 - Die **Wagenliste** ist die Arbeitsfläche: Reihenfolge wie im Zug, Status als Farbe und Wort, Rate pro Minute. Umkoppeln geht im Wagen-Detail mit «Nach vorne» und «Nach hinten», Ziehen kommt mit der Bühne in Phase 4.
-- Die **Leiste unten** hat fünf Ziele. Ein Punkt an einem Ziel bedeutet: Dort wartet etwas (Forschung fertig, Baustelle fertig, Lager voll).
+- Die **Leiste unten** hat sechs Ziele: Zug, Werkstatt, Lager, Forschung, Strecke, Mehr. Ein Punkt an einem Ziel bedeutet: Dort wartet etwas (Forschung fertig, Baustelle fertig, Lager voll).
 
 ### 12.2 Weitere Bildschirme
 
 | Bildschirm | Inhalt |
 |---|---|
 | Wagen-Detail (Bottom Sheet) | Rezeptwahl mit Eingabe und Ausgabe pro Minute, Status mit Grund, Stufe mit Kosten und Knopf, Nachbarschaftsbonus, Abkoppeln |
-| Werkstatt (Bottom Sheet) | Kohle schaufeln und die Werkbank stehen fest oben, nur die Rezepte darunter scrollen. Die Werkbank zeigt den laufenden Auftrag mit Fortschritt und die Warteschlange, gleiche Aufträge zusammengezogen («Koks ×5»). Ihr Bereich hat eine feste Höhe, damit die Liste nicht springt, wenn Aufträge dazukommen: Man kann denselben Knopf mehrmals antippen, ohne ihn zu suchen |
+| Werkstatt (eigener Bildschirm) | Kohle schaufeln und die Werkbank stehen fest oben, nur die Rezepte darunter scrollen. Die Werkbank zeigt den laufenden Auftrag mit Fortschritt und die Warteschlange, gleiche Aufträge zusammengezogen («Koks ×5»). Ihr Bereich hat eine feste Höhe, damit die Liste nicht springt, wenn Aufträge dazukommen: Man kann denselben Knopf mehrmals antippen, ohne ihn zu suchen |
 | Lager | Alle Waren nach Stufe, Bestand von Kapazität, Nettorate pro Minute mit Vorzeichen. Volle und leere Waren stehen oben |
 | Forschung | Technologien nach Stufe, Kosten in Blaupausen, laufende Forschung mit Balken, Voraussetzungen als Text |
 | Strecke | Streckenkarte mit Biomen, Hindernissen, Position. Offene Baustellen mit Stückliste und Balken. Lok mit Upgrade-Projekt. Fahrtenbuch |

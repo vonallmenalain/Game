@@ -58,6 +58,7 @@
   }
 </script>
 
+<section class="werkstatt">
 <div class="tender">
   <span class="small">
     <ItemChip item="kohle" have={getStore(game.state, 'kohle')} size="s" />
@@ -126,8 +127,18 @@
     {/each}
   {/each}
 </div>
+</section>
 
 <style>
+  /* Tender und Werkbank stehen fest, nur die Rezepte darunter scrollen. */
+  .werkstatt {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    padding: 12px 16px 0;
+  }
+
   .tender {
     flex: none;
     display: flex;
@@ -225,6 +236,7 @@
   /* Nur die Rezepte scrollen. Tender und Werkbank darüber bleiben stehen. */
   .liste {
     display: grid;
+    align-content: start;
     gap: 10px;
     flex: 1;
     min-height: 0;

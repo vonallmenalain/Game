@@ -17,7 +17,7 @@
   import Stage from './ui/components/Stage.svelte';
   import WagonList from './ui/components/WagonList.svelte';
   import WagonSheet from './ui/components/WagonSheet.svelte';
-  import WorkshopSheet from './ui/components/WorkshopSheet.svelte';
+  import WorkshopPanel from './ui/components/WorkshopPanel.svelte';
 
   let tab = $state<Tab>('zug');
   let needRefresh = $state(false);
@@ -42,7 +42,7 @@
     return { forschung: researchReady, strecke: projectDone, lager: storeFull, zug: wagonWaiting, mehr: game.exportOverdue } as Partial<Record<Tab, boolean>>;
   });
 
-  const sheetTitle = $derived(game.sheet.kind === 'wagen' ? 'Wagen' : game.sheet.kind === 'bauen' ? 'Wagen anhängen' : game.sheet.kind === 'werkstatt' ? 'Werkstatt' : '');
+  const sheetTitle = $derived(game.sheet.kind === 'wagen' ? 'Wagen' : game.sheet.kind === 'bauen' ? 'Wagen anhängen' : '');
 </script>
 
 {#if game.returning}
@@ -50,43 +50,45 @@
 {:else if !game.loaded}
   <main class="loading">Loco lädt …</main>
 {:else}
-  {#if tab !== 'zug'}
-    <StatusLine />
-  {/if}
-  {#if needRefresh}
-    <div class="update">
-      Neue Version bereit.
-      <button type="button" class="btn small primary" onclick={() => updateSW(true)}>Neu laden</button>
-    </div>
-  {/if}
-  {#if game.state.standEnde}
-    <div class="update">Ende des ersten Stands erreicht. Die Wüste wartet auf den nächsten Ausbau.</div>
-  {/if}
-  <main class="content">
-    {#if tab === 'zug'}
-      <Stage />
-      <WagonList />
-    {:else if tab === 'lager'}
-      <StorePanel />
-    {:else if tab === 'forschung'}
-      <ResearchPanel />
-    {:else if tab === 'strecke'}
-      <TrackPanel />
-    {:else}
-      <MorePanel />
+  <div class="app">
+    {#if tab !== 'zug'}
+      <StatusLine />
     {/if}
-  </main>
-  <TabBar active={tab} {dots} onchange={(t) => (tab = t)} />
+    {#if needRefresh}
+      <div class="update">
+        Neue Version bereit.
+        <button type="button" class="btn small primary" onclick={() => updateSW(true)}>Neu laden</button>
+      </div>
+    {/if}
+    {#if game.state.standEnde}
+      <div class="update">Ende des ersten Stands erreicht. Die Wüste wartet auf den nächsten Ausbau.</div>
+    {/if}
+    <main>
+      {#if tab === 'zug'}
+        <Stage />
+        <div class="scrollbereich"><WagonList /></div>
+      {:else if tab === 'werkstatt'}
+        <WorkshopPanel />
+      {:else if tab === 'lager'}
+        <div class="scrollbereich"><StorePanel /></div>
+      {:else if tab === 'forschung'}
+        <div class="scrollbereich"><ResearchPanel /></div>
+      {:else if tab === 'strecke'}
+        <div class="scrollbereich"><TrackPanel /></div>
+      {:else}
+        <div class="scrollbereich"><MorePanel /></div>
+      {/if}
+    </main>
+    <TabBar active={tab} {dots} onchange={(t) => (tab = t)} />
+  </div>
 
-  <Sheet open={game.sheet.kind !== 'none'} title={sheetTitle} onclose={() => (game.sheet = { kind: 'none' })} scroll={game.sheet.kind !== 'werkstatt'}>
+  <Sheet open={game.sheet.kind !== 'none'} title={sheetTitle} onclose={() => (game.sheet = { kind: 'none' })}>
     {#if game.sheet.kind === 'wagen'}
       {#key game.sheet.id}
         <WagonSheet id={game.sheet.id} />
       {/key}
     {:else if game.sheet.kind === 'bauen'}
       <BuildSheet />
-    {:else if game.sheet.kind === 'werkstatt'}
-      <WorkshopSheet />
     {/if}
   </Sheet>
   {#if game.report}
@@ -104,8 +106,25 @@
     font-size: 24px;
   }
 
-  .content {
-    padding-bottom: calc(72px + var(--safe-bottom));
+  /* App-Gerüst: Kopf und Leiste stehen, dazwischen scrollt jeder Bildschirm selbst. */
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .scrollbereich {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .update {
