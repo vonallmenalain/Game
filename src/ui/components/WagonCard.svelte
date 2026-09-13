@@ -30,7 +30,7 @@
       {#if wagon.type === 'ernte' && wagon.resource}
         <span class="fluss"><ItemChip item={wagon.resource} have={getStore(game.state, wagon.resource)} size="s" /></span>
       {:else if recipe}
-        <span class="fluss"><RecipeFlow recipe={recipe.id} size="s" /></span>
+        <span class="fluss"><RecipeFlow recipe={recipe.id} size="s" showNames={false} /></span>
       {:else}
         <span class="job">{statusText(game.state, wagon)}</span>
       {/if}

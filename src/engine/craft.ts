@@ -111,10 +111,29 @@ export function ingredientsOf(state: GameState, recipeId: RecipeId): IngredientV
   });
 }
 
+/** Ergebnisse eines Rezepts mit Bestand, für die Anzeige. */
+export interface OutputView {
+  item: ItemId;
+  /** Wie viel ein Lauf liefert */
+  amount: number;
+  have: number;
+  /** Das Lager dieser Ware ist voll, ein Lauf brächte nichts mehr ein */
+  full: boolean;
+}
+
+export function outputsOf(state: GameState, recipeId: RecipeId): OutputView[] {
+  const recipe = RECIPE_BY_ID[recipeId];
+  if (!recipe) return [];
+  const cap = storeCap(state);
+  return recipe.outputs.map((output) => ({
+    item: output.item,
+    amount: output.amount,
+    have: Math.floor(getStore(state, output.item)),
+    full: getStore(state, output.item) >= cap,
+  }));
+}
+
 /** Reicht der Platz im Lager für das Ergebnis? */
 export function outputBlocked(state: GameState, recipeId: RecipeId): boolean {
-  const recipe = RECIPE_BY_ID[recipeId];
-  if (!recipe) return false;
-  const cap = storeCap(state);
-  return recipe.outputs.some((o) => getStore(state, o.item) >= cap);
+  return outputsOf(state, recipeId).some((o) => o.full);
 }

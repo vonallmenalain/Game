@@ -8,17 +8,28 @@
     amount = null,
     have = null,
     lacking = false,
+    full = false,
+    showName = false,
     size = 'm',
-  }: { item: string; amount?: number | null; have?: number | null; lacking?: boolean; size?: 's' | 'm' } = $props();
+  }: {
+    item: string;
+    amount?: number | null;
+    have?: number | null;
+    lacking?: boolean;
+    full?: boolean;
+    showName?: boolean;
+    size?: 's' | 'm';
+  } = $props();
 </script>
 
-<span class="chip {size}" class:lacking title={itemName(item)}>
+<span class="chip {size}" class:lacking title={full ? `${itemName(item)}: Lager voll` : itemName(item)}>
   <span class="box" style="--mark: {itemColor(item)}">
     <ItemIcon {item} />
     {#if amount !== null}<b class="need mono">{amount}</b>{/if}
   </span>
+  {#if showName}<span class="label">{itemName(item)}</span>{/if}
   {#if have !== null}
-    <span class="have mono" class:short={lacking}>{formatCount(have)}</span>
+    <span class="have mono" class:short={lacking} class:voll={full}>{formatCount(have)}</span>
   {/if}
 </span>
 
@@ -70,6 +81,18 @@
     box-shadow: 0 0 0 1.5px var(--surface);
   }
 
+  /* Der Name steht unter dem Bild, damit auch ohne Bilderkennung klar ist,
+     welche Ware gemeint ist. Lange Wörter brechen um, statt die Zeile zu sprengen. */
+  .label {
+    max-width: 64px;
+    margin-top: 1px;
+    font-size: 10px;
+    line-height: 1.15;
+    color: var(--ink-2);
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
   .have {
     font-size: 11px;
     color: var(--ink-2);
@@ -79,5 +102,9 @@
   .have.short {
     color: var(--warn);
     font-weight: 700;
+  }
+
+  .have.voll {
+    color: var(--warn);
   }
 </style>

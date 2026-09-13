@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { queueCraftChain } from './actions';
 import { BALANCE } from './balance';
-import { ingredientsOf, outputBlocked, planCraft } from './craft';
+import { ingredientsOf, outputBlocked, outputsOf, planCraft } from './craft';
 import { createInitialState, getStore, storeCap } from './state';
 import { grant, research, runFor } from './sim/testkit';
 
@@ -128,5 +128,19 @@ describe('Zutaten für die Anzeige', () => {
     expect(outputBlocked(s, 'koks')).toBe(false);
     s.store['koks'] = storeCap(s);
     expect(outputBlocked(s, 'koks')).toBe(true);
+  });
+});
+
+describe('Ergebnisse für die Anzeige', () => {
+  it('zeigt Ausbeute und Bestand der hergestellten Ware', () => {
+    const s = createInitialState();
+    grant(s, { schienen: 7 });
+    expect(outputsOf(s, 'schienen')).toEqual([{ item: 'schienen', amount: 2, have: 7, full: false }]);
+  });
+
+  it('meldet das volle Lager an der Ware selbst', () => {
+    const s = createInitialState();
+    s.store['koks'] = storeCap(s);
+    expect(outputsOf(s, 'koks')).toEqual([{ item: 'koks', amount: 1, have: storeCap(s), full: true }]);
   });
 });
