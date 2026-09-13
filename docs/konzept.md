@@ -427,7 +427,8 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 +----------------------------------+
 ```
 
-- Der **Zugstreifen** ist die Bühne: Lok und Wagen als Silhouetten, Landschaft im Parallax, Räder drehen sich nur, wenn der Zug fährt. Antippen eines Wagens öffnet ihn. Der Streifen ist nie höher als ein Drittel des Bildschirms.
+- Der **Zugstreifen** ist die Bühne: Lok und Wagen als Silhouetten, Landschaft im Parallax, Räder drehen sich nur, wenn der Zug fährt. Antippen eines Wagens öffnet ihn. Der Streifen ist nie höher als ein Drittel des Bildschirms. Er trägt auch den Kilometerstand, den Fahrzustand und das nächste Ereignis, darum entfällt auf diesem Bildschirm die Statuszeile.
+- Die Bühne ist eine Illustration, keine massstabsgetreue Karte. Die Landschaft zieht mit gefühlter Geschwindigkeit vorbei, nicht mit den echten 12 km/h, sonst stünde das Bild still. Ein Hindernis erscheint, sobald der Zug davorsteht, und der Zug rückt ein Stück zurück, um Platz dafür zu machen.
 - Die **Wagenliste** ist die Arbeitsfläche: Reihenfolge wie im Zug, Status als Farbe und Wort, Rate pro Minute. Umkoppeln geht im Wagen-Detail mit «Nach vorne» und «Nach hinten», Ziehen kommt mit der Bühne in Phase 4.
 - Die **Leiste unten** hat fünf Ziele. Ein Punkt an einem Ziel bedeutet: Dort wartet etwas (Forschung fertig, Baustelle fertig, Lager voll).
 
@@ -454,9 +455,10 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 
 - **Stil:** flache Silhouetten als SVG, zwei bis drei Flächen pro Objekt, keine Umrisslinien. Jeder Wagentyp hat eine eigene Form und eine eigene Farbe, damit man den Zug lesen kann, ohne Text.
 - **Biome** haben je eine Farbstimmung für Himmel, ferne Hügel und Boden: Tal grün-grau, Wald dunkelgrün, Schlucht ocker mit Schatten, Berg schiefer-blau, Wüste sandgelb.
-- **Bewegung:** Räder mit zwei Bildern, Rauch als drei driftende Kreise, Parallax in drei Ebenen. Beim Bauwerk eine einzige Einblend-Animation. Wer Bewegung reduziert hat, bekommt Standbilder.
+- **Bewegung:** Räder mit zwei Bildern, Rauch als drei driftende Kreise, Parallax in drei Ebenen (ferne Hügel, Vegetation, Boden mit Gleis). Beim Bauwerk eine einzige Einblend-Animation über 2,4 Sekunden. Eine neue Lok rollt von vorne heran. Wer Bewegung reduziert hat, bekommt Standbilder.
+- **Vegetation und Felsen** werden deterministisch aus der Kachelnummer gestreut, nie zufällig. So sieht die Landschaft abwechslungsreich aus und flackert beim Neuzeichnen nicht.
 - **Icons:** 30 Waren brauchen 30 Glyphen. Der erste Stand beginnt mit Buchstabenmarken in Stufenfarbe, echte Glyphen kommen, sobald die Waren feststehen.
-- **Ton:** wenig und leise. Ein Klick, ein Ernte-Tick, ein Kessel-Zischen beim Anfahren, ein Akkord beim Meilenstein. Standard aus, in «Mehr» einschaltbar.
+- **Ton:** wenig und leise. Im ersten Stand nur ein Akkord beim Meilenstein, erzeugt mit der Web Audio API statt aus einer Datei. Standard aus, in «Mehr» einschaltbar. Dazu eine kurze Vibration, wo das Gerät sie kennt.
 
 ## 14. Technik
 
