@@ -1,8 +1,10 @@
 <script lang="ts">
-  import { RECIPE_BY_ID, WAGON_BY_TYPE, crank, harvestRatePerMinute, hasSelfLoader, productionSpeed, type WagonState } from '../../engine';
+  import { RECIPE_BY_ID, WAGON_BY_TYPE, crank, getStore, harvestRatePerMinute, hasSelfLoader, productionSpeed, type WagonState } from '../../engine';
   import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
   import { WAGON_COLOR, itemName, statusText, statusTone } from '../labels';
+  import ItemChip from './ItemChip.svelte';
+  import RecipeFlow from './RecipeFlow.svelte';
   import Vehicle from './Vehicle.svelte';
 
   let { wagon, index }: { wagon: WagonState; index: number } = $props();
@@ -25,7 +27,13 @@
     <span class="silhouette"><Vehicle kind={wagon.type} color={WAGON_COLOR[wagon.type]} rolling={false} /></span>
     <span class="text">
       <span class="title">{def?.name ?? wagon.type} <span class="muted">Stufe {wagon.level}</span></span>
-      <span class="job">{job ?? statusText(game.state, wagon)}</span>
+      {#if wagon.type === 'ernte' && wagon.resource}
+        <span class="fluss"><ItemChip item={wagon.resource} have={getStore(game.state, wagon.resource)} size="s" /></span>
+      {:else if recipe}
+        <span class="fluss"><RecipeFlow recipe={recipe.id} size="s" /></span>
+      {:else}
+        <span class="job">{statusText(game.state, wagon)}</span>
+      {/if}
       {#if job}
         <span class="status tone-{statusTone(wagon)}">
           {#if wagon.type !== 'lager'}<span class="mono">{formatRate(rate)}</span>{' · '}{/if}{statusText(game.state, wagon)}
@@ -86,6 +94,11 @@
 
   .job {
     font-size: 14px;
+  }
+
+  .fluss {
+    display: block;
+    margin: 2px 0 1px;
   }
 
   .status {

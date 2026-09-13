@@ -194,6 +194,7 @@ Regeln:
 Direkt hinter der Lok hängt die Werkstatt. Sie belegt keinen Wagenplatz und kann nicht abgekoppelt werden. Sie ist das Werkzeug der Handarbeit:
 
 - **Werkbank.** Jedes freigeschaltete Rezept kann hier von Hand gebaut werden, ohne den passenden Wagen. Aufträge werden in eine Warteschlange von höchstens 10 gestellt und mit einfachem Tempo abgearbeitet. Damit baut man den ersten Werkwagen, bevor es einen Werkwagen gibt. Die Warteschlange blockiert nicht: Der erste Auftrag, dessen Zutaten da sind, kommt dran, auch wenn ein früherer noch wartet.
+- **Vorstufen kommen automatisch.** Wer Eisenbarren antippt und keinen Koks hat, bekommt zuerst Koks in die Warteschlange und danach die Eisenbarren. Die Kette wird so tief geplant, wie Rezepte und Bestände es hergeben, vorhandene Ware wird angerechnet, und Überschüsse aus einem Lauf zählen für den nächsten Schritt. Was sich nicht herstellen lässt, also Rohstoffe, wird benannt statt eingeplant: «Es fehlt 2 Eisenerz. Das musst du ernten.» Der Knopf zeigt vorher, wie viele Aufträge daraus werden.
 - **Handkurbel.** Vor der Technologie Selbstlader erntet ein Erntewagen nur, wenn man kurbelt: Jeder Tipp gibt 5 Sekunden Ernte. Danach läuft er von selbst, und der Tipp bleibt als kleiner Bonus.
 - **Kohle schaufeln.** Ein Tipp auf den Tender gibt 1 Kohle. Das ist der allererste Handgriff im Spiel.
 
@@ -441,7 +442,7 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 | Bildschirm | Inhalt |
 |---|---|
 | Wagen-Detail (Bottom Sheet) | Rezeptwahl mit Eingabe und Ausgabe pro Minute, Status mit Grund, Stufe mit Kosten und Knopf, Nachbarschaftsbonus, Abkoppeln |
-| Werkstatt (Bottom Sheet) | Werkbank mit allen Rezepten, Warteschlange, Kohle schaufeln |
+| Werkstatt (Bottom Sheet) | Kohle schaufeln, Werkbank mit laufendem Auftrag und Warteschlange, darunter alle Rezepte nach Wagen gruppiert. Der Werkbank-Bereich hat eine feste Höhe, damit die Liste nicht springt, wenn Aufträge dazukommen: Man kann denselben Knopf mehrmals antippen, ohne ihn zu suchen |
 | Lager | Alle Waren nach Stufe, Bestand von Kapazität, Nettorate pro Minute mit Vorzeichen. Volle und leere Waren stehen oben |
 | Forschung | Technologien nach Stufe, Kosten in Blaupausen, laufende Forschung mit Balken, Voraussetzungen als Text |
 | Strecke | Streckenkarte mit Biomen, Hindernissen, Position. Offene Baustellen mit Stückliste und Balken. Lok mit Upgrade-Projekt. Fahrtenbuch |
@@ -461,7 +462,8 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 - **Biome** haben je eine Farbstimmung für Himmel, ferne Hügel und Boden: Tal grün-grau, Wald dunkelgrün, Schlucht ocker mit Schatten, Berg schiefer-blau, Wüste sandgelb.
 - **Bewegung:** Räder mit zwei Bildern, Rauch als drei driftende Kreise, Parallax in drei Ebenen (ferne Hügel, Vegetation, Boden mit Gleis). Beim Bauwerk eine einzige Einblend-Animation über 2,4 Sekunden. Eine neue Lok rollt von vorne heran. Wer Bewegung reduziert hat, bekommt Standbilder.
 - **Vegetation und Felsen** werden deterministisch aus der Kachelnummer gestreut, nie zufällig. So sieht die Landschaft abwechslungsreich aus und flackert beim Neuzeichnen nicht.
-- **Icons:** 30 Waren, 30 Glyphen, flach und in einem 24er Raster gezeichnet. Verwandte Waren teilen eine Grundform: Barren sind Trapeze, Blaupausen beschriebene Blätter, Erze Klumpen mit Adern. Rohstoffe tragen eigene Farben, weil sie alle auf derselben Stufe liegen; hergestellte Waren tragen die Farbe ihrer Stufe. Wagen zeigen überall ihre Silhouette aus der Bühne.
+- **Icons:** 30 Waren, 30 Glyphen, flach und in einem 24er Raster gezeichnet. Jede hat eine eigene Silhouette: Man soll sie am Umriss unterscheiden, nicht erst an der Farbe. Kohle sind kantige Brocken, Koks gelochte Briketts, Eisenerz ein runder Klumpen mit Adern, Kupfererz einer mit Kristallzacken. Nur wo Waren wirklich verwandt sind, teilen sie eine Grundform und die Stufenfarbe trennt sie: Barren sind Trapeze, Blaupausen beschriebene Blätter. Rohstoffe tragen eigene Farben, weil sie alle auf derselben Stufe liegen. Wagen zeigen überall ihre Silhouette aus der Bühne.
+- **Rezepte werden gezeigt, nicht beschrieben.** Überall, wo ein Rezept vorkommt, steht es als Fluss: Zutaten-Icons mit der nötigen Menge als Marke, ein Pfeil, das Ergebnis. Unter jeder Zutat steht der Bestand, rot und fett, wenn er nicht reicht. So sieht man auf einen Blick, was ein Wagen braucht, was daraus wird und woran es gerade hakt.
 - **Ton:** wenig und leise. Im ersten Stand nur ein Akkord beim Meilenstein, erzeugt mit der Web Audio API statt aus einer Datei. Standard aus, in «Mehr» einschaltbar. Dazu eine kurze Vibration, wo das Gerät sie kennt.
 
 ## 14. Technik

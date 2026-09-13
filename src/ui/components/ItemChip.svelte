@@ -1,0 +1,83 @@
+<script lang="ts">
+  import { formatCount } from '../../lib/format';
+  import { itemColor, itemName } from '../labels';
+  import ItemIcon from './ItemIcon.svelte';
+
+  let {
+    item,
+    amount = null,
+    have = null,
+    lacking = false,
+    size = 'm',
+  }: { item: string; amount?: number | null; have?: number | null; lacking?: boolean; size?: 's' | 'm' } = $props();
+</script>
+
+<span class="chip {size}" class:lacking title={itemName(item)}>
+  <span class="box" style="--mark: {itemColor(item)}">
+    <ItemIcon {item} />
+    {#if amount !== null}<b class="need mono">{amount}</b>{/if}
+  </span>
+  {#if have !== null}
+    <span class="have mono" class:short={lacking}>{formatCount(have)}</span>
+  {/if}
+</span>
+
+<style>
+  .chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+  }
+
+  .box {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 3px;
+    border-radius: 7px;
+    background: var(--mark);
+    color: #fff;
+  }
+
+  .chip.s .box {
+    width: 24px;
+    height: 24px;
+    padding: 2px;
+    border-radius: 6px;
+  }
+
+  .chip.lacking .box {
+    opacity: 0.45;
+  }
+
+  .need {
+    position: absolute;
+    right: -5px;
+    bottom: -4px;
+    min-width: 15px;
+    padding: 0 3px;
+    border-radius: 8px;
+    background: var(--ink);
+    color: var(--bg);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 15px;
+    text-align: center;
+    box-shadow: 0 0 0 1.5px var(--surface);
+  }
+
+  .have {
+    font-size: 11px;
+    color: var(--ink-2);
+    line-height: 1.1;
+  }
+
+  .have.short {
+    color: var(--warn);
+    font-weight: 700;
+  }
+</style>
