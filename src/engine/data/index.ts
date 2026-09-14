@@ -1,4 +1,4 @@
-import type { BiomeDef, ItemDef, ItemId, LocoDef, LocoId, ObstacleDef, ProjectDef, RecipeDef, TechDef, WagonDef, WagonType } from '../types';
+import type { BiomeDef, ItemDef, ItemId, LocoDef, LocoId, ObstacleDef, ProjectDef, RecipeDef, TechDef, TechEffect, TechId, WagonDef, WagonType } from '../types';
 import { ITEMS } from './items';
 import { RECIPES } from './recipes';
 import { LOCOS, WAGONS } from './wagons';
@@ -63,4 +63,68 @@ export function recipesForWagon(type: WagonType): RecipeDef[] {
 /** Das Rezept, das eine Ware herstellt, oder null bei Rohstoffen */
 export function producerOf(itemId: ItemId): RecipeDef | null {
   return RECIPES.find((r) => r.outputs.some((o) => o.item === itemId)) ?? null;
+}
+
+/** Rezepte, die eine Ware als Zutat brauchen */
+export function consumersOf(itemId: ItemId): RecipeDef[] {
+  return RECIPES.filter((r) => r.inputs.some((s) => s.item === itemId));
+}
+
+/** Bauprojekte, deren Stückliste eine Ware verlangt, ohne die Vorschau */
+export function projectsNeeding(itemId: ItemId): ProjectDef[] {
+  return PROJECTS.filter((p) => !p.preview && p.bom.some((s) => s.item === itemId));
+}
+
+/**
+ * Was eine Technologie freischaltet, aus den Daten gelesen: die Wagen, deren
+ * Voraussetzung sie ist, die Rezepte, die sie nennen, ihre Bauprojekte und die
+ * übrigen Wirkungen wie Boni und Plätze.
+ */
+export interface TechUnlocks {
+  wagons: WagonDef[];
+  recipes: RecipeDef[];
+  projects: ProjectDef[];
+  effects: TechEffect[];
+}
+
+export function techUnlocks(techId: TechId): TechUnlocks {
+  const def = TECH_BY_ID[techId];
+  if (!def) return { wagons: [], recipes: [], projects: [], effects: [] };
+  const projects: ProjectDef[] = [];
+  const effects: TechEffect[] = [];
+  for (const e of def.effects) {
+    if (e.kind === 'projekt') {
+      const p = PROJECT_BY_ID[e.project];
+      if (p) projects.push(p);
+    } else if (e.kind !== 'wagen') effects.push(e);
+  }
+  return {
+    wagons: WAGONS.filter((w) => w.tech === techId),
+    recipes: RECIPES.filter((r) => r.techs.includes(techId)),
+    projects,
+    effects,
+  };
+}
+
+/** Technologien, die diese hier voraussetzen */
+export function dependentsOf(techId: TechId): TechDef[] {
+  return TECHS.filter((t) => t.requires.includes(techId));
+}
+
+/**
+ * Der Baum der Herstellung: eine Ware, ihr Rezept und darunter die Zutaten, bis zu
+ * den Rohstoffen. `amount` ist an der Wurzel die Ausbeute je Lauf, darunter der Bedarf
+ * je Lauf des Rezepts darüber. Reine Daten, ohne Bestände.
+ */
+export interface ProductionNode {
+  item: ItemId;
+  amount: number;
+  recipe: RecipeDef | null;
+  children: ProductionNode[];
+}
+
+export function productionTree(itemId: ItemId, depth = 4): ProductionNode {
+  const recipe = producerOf(itemId);
+  const amount = recipe?.outputs.find((o) => o.item === itemId)?.amount ?? 1;
+  return { item: itemId, amount, recipe, children: recipe && depth > 0 ? recipe.inputs.map((s) => ({ ...productionTree(s.item, depth - 1), amount: s.amount })) : [] };
 }

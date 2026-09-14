@@ -1,8 +1,9 @@
 /**
- * Was die Bühne zeigt, hängt vom Register und vom aufgeklappten Detail ab. Der
- * Ausschnitt ist reiner Zustand, abgeleitet aus beidem: Auf Zug, Werkstatt und
+ * Was die Bühne zeigt, hängt vom Register und vom gewählten Wagen ab. Der
+ * Ausschnitt ist reiner Zustand, abgeleitet aus beidem: Auf Werkstatt und
  * Forschung der ganze Zug, im Lager der Lagerwagen, auf der Strecke die Lok.
- * Ein aufgeklappter Wagen holt sich die Kamera, zugeklappt kommt der Zug zurück.
+ * Auf dem Zug holt sich der gewählte Wagen die Kamera; ohne Wahl und beim
+ * Anhängen ist der ganze Zug im Bild, denn dort steht der Platzhalter.
  */
 import type { GameState } from '../../engine';
 import type { DetailKind } from '../game.svelte';

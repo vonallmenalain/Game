@@ -39,6 +39,7 @@ export type ActionErrorCode =
   | 'voraussetzung_fehlt'
   | 'warteschlange_voll'
   | 'letzte_maschine'
+  | 'keine_freie_maschine'
   | 'projekt_gesperrt';
 
 export type ActionResult = { ok: true } | { ok: false; code: ActionErrorCode; missing?: Stack[] };
@@ -133,11 +134,13 @@ function newMachine(state: GameState): MachineState {
   return m;
 }
 
-/** Auftrag einer frischen Maschine setzen, ohne Fehler zu melden: Was nicht geht, bleibt leer. */
+/**
+ * Auftrag einer frischen Maschine setzen, ohne Fehler zu melden: Was nicht geht, bleibt
+ * leer. Ohne Vorgabe steht die Maschine frei im Wagen und wird je Ware zugeteilt.
+ */
 function applyInit(state: GameState, wagon: WagonState, m: MachineState, init: MachineInit): void {
   if (wagon.type === 'ernte') {
-    const resource = init.resource ?? 'eisenerz';
-    if (isResourceDiscovered(state, resource)) m.resource = resource;
+    if (init.resource && isResourceDiscovered(state, init.resource)) m.resource = init.resource;
     return;
   }
   if (wagon.type === 'lager' || !init.recipe) return;
@@ -249,6 +252,49 @@ export function setMachineResource(state: GameState, wagonId: number, machineId:
   m.resource = item;
   m.progress = 0;
   return OK;
+}
+
+/** Ein Auftrag für eine Maschine: ein Rezept im Produktionswagen oder ein Rohstoff im Erntewagen */
+export type MachineJob = { recipe: RecipeId } | { resource: ItemId };
+
+/** Ohne Auftrag: steht bezahlt im Wagen und wartet auf Arbeit */
+export function isIdleMachine(m: MachineState): boolean {
+  return m.recipe === null && m.resource === null;
+}
+
+export function idleMachines(wagon: WagonState): MachineState[] {
+  return wagon.machines.filter(isIdleMachine);
+}
+
+/** Die Maschinen im Wagen, die gerade diesen Auftrag haben */
+export function machinesFor(wagon: WagonState, job: MachineJob): MachineState[] {
+  return wagon.machines.filter((m) => ('recipe' in job ? m.recipe === job.recipe : m.resource === job.resource));
+}
+
+/**
+ * Gibt einer freien Maschine im Wagen den Auftrag. So stellt man je Ware ein, wie viele
+ * Maschinen sie machen, ohne jede einzeln anzutippen. Ohne freie Maschine geht nichts:
+ * Eine neue bauen oder einem anderen Auftrag eine wegnehmen.
+ */
+export function assignMachine(state: GameState, wagonId: number, job: MachineJob): ActionResult {
+  const w = findWagon(state, wagonId);
+  if (!w) return fail('unbekannt');
+  const m = idleMachines(w)[0];
+  if (!m) return fail('keine_freie_maschine');
+  return 'recipe' in job ? setMachineRecipe(state, wagonId, m.id, job.recipe) : setMachineResource(state, wagonId, m.id, job.resource);
+}
+
+/**
+ * Nimmt eine Maschine vom Auftrag und stellt sie frei. Zuerst geht eine, die gerade
+ * nicht arbeitet: Deren Zyklus ist ohnehin nicht im Gang.
+ */
+export function unassignMachine(state: GameState, wagonId: number, job: MachineJob): ActionResult {
+  const w = findWagon(state, wagonId);
+  if (!w) return fail('unbekannt');
+  const kandidaten = machinesFor(w, job);
+  if (kandidaten.length === 0) return fail('unbekannt');
+  const m = kandidaten.find((k) => k.status !== 'aktiv') ?? kandidaten[kandidaten.length - 1]!;
+  return pauseMachine(state, wagonId, m.id);
 }
 
 export function upgradeWagon(state: GameState, wagonId: number): ActionResult {
@@ -375,15 +421,15 @@ export function queueWorkbench(state: GameState, recipeId: RecipeId): ActionResu
 }
 
 /**
- * Reiht ein Rezept ein und stellt fehlende Zwischenprodukte davor. Wer Eisenbarren
- * will und keinen Koks hat, bekommt zuerst Koks in die Warteschlange.
+ * Reiht ein Rezept `count`-mal ein und stellt fehlende Zwischenprodukte davor. Wer
+ * Eisenbarren will und keinen Koks hat, bekommt zuerst Koks in die Warteschlange.
  */
-export function queueCraftChain(state: GameState, recipeId: RecipeId): ActionResult {
+export function queueCraftChain(state: GameState, recipeId: RecipeId, count = 1): ActionResult {
   const r = RECIPE_BY_ID[recipeId];
   if (!r) return fail('unbekannt');
   if (!isRecipeUnlocked(state, r.id)) return fail('rezept_gesperrt');
 
-  const plan = planCraft(state, recipeId);
+  const plan = planCraft(state, recipeId, count);
   if (plan.missing.length > 0) return fail('material_fehlt', plan.missing);
 
   const frei = BALANCE.workbenchQueueMax - state.workbench.queue.length;

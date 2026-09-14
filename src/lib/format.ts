@@ -36,6 +36,12 @@ export function formatRate(perMinute: number): string {
   return `${formatDecimal(perMinute, decimals)}/min`;
 }
 
+/** Saldo pro Minute mit Vorzeichen: 12 → +12/min, -3.5 → -3,5/min, fast null → 0/min */
+export function formatSignedRate(perMinute: number): string {
+  if (Math.abs(perMinute) < 0.05) return '0/min';
+  return `${perMinute > 0 ? '+' : ''}${formatRate(perMinute)}`;
+}
+
 /** Kilometer mit einer Nachkommastelle: 6.4 → 6,4 km */
 export function formatKm(km: number): string {
   return `${formatDecimal(km, 1)} km`;

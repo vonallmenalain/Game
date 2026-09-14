@@ -31,7 +31,10 @@ const CLOUD_PUSH_MS = 2 * 60 * 1000;
 /** So lange wartet der Start höchstens auf die Cloud, bevor er mit dem lokalen Stand weitermacht */
 export const CLOUD_BOOT_WAIT_MS = 8000;
 
-/** Was im Zug-Bildschirm gerade ausgeklappt ist. Nichts davon überdeckt die Bühne. */
+/**
+ * Was der Zug-Bildschirm unter der Bühne zeigt: einen Wagen oder «Wagen anhängen».
+ * Ohne Wahl zeigt er den ersten Wagen im Zug. Nichts davon überdeckt die Bühne.
+ */
 export type DetailKind = { kind: 'none' } | { kind: 'wagen'; id: number } | { kind: 'bauen' };
 
 /** Ein Meilenstein, der gerade gefeiert wird. */
@@ -87,6 +90,8 @@ class Game {
   rates: Record<string, number> = $derived(flowPerMinute(this.state));
   toast = $state<{ text: string; id: number } | null>(null);
   detail = $state<DetailKind>({ kind: 'none' });
+  /** Die Ware, deren Übersicht gerade unter der Bühne offen ist */
+  item = $state<string | null>(null);
   /** Das Register in der Leiste unten. Die Bühne richtet ihren Ausschnitt danach. */
   tab = $state<Tab>('zug');
   /** Was die Bühne gerade zeigt: den Zug, die Lok oder einen Wagen. Folgt aus Register und Detail. */
@@ -224,6 +229,31 @@ class Game {
 
   openTab(tab: Tab): void {
     this.tab = tab;
+    this.item = null;
+  }
+
+  /** Der Wagen, den der Zug-Bildschirm zeigt: der gewählte, sonst der erste im Zug */
+  get selectedWagonId(): number | null {
+    const d = this.detail;
+    if (d.kind === 'wagen' && this.state.wagons.some((w) => w.id === d.id)) return d.id;
+    return this.state.wagons[0]?.id ?? null;
+  }
+
+  selectWagon(id: number): void {
+    this.detail = { kind: 'wagen', id };
+  }
+
+  openBuild(): void {
+    this.detail = { kind: 'bauen' };
+  }
+
+  /** Die Übersicht einer Ware öffnen. Sie legt sich unter die Bühne, nie darüber. */
+  openItem(id: string): void {
+    this.item = id;
+  }
+
+  closeItem(): void {
+    this.item = null;
   }
 
   /**
@@ -240,21 +270,20 @@ class Game {
   }
 
   /**
-   * Wagen antippen: Auf dem Zug-Bildschirm klappt er auf und die Kamera fährt heran,
-   * nochmals antippen klappt ihn zu und der ganze Zug kommt zurück. Von jedem anderen
-   * Register geht es zum Zug, mit diesem Wagen aufgeklappt.
+   * Wagen antippen: Der Zug-Bildschirm zeigt ihn, und die Kamera fährt heran. Von
+   * jedem anderen Register geht es zum Zug, mit diesem Wagen.
    */
   tapWagon(id: number): void {
-    const offen = this.tab === 'zug' && this.detail.kind === 'wagen' && this.detail.id === id;
-    this.detail = offen ? { kind: 'none' } : { kind: 'wagen', id };
+    this.detail = { kind: 'wagen', id };
     this.tab = 'zug';
+    this.item = null;
   }
 
-  /** Platzhalter antippen: Zum Zug, mit «Wagen anhängen» aufgeklappt. */
+  /** Platzhalter antippen: Zum Zug, mit «Wagen anhängen». */
   tapSlot(): void {
-    const offen = this.tab === 'zug' && this.detail.kind === 'bauen';
-    this.detail = offen ? { kind: 'none' } : { kind: 'bauen' };
+    this.detail = { kind: 'bauen' };
     this.tab = 'zug';
+    this.item = null;
   }
 
   start(): void {
@@ -362,6 +391,7 @@ class Game {
     this.stop();
     this.adopted = true;
     this.detail = { kind: 'none' };
+    this.item = null;
     this.report = null;
     this.reportSource = source ? { geraet: source.geraet, savedAt: source.aktualisiert } : null;
     this.milestone = null;
@@ -394,6 +424,7 @@ class Game {
     this.state = createInitialState();
     this.accumulated = 0;
     this.detail = { kind: 'none' };
+    this.item = null;
     this.report = null;
     this.reportSource = null;
     this.milestone = null;

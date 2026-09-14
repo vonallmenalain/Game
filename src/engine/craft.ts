@@ -26,11 +26,11 @@ export interface CraftPlan {
 const MAX_DEPTH = 8;
 
 /**
- * Plant, was nötig ist, um `recipeId` einmal zu bauen. Vorhandene Bestände werden
- * angerechnet, fehlende Zwischenprodukte werden eingeplant, solange es Rezepte dafür
- * gibt. Rohstoffe lassen sich nicht bauen und landen in `missing`.
+ * Plant, was nötig ist, um `recipeId` so oft wie `count` zu bauen. Vorhandene Bestände
+ * werden angerechnet, fehlende Zwischenprodukte werden eingeplant, solange es Rezepte
+ * dafür gibt. Rohstoffe lassen sich nicht bauen und landen in `missing`.
  */
-export function planCraft(state: GameState, recipeId: RecipeId): CraftPlan {
+export function planCraft(state: GameState, recipeId: RecipeId, count = 1): CraftPlan {
   const target = RECIPE_BY_ID[recipeId];
   if (!target || !isRecipeUnlocked(state, recipeId)) {
     return { steps: [], orders: 0, missing: [], fromStore: [] };
@@ -74,8 +74,9 @@ export function planCraft(state: GameState, recipeId: RecipeId): CraftPlan {
     open = 0;
   };
 
-  for (const input of target.inputs) secure(input.item, input.amount, 1);
-  steps.push({ recipe: target.id, runs: 1 });
+  const runs = Math.max(1, Math.floor(count));
+  for (const input of target.inputs) secure(input.item, input.amount * runs, 1);
+  steps.push({ recipe: target.id, runs });
 
   return {
     steps,

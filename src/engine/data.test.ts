@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BIOMES, ITEMS, ITEM_BY_ID, LOCOS, OBSTACLES, PROJECTS, RECIPES, TECHS, TECH_BY_ID, WAGONS, producerOf } from './data';
+import { BIOMES, ITEMS, ITEM_BY_ID, LOCOS, OBSTACLES, PROJECTS, RECIPES, TECHS, TECH_BY_ID, WAGONS, consumersOf, dependentsOf, producerOf, productionTree, projectsNeeding, techUnlocks } from './data';
 
 const PRODUCTION_TYPES = ['schmelz', 'walz', 'werk', 'buero', 'chemie'];
 
@@ -116,5 +116,34 @@ describe('Spieldaten', () => {
     expect(WAGONS).toHaveLength(7);
     expect(LOCOS).toHaveLength(2);
     expect(PROJECTS.filter((p) => !p.preview)).toHaveLength(3);
+  });
+});
+
+describe('Abgeleitete Daten für die Anzeige', () => {
+  it('liest aus den Daten, was eine Technologie freischaltet', () => {
+    expect(techUnlocks('schmelzwagen').wagons.map((w) => w.type)).toEqual(['schmelz']);
+    expect(techUnlocks('stahlwerk').recipes.map((r) => r.id)).toEqual(['stahl', 'stahltraeger', 'dampfkessel', 'bp_stahl']);
+    expect(techUnlocks('brueckenbau').projects.map((p) => p.id)).toEqual(['bruecke']);
+    expect(techUnlocks('erntetechnik1').effects).toEqual([{ kind: 'ernte_bonus', value: 0.25 }]);
+    expect(techUnlocks('schmelzwagen').effects).toEqual([]);
+    expect(dependentsOf('stahlwerk').map((t) => t.id)).toContain('brueckenbau');
+  });
+
+  it('baut den Herstellungsbaum bis zu den Rohstoffen', () => {
+    const baum = productionTree('eisenbarren');
+    expect(baum.recipe?.id).toBe('eisenbarren');
+    expect(baum.amount).toBe(1);
+    expect(baum.children.map((c) => [c.item, c.amount, c.recipe?.id ?? null])).toEqual([
+      ['eisenerz', 2, null],
+      ['koks', 1, 'koks'],
+    ]);
+    expect(baum.children[1]?.children.map((c) => c.item)).toEqual(['kohle']);
+    expect(productionTree('kohle')).toEqual({ item: 'kohle', amount: 1, recipe: null, children: [] });
+  });
+
+  it('kennt Verbraucher und Bauprojekte einer Ware', () => {
+    expect(consumersOf('koks').map((r) => r.id)).toEqual(['eisenbarren', 'stahl', 'kupferbarren', 'sprengstoff']);
+    expect(projectsNeeding('nieten').map((p) => p.id)).toEqual(['bruecke', 'schwere_dampflok']);
+    expect(consumersOf('bp_kupfer')).toEqual([]);
   });
 });

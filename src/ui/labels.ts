@@ -1,4 +1,4 @@
-import { BALANCE, ITEM_BY_ID, RECIPE_BY_ID, TECH_BY_ID, BIOME_BY_ID, PROJECT_BY_ID, WAGON_BY_TYPE, missingInputs, plannedTechs, type ActionResult, type GameState, type MachineState, type Stack, type TechDef, type WagonState, type WagonStatus, type WagonType } from '../engine';
+import { BALANCE, ITEM_BY_ID, RECIPE_BY_ID, TECH_BY_ID, BIOME_BY_ID, PROJECT_BY_ID, WAGON_BY_TYPE, missingInputs, plannedTechs, type ActionResult, type FlowSource, type GameState, type MachineState, type Stack, type TechDef, type TechEffect, type WagonState, type WagonStatus, type WagonType } from '../engine';
 
 /** CSS-Variable je Wagentyp, definiert in app.css */
 export const WAGON_COLOR: Record<WagonType, string> = {
@@ -10,6 +10,21 @@ export const WAGON_COLOR: Record<WagonType, string> = {
   lager: 'var(--w-lager)',
   chemie: 'var(--w-chemie)',
 };
+
+/** Kurzname je Wagentyp für enge Stellen wie die Wagenleiste */
+export const WAGON_SHORT: Record<WagonType, string> = {
+  ernte: 'Ernte',
+  schmelz: 'Schmelz',
+  walz: 'Walz',
+  werk: 'Werk',
+  buero: 'Büro',
+  lager: 'Lager',
+  chemie: 'Chemie',
+};
+
+export function wagonName(type: WagonType): string {
+  return WAGON_BY_TYPE[type]?.name ?? type;
+}
 
 export const TIER_NAME: Record<number, string> = {
   0: 'Rohstoffe',
@@ -82,6 +97,12 @@ export function describeError(result: ActionResult): string {
       return 'Die Werkbank ist voll.';
     case 'projekt_gesperrt':
       return 'Dieses Projekt ist noch nicht freigeschaltet.';
+    case 'keine_freie_maschine':
+      return 'Keine freie Maschine. Baue eine neue oder nimm einem anderen Auftrag eine weg.';
+    case 'letzte_maschine':
+      return 'Die letzte Maschine bleibt im Wagen.';
+    case 'wagen_voll':
+      return 'Alle Plätze im Wagen sind belegt.';
     default:
       return 'Das geht gerade nicht.';
   }
@@ -151,4 +172,66 @@ export function techRequirementText(state: GameState, tech: TechDef): string {
   if (tech.requiresBiome && !state.discoveredBiomes.includes(tech.requiresBiome)) parts.push(`${BIOME_BY_ID[tech.requiresBiome]?.name ?? tech.requiresBiome} entdecken`);
   if (tech.requiresProject && !state.projects[tech.requiresProject]?.done) parts.push(`${PROJECT_BY_ID[tech.requiresProject]?.name ?? tech.requiresProject} fertigstellen`);
   return parts.join(', ');
+}
+
+/**
+ * Status der Maschinen mit demselben Auftrag, als kurzer Satz: «2 laufen» oder
+ * «1 von 2 laufen · wartet auf Koks». Leer ohne Maschinen.
+ */
+export function jobStatusText(state: GameState, wagon: WagonState, machines: MachineState[]): string {
+  const n = machines.length;
+  if (n === 0) return '';
+  const laufen = machines.filter((m) => m.status === 'aktiv').length;
+  if (laufen === n) return n === 1 ? 'läuft' : `${n} laufen`;
+  const klemmt = machines.find((m) => m.status === 'blockiert') ?? machines.find((m) => m.status === 'wartet') ?? machines[0]!;
+  const text = machineStatusText(state, wagon, klemmt);
+  return laufen > 0 ? `${laufen} von ${n} laufen · ${text}` : text;
+}
+
+/** Eine Wirkung einer Technologie als kurzer Text */
+export function effectText(e: TechEffect): string {
+  switch (e.kind) {
+    case 'wagen':
+      return `${wagonName(e.wagon)} baubar`;
+    case 'projekt':
+      return `Bauprojekt ${PROJECT_BY_ID[e.project]?.name ?? e.project}`;
+    case 'ernte_bonus':
+      return `Ernte plus ${Math.round(e.value * 100)} Prozent`;
+    case 'wagen_tempo':
+      return `${wagonName(e.wagon)} plus ${Math.round(e.value * 100)} Prozent Tempo`;
+    case 'maschinen_plaetze':
+      return `${e.value} Maschinenplätze mehr in jedem Wagen`;
+    case 'selbstlader':
+      return 'Erntewagen arbeiten ohne Handkurbel';
+    case 'offline_deckel':
+      return `Nachtschicht rechnet ${e.hours} Stunden nach`;
+    case 'stand_ende':
+      return 'Ende des ersten Stands';
+    default:
+      return '';
+  }
+}
+
+/** Kurzes Etikett für den Indikator im Technologiebaum: «+25 %», «+4», «12 h» */
+export function effectBadge(e: TechEffect): string | null {
+  switch (e.kind) {
+    case 'ernte_bonus':
+    case 'wagen_tempo':
+      return `+${Math.round(e.value * 100)} %`;
+    case 'maschinen_plaetze':
+      return `+${e.value}`;
+    case 'offline_deckel':
+      return `${e.hours} h`;
+    default:
+      return null;
+  }
+}
+
+/** Woher ein Fluss kommt oder wohin er geht: «Schmelzwagen ×2 · Koks», «Werkbank · Koks», «Fahrt der Lok» */
+export function sourceLabel(q: FlowSource): string {
+  if (q.via === 'fahrt') return 'Fahrt der Lok';
+  const auftrag = q.recipe ? (RECIPE_BY_ID[q.recipe]?.name ?? q.recipe) : q.resource ? itemName(q.resource) : '';
+  if (q.via === 'werkbank') return `Werkbank · ${auftrag}`;
+  const wagen = q.wagonType ? wagonName(q.wagonType) : 'Wagen';
+  return `${wagen} ×${q.machines} · ${auftrag}`;
 }

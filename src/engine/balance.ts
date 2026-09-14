@@ -24,8 +24,8 @@ export const BALANCE = {
   neighborBonus: 0.1,
   /** Erntefaktor im Heimat-Biom des Rohstoffs */
   onSiteBonus: 1.5,
-  /** Höchstens so viele Aufträge in der Werkbank. Genug für eine tiefe Kette wie ein Fahrgestell. */
-  workbenchQueueMax: 30,
+  /** Höchstens so viele Aufträge in der Werkbank. Genug für mehrere tiefe Ketten wie ein Fahrgestell. */
+  workbenchQueueMax: 100,
   /** So viele Forschungen warten höchstens hinter der laufenden */
   researchQueueMax: 5,
   /** Forschungstempo ohne Konstruktionsbüro */
