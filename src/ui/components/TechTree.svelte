@@ -8,7 +8,6 @@
   import { TECHS, TECH_BY_ID, type TechId } from '../../engine';
   import { formatDuration } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { itemColor } from '../labels';
   import { layoutTechTree, techStatus, type TechStatus, type TreeEdge } from '../research/tree';
   import ItemIcon from './ItemIcon.svelte';
   import TechMark from './TechMark.svelte';
@@ -139,7 +138,7 @@
             {:else if s === 'eingereiht'}
               {queueIndex.get(t.id)}. in der Reihe
             {:else}
-              <span class="bp" style="--mark: {itemColor(t.cost.item)}"><ItemIcon item={t.cost.item} /></span>{t.cost.amount} · {formatDuration(t.seconds * tempo)}
+              <span class="bp"><ItemIcon item={t.cost.item} /></span>{t.cost.amount} · {formatDuration(t.seconds * tempo)}
             {/if}
           </span>
         </span>
@@ -292,12 +291,8 @@
   .bp {
     display: inline-grid;
     place-items: center;
-    width: 14px;
-    height: 14px;
-    padding: 1.5px;
-    border-radius: 4px;
-    background: var(--mark);
-    color: #fff;
+    width: 15px;
+    height: 15px;
   }
 
   .fortschritt {

@@ -6,7 +6,7 @@
    */
   import { techUnlocks, type TechDef, type WagonType } from '../../engine';
   import type { VehicleKind } from '../stage/camera';
-  import { effectBadge, itemColor } from '../labels';
+  import { effectBadge } from '../labels';
   import ItemIcon from './ItemIcon.svelte';
   import Vehicle from './Vehicle.svelte';
 
@@ -47,7 +47,7 @@
   {:else if items.length > 0}
     <span class="waren" class:zwei={items.length > 1}>
       {#each items as it (it)}
-        <span class="ware" style="--mark: {itemColor(it)}"><ItemIcon item={it} /></span>
+        <span class="ware"><ItemIcon item={it} /></span>
       {/each}
     </span>
   {:else}
@@ -119,17 +119,13 @@
   .ware {
     display: grid;
     place-items: center;
-    width: 26px;
-    height: 26px;
-    padding: 3px;
-    border-radius: 6px;
-    background: var(--mark);
-    color: #fff;
+    width: 28px;
+    height: 28px;
   }
 
   .mark.l .ware {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
   }
 
   /* Zwei Waren überlappen sich leicht: Man sieht, dass es mehrere sind */
@@ -141,7 +137,6 @@
     grid-area: 1 / 1;
     width: 22px;
     height: 22px;
-    box-shadow: 0 0 0 1.5px var(--surface-2);
   }
 
   .waren.zwei .ware:first-child {

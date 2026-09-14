@@ -6,7 +6,7 @@
    */
   import { WAGONS, currentLoco, isWagonTypeUnlocked, machineSlots, wagonOfType } from '../../engine';
   import { game } from '../game.svelte';
-  import { WAGON_SHORT, statusTone, wagonName } from '../labels';
+  import { WAGON_SHORT, statusTone, wagonName, wagonTint } from '../labels';
   import Vehicle from './Vehicle.svelte';
 
   const loco = $derived(currentLoco(game.state));
@@ -38,6 +38,7 @@
         aria-selected={selected === w.id}
         aria-label="{wagonName(w.type)}, {w.machines.length} Maschinen"
         data-chip={w.id}
+        style="--tint: {wagonTint(w.type)}"
         onclick={() => game.selectWagon(w.id)}
       >
         <span class="bild"><Vehicle kind={w.type} /></span>
@@ -94,6 +95,7 @@
     display: none;
   }
 
+  /* Jeder Chip trägt die Farbe seines Wagens, der gewählte dazu den Messingrand */
   .chip {
     position: relative;
     flex: none;
@@ -105,7 +107,7 @@
     padding: 6px 4px 5px;
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: var(--bg);
+    background: var(--tint, var(--bg));
     color: var(--ink);
     cursor: pointer;
     touch-action: manipulation;
@@ -113,7 +115,7 @@
 
   .chip.aktiv {
     border-color: var(--accent);
-    background: var(--accent-soft);
+    box-shadow: 0 0 0 2px var(--accent);
     color: var(--accent-ink);
   }
 

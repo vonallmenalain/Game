@@ -67,7 +67,34 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-/* Wagentypen und Stufen */
+/*
+ * Leichte Hintergrundfarbe je Wagen: Was ein Wagen herstellt, trägt seine Farbe als
+ * Kachel, im Zug, im Lager, in der Werkstatt. Hell genug für schwarze Schrift,
+ * verschieden genug, um sie auf einen Blick auseinanderzuhalten.
+ */
+:root {
+  --tint-ernte: #e1efdd;
+  --tint-schmelz: #fae2d6;
+  --tint-walz: #dfe7f2;
+  --tint-werk: #f3e5d2;
+  --tint-buero: #f9edc9;
+  --tint-lager: #ebe8e2;
+  --tint-chemie: #ebe2f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tint-ernte: #1b2c1f;
+    --tint-schmelz: #37241b;
+    --tint-walz: #1b2836;
+    --tint-werk: #2f2519;
+    --tint-buero: #322912;
+    --tint-lager: #282623;
+    --tint-chemie: #2a213c;
+  }
+}
+
+/* Wagentypen */
 :root {
   --w-ernte: #4f8a57;
   --w-schmelz: #c2542d;
@@ -76,10 +103,6 @@ a:focus-visible {
   --w-buero: #b7791f;
   --w-lager: #8a7f73;
   --w-chemie: #7d6bb0;
-  --t-0: #6b7a8a;
-  --t-1: #8a6a3a;
-  --t-2: #5f7f9a;
-  --t-3: #8a5f9a;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -92,10 +115,6 @@ a:focus-visible {
     --w-buero: #d9a441;
     --w-lager: #9a8f83;
     --w-chemie: #8d7bc0;
-    --t-0: #7b8a9a;
-    --t-1: #a58250;
-    --t-2: #7395b0;
-    --t-3: #a077b0;
   }
 }
 

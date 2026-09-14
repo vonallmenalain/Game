@@ -14,7 +14,6 @@
     detachRefund,
     detachWagon,
     freeMachineSlots,
-    getStore,
     hasSelfLoader,
     idleMachines,
     isRecipeUnlocked,
@@ -30,8 +29,9 @@
   } from '../../engine';
   import { formatCount } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { itemName, machineName, stackText } from '../labels';
+  import { machineName, stackText } from '../labels';
   import { wagonProducts } from '../products';
+  import CostChips from './CostChips.svelte';
   import ProductCard from './ProductCard.svelte';
 
   let { id }: { id: number } = $props();
@@ -106,18 +106,17 @@
         {/if}
       </span>
     </div>
-    <div class="zeile">
-      <span class="small kosten" class:tone-warn={plaetzeFrei > 0 && !machineAffordable}>
-        {#if plaetzeFrei > 0}
-          Nächste: {stackText(machineCost)}
-        {:else}
-          Alle Plätze belegt. Mehr Platz gibt die Forschung und eine stärkere Lok.
-        {/if}
-      </span>
-      <button type="button" class="btn small primary bauen" disabled={plaetzeFrei <= 0 || !machineAffordable} onclick={bauen}>
-        {machineName(wagon.type)} bauen
-      </button>
-    </div>
+    {#if plaetzeFrei > 0}
+      <!-- Was die nächste Maschine kostet, mit Bestand: Man sieht sofort, was noch fehlt -->
+      <div class="zeile oben">
+        <CostChips cost={machineCost} />
+        <button type="button" class="btn small primary bauen" disabled={!machineAffordable} onclick={bauen}>
+          {machineName(wagon.type)} bauen
+        </button>
+      </div>
+    {:else}
+      <p class="small muted voll">Alle Plätze belegt. Mehr Platz gibt die Forschung und eine stärkere Lok.</p>
+    {/if}
     {#if wagon.type === 'lager'}
       <p class="hint">Jedes Regal gibt plus {BALANCE.storeCapPerRegal} Kapazität je Ware. Zusammen {formatCount(storeCap(game.state))} je Ware.</p>
     {:else if wagon.type === 'ernte' && !selfLoader}
@@ -151,20 +150,13 @@
       {#if upgradeCost}
         <div class="zeile">
           <span class="small">
-            Stufe {wagon.level + 1}: {stackText(upgradeCost)}
+            Stufe {wagon.level + 1}
             <br />
             <span class="muted">plus {Math.round(BALANCE.levelSpeedStep * 100)} Prozent Tempo für jede Maschine im Wagen</span>
           </span>
           <button type="button" class="btn small primary" disabled={!canUpgrade} onclick={() => game.run(upgradeWagon(game.state, wagon.id))}>Aufstufen</button>
         </div>
-        {#if !canUpgrade}
-          <p class="small tone-warn fehlt">
-            Es fehlen {upgradeCost
-              .filter((s) => getStore(game.state, s.item) < s.amount)
-              .map((s) => `${s.amount - getStore(game.state, s.item)} ${itemName(s.item)}`)
-              .join(', ')}.
-          </p>
-        {/if}
+        <div class="stufe"><CostChips cost={upgradeCost} /></div>
       {:else}
         <p class="small muted">Höchste Stufe erreicht.</p>
       {/if}
@@ -280,12 +272,20 @@
     font-size: 13px;
   }
 
-  .kosten {
-    min-width: 0;
+  .oben {
+    align-items: flex-start;
+  }
+
+  .voll {
+    margin: 0;
   }
 
   .bauen {
     flex: none;
+  }
+
+  .stufe {
+    margin-top: 8px;
   }
 
   .hint {
@@ -305,10 +305,6 @@
 
   .spaeter {
     margin: 8px 0 0;
-  }
-
-  .fehlt {
-    margin: 6px 0 0;
   }
 
   .verwalten {

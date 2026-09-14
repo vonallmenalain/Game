@@ -26,7 +26,7 @@
   } from '../../engine';
   import { formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { WAGON_SHORT, itemName, machineName } from '../labels';
+  import { WAGON_SHORT, itemName, machineName, wagonTint } from '../labels';
   import Bar from './Bar.svelte';
   import ItemChip from './ItemChip.svelte';
   import RecipeFlow from './RecipeFlow.svelte';
@@ -162,7 +162,7 @@
         {@const geht = plan.missing.length === 0 && plan.orders <= frei}
         {@const voll = outputBlocked(game.state, r.id)}
         {@const zug = imZug(gruppe.typ, r.id)}
-        <div class="rezept" class:gesperrt={!geht}>
+        <div class="rezept" class:gesperrt={!geht} style="--tint: {wagonTint(gruppe.typ)}">
           <div class="zeile">
             <span class="name">{r.name}</span>
             <span class="dauer mono muted">{r.seconds} s · {formatRate(((r.outputs[0]?.amount ?? 0) / r.seconds) * 60)}</span>
@@ -444,17 +444,18 @@
     margin: 0;
   }
 
+  /* Jede Rezeptkarte trägt die Farbe ihres Wagens; was gerade nicht geht, bleibt blasser */
   .rezept {
     display: grid;
     gap: 7px;
     padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 9px;
-    background: var(--surface);
+    background: var(--tint);
   }
 
   .rezept.gesperrt {
-    background: transparent;
+    background: color-mix(in srgb, var(--tint) 45%, transparent);
   }
 
   .zeile {
