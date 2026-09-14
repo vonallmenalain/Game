@@ -1,7 +1,7 @@
 <script lang="ts">
   import { formatCount } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { itemColor, itemName } from '../labels';
+  import { itemName } from '../labels';
   import ItemIcon from './ItemIcon.svelte';
 
   let {
@@ -29,7 +29,7 @@
 </script>
 
 {#snippet inhalt()}
-  <span class="box" style="--mark: {itemColor(item)}">
+  <span class="box">
     <ItemIcon {item} />
     {#if amount !== null}<b class="need mono">{amount}</b>{/if}
   </span>
@@ -71,23 +71,20 @@
     border-radius: 8px;
   }
 
+  /* Kein Kästchen: Das Icon steht frei, die Farbe kommt von der Kachel dahinter. */
   .box {
     position: relative;
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
-    padding: 3px;
-    border-radius: 7px;
-    background: var(--mark);
-    color: #fff;
+    width: 32px;
+    height: 32px;
+    padding: 1px;
   }
 
   .chip.s .box {
-    width: 24px;
-    height: 24px;
-    padding: 2px;
-    border-radius: 6px;
+    width: 26px;
+    height: 26px;
+    padding: 1px;
   }
 
   .chip.lacking .box {

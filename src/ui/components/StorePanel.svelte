@@ -2,7 +2,7 @@
   import { ITEMS, discoveredResources, getStore, isRecipeUnlocked, producerOf, storeCap } from '../../engine';
   import { formatCount, formatRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { TIER_NAME, itemColor } from '../labels';
+  import { TIER_NAME, itemTint } from '../labels';
   import Bar from './Bar.svelte';
   import Mark from './Mark.svelte';
 
@@ -27,8 +27,8 @@
       {#each group.items as item (item.id)}
         {@const amount = getStore(game.state, item.id)}
         {@const rate = game.rates[item.id] ?? 0}
-        <div class="row" class:full={amount >= cap}>
-          <Mark item={item.id} color={itemColor(item.id)} size="s" />
+        <div class="row" class:full={amount >= cap} style="--tint: {itemTint(item.id)}">
+          <Mark item={item.id} size="s" />
           <span class="name">{item.name}</span>
           <span class="mono amount">{formatCount(amount)}</span>
           <span class="mono rate" class:tone-good={rate > 0.05} class:tone-warn={rate < -0.05}>{rate > 0.05 ? '+' : ''}{Math.abs(rate) < 0.05 ? '' : formatRate(rate)}</span>
@@ -54,12 +54,16 @@
     gap: 6px;
   }
 
+  /* Jede Zeile trägt die Farbe des Wagens, aus dem die Ware kommt */
   .row {
     display: grid;
-    grid-template-columns: 22px minmax(0, 1fr) auto auto;
+    grid-template-columns: 26px minmax(0, 1fr) auto auto;
     grid-template-rows: auto auto;
     align-items: center;
     gap: 2px 10px;
+    padding: 6px 10px 7px 8px;
+    border-radius: 9px;
+    background: var(--tint);
   }
 
   .name {

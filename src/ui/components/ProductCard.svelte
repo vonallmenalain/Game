@@ -7,7 +7,7 @@
   import { BALANCE, assignMachine, getStore, idleMachines, isOnSite, storeCap, unassignMachine, type WagonState } from '../../engine';
   import { formatCount, formatDecimal, formatRate, formatSignedRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { itemColor, itemName, jobStatusText } from '../labels';
+  import { itemName, itemTint, jobStatusText } from '../labels';
   import { productConsumption, type Product } from '../products';
   import Mark from './Mark.svelte';
   import RecipeFlow from './RecipeFlow.svelte';
@@ -26,10 +26,10 @@
   );
 </script>
 
-<div class="produkt" class:aktiv={n > 0} data-produkt={product.key}>
+<div class="produkt" class:aktiv={n > 0} data-produkt={product.key} style="--tint: {itemTint(product.item)}">
   <div class="kopf">
     <button type="button" class="ware" onclick={() => game.openItem(product.item)} aria-label="{itemName(product.item)}: Übersicht öffnen">
-      <Mark item={product.item} color={itemColor(product.item)} size="s" />
+      <Mark item={product.item} size="m" />
       <span class="name">{itemName(product.item)}</span>
     </button>
     <span class="lager" title="Bestand im Lager und Saldo von jetzt">
@@ -88,13 +88,14 @@
 </div>
 
 <style>
+  /* Die Kachel trägt die Farbe des Wagens: Alles aus dem Erntewagen ist grün, alles aus dem Schmelzwagen rot. */
   .produkt {
     display: grid;
     gap: 8px;
     padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: var(--surface);
+    background: var(--tint);
   }
 
   .produkt.aktiv {

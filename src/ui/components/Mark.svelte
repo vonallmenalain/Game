@@ -1,37 +1,32 @@
 <script lang="ts">
   import ItemIcon from './ItemIcon.svelte';
 
-  let { item, color, size = 'm' }: { item: string; color: string; size?: 's' | 'm' | 'l' } = $props();
+  let { item, size = 'm' }: { item: string; size?: 's' | 'm' | 'l' } = $props();
 </script>
 
-<span class="mark {size}" style="--mark: {color}">
+<span class="mark {size}">
   <ItemIcon {item} />
 </span>
 
 <style>
+  /* Das Icon steht frei, ohne Kästchen. Die Grösse ist der Platz, den es bekommt. */
   .mark {
     display: inline-grid;
     place-items: center;
     flex: none;
-    width: 30px;
-    height: 30px;
-    padding: 3px;
-    border-radius: 7px;
-    background: var(--mark);
-    color: #fff;
+    width: 32px;
+    height: 32px;
+    padding: 1px;
   }
 
   .mark.s {
-    width: 22px;
-    height: 22px;
-    padding: 1.5px;
-    border-radius: 5px;
+    width: 26px;
+    height: 26px;
   }
 
   .mark.l {
-    width: 42px;
-    height: 42px;
-    padding: 5px;
-    border-radius: 9px;
+    width: 46px;
+    height: 46px;
+    padding: 2px;
   }
 </style>

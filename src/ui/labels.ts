@@ -1,4 +1,4 @@
-import { BALANCE, ITEM_BY_ID, RECIPE_BY_ID, TECH_BY_ID, BIOME_BY_ID, PROJECT_BY_ID, WAGON_BY_TYPE, missingInputs, plannedTechs, type ActionResult, type FlowSource, type GameState, type MachineState, type Stack, type TechDef, type TechEffect, type WagonState, type WagonStatus, type WagonType } from '../engine';
+import { BALANCE, ITEM_BY_ID, RECIPE_BY_ID, TECH_BY_ID, BIOME_BY_ID, PROJECT_BY_ID, WAGON_BY_TYPE, missingInputs, plannedTechs, producerOf, type ActionResult, type FlowSource, type GameState, type MachineState, type Stack, type TechDef, type TechEffect, type WagonState, type WagonStatus, type WagonType } from '../engine';
 
 /** CSS-Variable je Wagentyp, definiert in app.css */
 export const WAGON_COLOR: Record<WagonType, string> = {
@@ -33,34 +33,25 @@ export const TIER_NAME: Record<number, string> = {
   3: 'Kupferzeit',
 };
 
-export const TIER_COLOR: Record<number, string> = {
-  0: 'var(--t-0)',
-  1: 'var(--t-1)',
-  2: 'var(--t-2)',
-  3: 'var(--t-3)',
-};
-
 export function itemName(id: string): string {
   return ITEM_BY_ID[id]?.name ?? id;
 }
 
-/**
- * Rohstoffe haben eigene Farben, denn sie liegen alle auf derselben Stufe und
- * wären sonst nicht auseinanderzuhalten. Hergestellte Waren tragen die Farbe ihrer Stufe.
- */
-const RESOURCE_COLOR: Record<string, string> = {
-  eisenerz: '#8a5a3a',
-  kupfererz: '#3f7f6d',
-  kohle: '#3d434a',
-  holz: '#7a5a35',
-  stein: '#6f7680',
-  harz: '#b08a2e',
-  kalk: '#87907f',
-  salpeter: '#6e769a',
-};
+/** Der Wagen, aus dem eine Ware kommt: Rohstoffe aus dem Erntewagen, sonst der Wagen ihres Rezepts */
+export function itemWagon(id: string): WagonType {
+  const def = ITEM_BY_ID[id];
+  if (!def || def.kind === 'rohstoff') return 'ernte';
+  return producerOf(id)?.wagon ?? 'werk';
+}
 
-export function itemColor(id: string): string {
-  return RESOURCE_COLOR[id] ?? TIER_COLOR[ITEM_BY_ID[id]?.tier ?? 0] ?? 'var(--t-0)';
+/** Leichte Hintergrundfarbe je Wagen, als CSS-Variable aus app.css */
+export function wagonTint(type: WagonType): string {
+  return `var(--tint-${type})`;
+}
+
+/** Die Kachelfarbe einer Ware: die ihres Wagens. Die Icons selbst sind bunt und ohne Kästchen. */
+export function itemTint(id: string): string {
+  return wagonTint(itemWagon(id));
 }
 
 export function stackText(stacks: Stack[]): string {

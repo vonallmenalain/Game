@@ -22,7 +22,7 @@
   } from '../../engine';
   import { formatCount, formatRate, formatSignedRate } from '../../lib/format';
   import { game } from '../game.svelte';
-  import { TIER_NAME, itemColor, itemName, sourceLabel, wagonName } from '../labels';
+  import { TIER_NAME, itemName, itemTint, sourceLabel, wagonName } from '../labels';
   import Bar from './Bar.svelte';
   import ItemChip from './ItemChip.svelte';
   import Mark from './Mark.svelte';
@@ -80,9 +80,9 @@
 {#if def}
   <div class="sheet" role="dialog" aria-modal="true" aria-label="{def.name}: Übersicht">
     <button type="button" class="schleier" aria-label="Übersicht schliessen" tabindex="-1" onclick={close}></button>
-    <section class="karte">
+    <section class="karte" style="--tint: {itemTint(item)}">
       <header>
-        <Mark {item} color={itemColor(item)} size="l" />
+        <Mark {item} size="l" />
         <div class="titel">
           <h2>{def.name}</h2>
           <span class="muted small">{artText}</span>
@@ -242,7 +242,9 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 12px 8px 16px;
+    padding: 12px 12px 10px 16px;
+    border-radius: 14px 14px 0 0;
+    background: var(--tint);
   }
 
   .titel {

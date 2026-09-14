@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { WAGONS, TECH_BY_ID, buildWagon, canAfford, currentLoco, getStore, isWagonTypeUnlocked, machineSlots, wagonBuildCost, wagonOfType } from '../../engine';
+  import { WAGONS, TECH_BY_ID, buildWagon, canAfford, currentLoco, isWagonTypeUnlocked, machineSlots, wagonBuildCost, wagonOfType } from '../../engine';
   import { game } from '../game.svelte';
-  import { itemName, machineName } from '../labels';
+  import { machineName } from '../labels';
+  import CostChips from './CostChips.svelte';
   import Vehicle from './Vehicle.svelte';
 
   const free = $derived(currentLoco(game.state).slots - game.state.wagons.length);
@@ -32,11 +33,7 @@
       <div class="text">
         <div class="title">{w.name} <span class="muted small">mit {machineName(w.type)}</span></div>
         {#if unlocked}
-          <div class="cost">
-            {#each cost as s (s.item)}
-              <span class:missing={getStore(game.state, s.item) < s.amount}>{s.amount} {itemName(s.item)} <span class="muted">({getStore(game.state, s.item)})</span></span>
-            {/each}
-          </div>
+          <CostChips {cost} />
         {:else}
           <div class="small muted">Braucht die Technologie {w.tech ? (TECH_BY_ID[w.tech]?.name ?? w.tech) : ''}.</div>
         {/if}
@@ -105,14 +102,4 @@
     font-weight: 600;
   }
 
-  .cost {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px 10px;
-    font-size: 13px;
-  }
-
-  .missing {
-    color: var(--warn);
-  }
 </style>
