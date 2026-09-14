@@ -7,14 +7,16 @@
   const free = $derived(currentLoco(game.state).slots - game.state.wagons.length);
   const offen = $derived(WAGONS.filter((w) => !wagonOfType(game.state, w.type)));
 
+  /** Der neue Wagen wird gleich gezeigt: Dort wartet seine erste Maschine auf einen Auftrag. */
   function build(type: (typeof WAGONS)[number]['type']) {
     if (game.run(buildWagon(game.state, type))) {
       const w = game.state.wagons[game.state.wagons.length - 1];
-      game.detail = w ? { kind: 'wagen', id: w.id } : { kind: 'none' };
+      if (w) game.selectWagon(w.id);
     }
   }
 </script>
 
+<h2>Wagen anhängen</h2>
 <p class="muted small">
   Von jedem Wagentyp zieht die Lok einen, {free} von {currentLoco(game.state).slots} Plätzen sind frei. Ausgebaut wird ein Wagen von innen: In jeden passen
   {machineSlots(game.state)} Maschinen. Die erste ist im Preis dabei, jeder Wagen braucht ein Fahrgestell aus dem Werkwagen oder der Werkbank.
@@ -48,6 +50,15 @@
 </div>
 
 <style>
+  h2 {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.05;
+    margin: 0;
+    padding: 12px 0 4px;
+  }
+
   .small {
     font-size: 13px;
     margin: 0 0 10px;
@@ -67,8 +78,7 @@
     overflow: hidden;
   }
 
-  /* Die Liste steht jetzt ausgeklappt in der Wagenliste und hat weniger Breite:
-     Der Knopf rutscht darum notfalls auf eine eigene Zeile, statt hinauszuragen. */
+  /* Der Knopf rutscht auf schmalen Bildschirmen auf eine eigene Zeile, statt hinauszuragen. */
   .entry {
     display: flex;
     align-items: center;

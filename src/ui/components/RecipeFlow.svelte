@@ -8,7 +8,8 @@
     showStock = true,
     showNames = true,
     size = 'm',
-  }: { recipe: RecipeId; showStock?: boolean; showNames?: boolean; size?: 's' | 'm' } = $props();
+    tap = false,
+  }: { recipe: RecipeId; showStock?: boolean; showNames?: boolean; size?: 's' | 'm'; tap?: boolean } = $props();
 
   const def = $derived(RECIPE_BY_ID[recipe]);
   const zutaten = $derived(ingredientsOf(game.state, recipe));
@@ -25,6 +26,7 @@
         lacking={!zutat.enough}
         showName={showNames}
         {size}
+        {tap}
       />
     {/each}
     <svg class="arrow" viewBox="0 0 16 16" role="presentation" aria-hidden="true">
@@ -38,6 +40,7 @@
         full={showStock && ergebnis.full}
         showName={showNames}
         {size}
+        {tap}
       />
     {/each}
   </div>

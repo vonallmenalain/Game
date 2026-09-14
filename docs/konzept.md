@@ -201,8 +201,8 @@ Regeln:
 
 Die Werkstatt ist kein Wagen, sondern ein eigener Bildschirm in der Leiste unten. Sie gehört zum Zug, belegt aber keinen Platz und lässt sich nicht abkoppeln. Sie ist das Werkzeug der Handarbeit:
 
-- **Werkbank.** Jedes freigeschaltete Rezept kann hier von Hand gebaut werden, ohne den passenden Wagen. Aufträge werden in eine Warteschlange von höchstens 30 gestellt und mit einfachem Tempo abgearbeitet. Damit baut man den ersten Werkwagen, bevor es einen Werkwagen gibt. Die Warteschlange blockiert nicht: Der erste Auftrag, dessen Zutaten da sind, kommt dran, auch wenn ein früherer noch wartet.
-- **Vorstufen kommen automatisch.** Wer Eisenbarren antippt und keinen Koks hat, bekommt zuerst Koks in die Warteschlange und danach die Eisenbarren. Die Kette wird so tief geplant, wie Rezepte und Bestände es hergeben, vorhandene Ware wird angerechnet, und Überschüsse aus einem Lauf zählen für den nächsten Schritt. Was sich nicht herstellen lässt, also Rohstoffe, wird benannt statt eingeplant: «Es fehlt 2 Eisenerz. Das musst du ernten.» Der Knopf zeigt vorher, wie viele Aufträge daraus werden.
+- **Werkbank.** Jedes freigeschaltete Rezept kann hier von Hand gebaut werden, ohne den passenden Wagen. Aufträge werden in eine Warteschlange von höchstens 100 gestellt und mit einfachem Tempo abgearbeitet. Ein Tipp reiht ein, fünf oder zehn Läufe auf einmal, je nach eingestellter Menge. Damit baut man den ersten Werkwagen, bevor es einen Werkwagen gibt. Die Warteschlange blockiert nicht: Der erste Auftrag, dessen Zutaten da sind, kommt dran, auch wenn ein früherer noch wartet.
+- **Vorstufen kommen automatisch.** Wer Eisenbarren antippt und keinen Koks hat, bekommt zuerst Koks in die Warteschlange und danach die Eisenbarren. Die Kette wird so tief geplant, wie Rezepte und Bestände es hergeben, vorhandene Ware wird angerechnet, und Überschüsse aus einem Lauf zählen für den nächsten Schritt, auch bei fünf oder zehn Läufen auf einmal. Was sich nicht herstellen lässt, also Rohstoffe, wird benannt statt eingeplant: «Es fehlt 2 Eisenerz. Das musst du ernten.» Der Knopf zeigt vorher, wie viele Aufträge daraus werden.
 - **Handkurbel.** Vor der Technologie Selbstlader erntet ein Erntewagen nur, wenn man kurbelt: Jeder Tipp gibt 5 Sekunden Ernte. Danach läuft er von selbst, und der Tipp bleibt als kleiner Bonus.
 - **Kohle schaufeln.** Ein Tipp auf den Tender gibt 1 Kohle. Das ist der allererste Handgriff im Spiel.
 
@@ -436,34 +436,42 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 |  [Lok][Ernte][Schmelz][Walz]...  |
 |  km 6,4   Wald in 1,6 km   12 km/h|
 +----------------------------------+
-|  Wagen        5 mit 16 Maschinen |
-|  > Erntewagen St2          4/10  |
-|    [Erz]x2 108/min [Kohle] 54/min|
-|    216/min  4 Maschinen laufen   |
-|  > Schmelzwagen St2        5/10  |
-|    [Koks]x2 72/min [Barren] 39/min|
-|    124/min  wartet auf Koks      |
-|  + Wagen anhängen                |
+|  Zug · 5 von 8 Wagen · 16 Masch. |
+|  [Ernte 4/10][Schmelz 5/10][Werk]|
++----------------------------------+
+|  Schmelzwagen  Stufe 2           |
+|  Maschinen 5 von 10 · 1 frei     |
+|  [Schmelzofen bauen]             |
+|  PRODUKTION                      |
+|  [Koks]        41   +52/min      |
+|   Kohle 1 -> Koks 1              |
+|   (-) 2 (+)  72/min  2 laufen    |
+|   verbraucht 72/min Kohle        |
+|  [Eisenbarren] 19   -30/min      |
+|   ...                            |
 +----------------------------------+
 | Zug  Werkstatt  Lager  Forschung  Strecke  Mehr |
 +----------------------------------+
 ```
 
 - Der **Zugstreifen** ist die Bühne: Lok und Wagen in der Landschaft, gezeichnet nach echten Vorbildern, mit Parallax in vier Ebenen. Der Zug fährt nach links, die Räder und das Gestänge der Lok drehen sich mit der gefahrenen Strecke, nur wenn der Zug fährt. Die Bühne steht auf jedem Bildschirm ausser «Mehr» fest oben, nie höher als ein Drittel des Bildschirms, und trägt Kilometerstand, Fahrzustand und das nächste Ereignis; darum gibt es die Statuszeile nur noch unter «Mehr».
-- Eine **Kamera** bestimmt den Ausschnitt. Standard je Bildschirm: auf Zug, Werkstatt und Forschung der ganze Zug, im Lager der Lagerwagen, auf der Strecke die Lok. Ein Wagen antippen fährt die Kamera an ihn heran und klappt ihn in der Liste auf, nochmals antippen klappt zu und holt den ganzen Zug zurück; ein Wagen, der in der Liste aufklappt, rückt genauso in die Mitte. Die Lok antippen holt sie gross ins Bild und öffnet die Strecke. Beim Heranfahren wachsen ferne Ebenen weniger als nahe, das gibt Tiefe. Passt ein langer Zug nicht ins Bild, beginnt der Überblick vorne bei der Lok und lässt sich mit dem Finger schwenken.
-- Die Bühne bleibt immer sichtbar: Auf dem Zug-Bildschirm legt sich nichts darüber, kein Sheet und kein Dialog.
+- Eine **Kamera** bestimmt den Ausschnitt. Standard je Bildschirm: auf Werkstatt und Forschung der ganze Zug, im Lager der Lagerwagen, auf der Strecke die Lok, auf dem Zug der gewählte Wagen. Ein Wagen antippen fährt die Kamera an ihn heran und zeigt ihn unten; ein Wagen, der in der Wagenleiste gewählt wird, rückt genauso in die Mitte. Beim Anhängen und solange nichts gewählt ist, steht der ganze Zug im Bild, denn dort hängt der Platzhalter. Die Lok antippen holt sie gross ins Bild und öffnet die Strecke. Beim Heranfahren wachsen ferne Ebenen weniger als nahe, das gibt Tiefe. Passt ein langer Zug nicht ins Bild, beginnt der Überblick vorne bei der Lok und lässt sich mit dem Finger schwenken.
+- Die Bühne bleibt immer sichtbar: Nichts legt sich darüber, kein Sheet und kein Dialog. Auch die Übersicht einer Ware öffnet sich nur im Bereich darunter.
 - Die Bühne ist eine Illustration, keine massstabsgetreue Karte. Die Landschaft zieht mit gefühlter Geschwindigkeit vorbei, nicht mit den echten 14 km/h, sonst stünde das Bild still; eine schnellere Lok fühlt sich schneller an. Ein Hindernis erscheint vor der Lok, sobald der Zug davorsteht, und die Kamera holt beides ins Bild. Ist das Bauwerk fertig, wächst es erst, dann fährt der Zug an und lässt es hinter sich.
-- Die **Wagenliste** ist die Arbeitsfläche. Ein Wagen klappt an Ort auf, die anderen rücken nach unten, und ein zweiter Tipp auf die Karte klappt ihn wieder zu. «Wagen anhängen» klappt genauso auf. Sie zeigt Reihenfolge wie im Zug, belegte von freien Maschinenplätzen, was der Wagen ausstösst als Glyphen mit Stückzahl und **Rate je Ware** («Koks ×2, 72/min»), darunter der Status und die Rate des ganzen Wagens. Die Rate je Ware ist die Zahl zum Abstimmen: Liefert der Schmelzwagen 39/min Eisenbarren und frisst der Walzwagen 40/min, sieht man den Engpass, ohne zu rechnen. Umkoppeln geht im Wagen-Detail mit «Nach vorne» und «Nach hinten», Ziehen kommt mit der Bühne in Phase 4.
+- Die **Wagenleiste** unter der Bühne ist der Überblick: jeder Wagen als Chip mit Silhouette, Kurzname, belegten Maschinen und einem Punkt, der sagt, ob er läuft oder klemmt, dazu «Anhängen». Die Kopfzeile zählt Wagen und Maschinen. Ein Tipp auf einen Chip oder auf den Wagen in der Bühne wählt ihn.
+- Darunter füllt **ein einziger Wagen** den ganzen Bereich. Oben Name, Stufe und die Kurbel, dann die Maschinen mit freien Plätzen und dem Bauknopf, dann je Ware, die der Wagen herstellen kann, ein kleines Dashboard: Bestand und **Saldo je Ware** («+52/min»), das Rezept als Fluss, der **Zähler der Maschinen** mit Minus und Plus, ihr Ausstoss («72/min») und ihr Status, darunter, was sie dafür verbrauchen («72/min Kohle»). Zugeteilt wird je Ware, nicht Maschine für Maschine: Plus gibt einer freien Maschine den Auftrag, Minus stellt eine frei. Gebaut wird eine Maschine frei und bekommt ihren Auftrag mit Plus. Was der Wagen erst nach einer Forschung kann, steht als Ausblick darunter. Aufstufen hat seinen eigenen Abschnitt, Reihenfolge und Abkoppeln stehen eingeklappt unter «Wagen verwalten».
+- Jede Ware lässt sich antippen und öffnet ihre **Übersicht** unter der Bühne: Bestand und Saldo, wer sie gerade herstellt und wer sie verbraucht, je Quelle mit Rate («Schmelzwagen ×2 · Koks +60/min», «Werkbank», «Fahrt der Lok»), das Rezept und die Kette bis zum Rohstoff, und wofür sie gebraucht wird, soweit das freigeschaltet ist, samt offenen Bauprojekten.
 - Die **Leiste unten** hat sechs Ziele: Zug, Werkstatt, Lager, Forschung, Strecke, Mehr. Ein Punkt an einem Ziel bedeutet: Dort wartet etwas (Forschung fertig, Baustelle fertig, Lager voll).
 
 ### 12.2 Weitere Bildschirme
 
 | Bildschirm | Inhalt |
 |---|---|
-| Wagen-Detail (klappt in der Liste auf) | Liste der Maschinen im Wagen, je Zeile ihr Auftrag als Fluss, ihre Rate pro Minute und ihr Status. Rechts der Pausenknopf, der nur den Auftrag wegnimmt. Antippen klappt die Auftragswahl auf, mit Ausgabe pro Minute je Rezept, und darin steht das Ausbauen mit Rückfrage. Darunter «Maschine bauen» mit Preis, Stufe mit Kosten und Knopf, kurze Wege, Reihenfolge, Abkoppeln |
-| Werkstatt (eigener Bildschirm) | Kohle schaufeln und die Werkbank stehen fest oben, nur die Rezepte darunter scrollen. Die Werkbank zeigt den laufenden Auftrag mit Fortschritt, Ausstoss pro Minute und die Warteschlange, gleiche Aufträge zusammengezogen («Koks ×5»). Jedes Rezept in der Liste nennt Dauer und Ausstoss («2 s · 30/min»), damit sich Handarbeit und Wagen vergleichen lassen. Ihr Bereich hat eine feste Höhe, damit die Liste nicht springt, wenn Aufträge dazukommen: Man kann denselben Knopf mehrmals antippen, ohne ihn zu suchen |
+| Zug (siehe 12.1) | Wagenleiste zum Wechseln, darunter ein Wagen mit je Ware einem Dashboard und dem Zähler der Maschinen. «Wagen anhängen» ist der letzte Chip der Leiste und füllt denselben Bereich |
+| Waren-Übersicht (unter der Bühne) | Bestand von Kapazität, Saldo, Herstellung und Verbrauch je Quelle, Rezept, Kette bis zum Rohstoff, Verwendung in freigeschalteten Rezepten und offenen Bauprojekten. Öffnet sich von jedem Waren-Chip aus, auch in der Werkstatt und in der Forschung |
+| Werkstatt (eigener Bildschirm) | Kohle schaufeln und die Werkbank stehen fest oben, nur die Rezepte darunter scrollen. Die Werkbank zeigt den laufenden Auftrag mit Fortschritt, Ausstoss pro Minute und die Warteschlange, gleiche Aufträge zusammengezogen («Koks ×5»); in ihrem Kopf steht die Menge je Tipp, ×1, ×5 oder ×10. Die Rezepte sind nach Wagen gruppiert, mit Silhouette und dem Stand im Zug («im Zug · 3 Maschinen» oder «nicht im Zug · hier von Hand»), und lassen sich oben nach Wagen filtern. Jedes Rezept nennt Dauer und Ausstoss («2 s · 30/min») und, wenn der Zug es selbst macht, wie viele Maschinen daran arbeiten. Der Werkbank-Bereich hat eine feste Höhe, damit die Liste nicht springt, wenn Aufträge dazukommen: Man kann denselben Knopf mehrmals antippen, ohne ihn zu suchen |
 | Lager | Alle Waren nach Stufe, Bestand von Kapazität, Nettorate pro Minute mit Vorzeichen. Die Rate ist der Saldo von jetzt, aus allem gerechnet, was gerade läuft, nicht der Durchschnitt der letzten Minute: Wer eine Maschine pausiert, sieht die Zahl sofort umspringen. Volle und leere Waren stehen oben |
-| Forschung | Technologien nach Stufe, Kosten in Blaupausen, laufende Forschung mit Balken und darunter die Warteschlange mit Restzeit je Eintrag und Gesamtzeit. Der Knopf heisst «Forschen», solange nichts läuft, danach «Einreihen». Was eingereiht ist, steht in der Liste als «eingereiht» und zählt als Voraussetzung für alles, was danach kommt |
+| Forschung | Oben die laufende Forschung mit Balken, Restzeit und der Warteschlange, in der Mitte der **Technologiebaum**: Spalten nach Tiefe, Kanten von jeder Voraussetzung zu dem, was sie freischaltet, fertige Kanten grün, die Front messingfarben, weite Kanten gestrichelt. Jeder Knoten trägt einen Indikator, der sagt, worum es geht: die Silhouette des Wagens, die Waren neuer Rezepte, das Bauwerk oder die Lok eines Projekts, bei Boni den betroffenen Wagen mit dem Wert als Etikett («+25 %», «+4», «12 h»). Dazu Name, Kosten in Blaupausen, Dauer und Stand: erforscht mit Haken, laufend mit Balken, eingereiht mit Platznummer, bereit mit Messingrand, gesperrt blass. Antippen füllt die Karte unten: Kosten mit Bestand, Voraussetzungen als Chips mit Haken (antippbar, springen zur Technologie), was sie bringt, wohin sie führt, und der Knopf «Forschen» oder «Einreihen», bei Wartenden «Herausnehmen». Beim Öffnen steht die laufende oder die erste mögliche Technologie in der Mitte |
 | Strecke | Streckenkarte mit Biomen, Hindernissen, Position. Offene Baustellen mit Stückliste und Balken. Lok mit Upgrade-Projekt. Fahrtenbuch |
 | Rückkehr-Bericht (Modal) | Siehe Abschnitt 10 |
 | Mehr | Spielstand und Konto, Neustart, Ton, Über das Spiel |
@@ -474,8 +482,8 @@ Hochformat zuerst. Alles Wichtige ist mit einem Daumen erreichbar. Kein Bildschi
 - Was nicht geht, sagt warum: «Braucht 6 Zahnrad, du hast 2.»
 - Zahlen im Format der Schweiz: `1'200`, `7,5/min`.
 - Rot ist nur für Blockaden, Messing nur für Fortschritt und Meilensteine.
-- Wo produziert wird, steht auch der Ausstoss pro Minute: je Maschine, je Ware im Wagen, je Rezept in der Werkstatt, im Lager als Saldo je Ware. Ohne diese Zahl lässt sich keine Kette abstimmen.
-- Jede Rate ist der Stand von jetzt, gerechnet aus dem, was eingestellt ist, und nie ein Durchschnitt über die Vergangenheit. Eine Änderung muss sofort sichtbar sein, sonst traut man der Zahl nicht. Was gerade nicht laufen kann, zeigt null: eine Erntemaschine ohne Kurbel, eine Maschine mit vollem Ausgabelager, eine pausierte Maschine, eine Werkbank ohne Zutaten. Die einzige Ausnahme sind Angebote, also die Rezeptauswahl im Wagen und die Rezeptliste der Werkstatt: Dort steht, was die Maschine leisten würde, denn genau danach wählt man aus.
+- Wo produziert wird, steht auch der Ausstoss pro Minute: je Ware im Wagen mit ihrem Verbrauch, je Rezept in der Werkstatt, im Lager und in der Waren-Übersicht als Saldo je Ware, dort auch je Quelle. Ohne diese Zahl lässt sich keine Kette abstimmen.
+- Jede Rate ist der Stand von jetzt, gerechnet aus dem, was eingestellt ist, und nie ein Durchschnitt über die Vergangenheit. Eine Änderung muss sofort sichtbar sein, sonst traut man der Zahl nicht. Was gerade nicht laufen kann, zeigt null: eine Erntemaschine ohne Kurbel, eine Maschine mit vollem Ausgabelager, eine freie Maschine, eine Werkbank ohne Zutaten. Die einzige Ausnahme sind Angebote, also «je Maschine 30/min» an einer Ware ohne Maschinen und die Rezeptliste der Werkstatt: Dort steht, was die Maschine leisten würde, denn genau danach teilt man zu.
 - Was bezahltes Material vernichtet, fragt zurück und liegt nicht neben einem harmlosen Knopf. Drosseln muss immer einfacher sein als Abreissen.
 
 ## 13. Grafik und Ton

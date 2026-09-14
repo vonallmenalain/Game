@@ -6,6 +6,7 @@
   import MorePanel from './ui/components/MorePanel.svelte';
   import ReturnReport from './ui/components/ReturnReport.svelte';
   import ReturnScreen from './ui/components/ReturnScreen.svelte';
+  import ItemSheet from './ui/components/ItemSheet.svelte';
   import ResearchPanel from './ui/components/ResearchPanel.svelte';
   import StatusLine from './ui/components/StatusLine.svelte';
   import StorePanel from './ui/components/StorePanel.svelte';
@@ -14,7 +15,7 @@
   import Toast from './ui/components/Toast.svelte';
   import TrackPanel from './ui/components/TrackPanel.svelte';
   import Stage from './ui/components/Stage.svelte';
-  import WagonList from './ui/components/WagonList.svelte';
+  import WagonScreen from './ui/components/WagonScreen.svelte';
   import WorkshopPanel from './ui/components/WorkshopPanel.svelte';
 
   let needRefresh = $state(false);
@@ -65,19 +66,26 @@
       {#if game.tab !== 'mehr'}
         <Stage />
       {/if}
-      {#if game.tab === 'zug'}
-        <div class="scrollbereich"><WagonList /></div>
-      {:else if game.tab === 'werkstatt'}
-        <WorkshopPanel />
-      {:else if game.tab === 'lager'}
-        <div class="scrollbereich"><StorePanel /></div>
-      {:else if game.tab === 'forschung'}
-        <div class="scrollbereich"><ResearchPanel /></div>
-      {:else if game.tab === 'strecke'}
-        <div class="scrollbereich"><TrackPanel /></div>
-      {:else}
-        <div class="scrollbereich"><MorePanel /></div>
-      {/if}
+      <!-- Der Bereich unter der Bühne: Hier steht der Bildschirm, und hierhinein legt
+           sich die Übersicht einer Ware. Die Bühne darüber bleibt frei. -->
+      <div class="bereich">
+        {#if game.tab === 'zug'}
+          <WagonScreen />
+        {:else if game.tab === 'werkstatt'}
+          <WorkshopPanel />
+        {:else if game.tab === 'lager'}
+          <div class="scrollbereich"><StorePanel /></div>
+        {:else if game.tab === 'forschung'}
+          <ResearchPanel />
+        {:else if game.tab === 'strecke'}
+          <div class="scrollbereich"><TrackPanel /></div>
+        {:else}
+          <div class="scrollbereich"><MorePanel /></div>
+        {/if}
+        {#if game.item}
+          <ItemSheet />
+        {/if}
+      </div>
     </main>
     <TabBar active={game.tab} {dots} onchange={(t: Tab) => game.openTab(t)} />
   </div>
@@ -112,6 +120,14 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+  }
+
+  .bereich {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .scrollbereich {

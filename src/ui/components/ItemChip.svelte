@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatCount } from '../../lib/format';
+  import { game } from '../game.svelte';
   import { itemColor, itemName } from '../labels';
   import ItemIcon from './ItemIcon.svelte';
 
@@ -11,6 +12,7 @@
     full = false,
     showName = false,
     size = 'm',
+    tap = false,
   }: {
     item: string;
     amount?: number | null;
@@ -19,10 +21,14 @@
     full?: boolean;
     showName?: boolean;
     size?: 's' | 'm';
+    /** Antippen öffnet die Übersicht der Ware. Nicht in Knöpfen verwenden, ein Knopf im Knopf ist keiner. */
+    tap?: boolean;
   } = $props();
+
+  const title = $derived(full ? `${itemName(item)}: Lager voll` : itemName(item));
 </script>
 
-<span class="chip {size}" class:lacking title={full ? `${itemName(item)}: Lager voll` : itemName(item)}>
+{#snippet inhalt()}
   <span class="box" style="--mark: {itemColor(item)}">
     <ItemIcon {item} />
     {#if amount !== null}<b class="need mono">{amount}</b>{/if}
@@ -31,7 +37,17 @@
   {#if have !== null}
     <span class="have mono" class:short={lacking} class:voll={full}>{formatCount(have)}</span>
   {/if}
-</span>
+{/snippet}
+
+{#if tap}
+  <button type="button" class="chip {size} tipp" class:lacking {title} aria-label="{itemName(item)}: Übersicht öffnen" onclick={() => game.openItem(item)}>
+    {@render inhalt()}
+  </button>
+{:else}
+  <span class="chip {size}" class:lacking {title}>
+    {@render inhalt()}
+  </span>
+{/if}
 
 <style>
   .chip {
@@ -40,6 +56,19 @@
     align-items: center;
     gap: 2px;
     flex: none;
+  }
+
+  /* Als Knopf sieht der Chip gleich aus; nur der Zeiger verrät, dass er aufgeht. */
+  .tipp {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    border-radius: 8px;
   }
 
   .box {

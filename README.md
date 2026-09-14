@@ -23,7 +23,7 @@ Prototyp in Arbeit, nach dem Bauplan in Abschnitt 15 des Konzepts.
 
 Der erste spielbare Stand ist damit fertig: drei Biome, zwei Bauprojekte, dreissig Waren, Offline-Nachholen und Sicherung als Datei.
 
-Seither: Die Bühne zeigt Lok und Wagen als detaillierte Zeichnungen nach echten Vorbildern, mit drehenden Rädern und Gestänge, steht auf jedem Bildschirm ausser «Mehr» fest oben und fährt mit einer Kamera an jedes Fahrzeug heran, das man antippt.
+Seither: Die Bühne zeigt Lok und Wagen als detaillierte Zeichnungen nach echten Vorbildern, mit drehenden Rädern und Gestänge, steht auf jedem Bildschirm ausser «Mehr» fest oben und fährt mit einer Kamera an jedes Fahrzeug heran, das man antippt. Der Zug-Bildschirm zeigt einen Wagen auf einmal, gewählt über eine Wagenleiste, mit je Ware einem kleinen Dashboard und einem Zähler, der Maschinen zuteilt. Jede Ware öffnet ihre Übersicht mit Herstellung, Verbrauch und Kette bis zum Rohstoff. Die Werkstatt reiht auf Wunsch fünf oder zehn Läufe auf einmal ein, die Forschung ist ein Technologiebaum mit Indikatoren.
 
 ## Entwicklung
 

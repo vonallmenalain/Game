@@ -17,7 +17,7 @@ import {
   takeFromStore,
   wagonTypeMultiplier,
 } from './state';
-import type { BiomeDef, GameState, ItemId, MachineState, RecipeDef, Stack, StopReason, WagonState, WagonStatus, WagonType, Warning } from './types';
+import type { BiomeDef, GameState, ItemId, MachineState, RecipeDef, RecipeId, Stack, StopReason, WagonState, WagonStatus, WagonType, Warning } from './types';
 
 interface TickContext {
   cap: number;
@@ -201,19 +201,41 @@ export function machineRatePerMinute(state: GameState, w: WagonState, m: Machine
   return (out.amount / r.seconds) * 60 * machineSpeed(state, w, m);
 }
 
+/** Eine Quelle im Fluss einer Ware: Maschinen eines Wagens mit einem Auftrag, die Werkbank oder die Fahrt */
+export interface FlowSource {
+  via: 'maschine' | 'werkbank' | 'fahrt';
+  wagonId?: number;
+  wagonType?: WagonType;
+  /** Produktionswagen und Werkbank: das Rezept */
+  recipe?: RecipeId;
+  /** Erntewagen: der Rohstoff */
+  resource?: ItemId;
+  /** Wie viele Maschinen daran arbeiten; Werkbank und Fahrt zählen null */
+  machines: number;
+  /** Stück pro Minute, negativ für Verbrauch */
+  perMinute: number;
+}
+
 /**
- * Was der Zug pro Minute bewegt, je Ware Herstellung minus Verbrauch. Gerechnet aus
- * dem, was gerade eingestellt ist, nicht gemessen über die letzte Minute: So schlägt
- * jede Änderung sofort durch, und die Zahl zittert nicht im Takt der Rezepte.
+ * Woher der Fluss je Ware kommt und wohin er geht, gerechnet aus dem, was gerade
+ * eingestellt ist. Maschinen mit demselben Auftrag im selben Wagen stehen zusammen:
+ * «Schmelzwagen, 2 Öfen auf Koks, plus 60/min». Die Summe je Ware ist `flowPerMinute`.
  *
  * Was nicht laufen kann, zählt nicht: eine Erntemaschine ohne Kurbel und eine Maschine,
  * deren Ausgabelager voll ist. Fehlen dagegen nur Zutaten, zählt die Maschine weiter.
  * Genau dann zeigt das Minus, dass die Kette mehr verlangt, als sie liefert.
  */
-export function flowPerMinute(state: GameState): Record<ItemId, number> {
-  const flow: Record<ItemId, number> = {};
-  const add = (item: ItemId, amount: number) => {
-    flow[item] = (flow[item] ?? 0) + amount;
+export function flowSources(state: GameState): Record<ItemId, FlowSource[]> {
+  const sources: Record<ItemId, FlowSource[]> = {};
+  const note = (item: ItemId, key: string, make: () => FlowSource, perMinute: number, machines: number) => {
+    const list = (sources[item] ??= []);
+    let entry = list.find((s) => sourceKey(s) === key);
+    if (!entry) {
+      entry = make();
+      list.push(entry);
+    }
+    entry.perMinute += perMinute;
+    entry.machines += machines;
   };
   const cap = storeCap(state);
   const selfLoader = hasSelfLoader(state);
@@ -222,13 +244,17 @@ export function flowPerMinute(state: GameState): Record<ItemId, number> {
     for (const m of w.machines) {
       if (!canRun(state, w, m, cap, selfLoader)) continue;
       if (w.type === 'ernte') {
-        add(m.resource!, harvestRatePerMinute(state, w, m.resource));
+        const resource = m.resource!;
+        const key = `maschine/${w.id}/${resource}`;
+        note(resource, key, () => ({ via: 'maschine', wagonId: w.id, wagonType: w.type, resource, machines: 0, perMinute: 0 }), harvestRatePerMinute(state, w, resource), 1);
         continue;
       }
       const r = RECIPE_BY_ID[m.recipe!]!;
       const cyclesPerMinute = (60 / r.seconds) * machineSpeed(state, w, m);
-      for (const o of r.outputs) add(o.item, o.amount * cyclesPerMinute);
-      for (const i of r.inputs) add(i.item, -i.amount * cyclesPerMinute);
+      const key = `maschine/${w.id}/${r.id}`;
+      const make = (): FlowSource => ({ via: 'maschine', wagonId: w.id, wagonType: w.type, recipe: r.id, machines: 0, perMinute: 0 });
+      for (const o of r.outputs) note(o.item, key, make, o.amount * cyclesPerMinute, 1);
+      for (const i of r.inputs) note(i.item, key, make, -i.amount * cyclesPerMinute, 1);
     }
   }
 
@@ -236,18 +262,41 @@ export function flowPerMinute(state: GameState): Record<ItemId, number> {
   const head = state.workbench.queue[0] ? RECIPE_BY_ID[state.workbench.queue[0]] : undefined;
   if (head && hasOutputRoom(state, head, cap)) {
     const cyclesPerMinute = 60 / head.seconds;
-    for (const o of head.outputs) add(o.item, o.amount * cyclesPerMinute);
-    for (const i of head.inputs) add(i.item, -i.amount * cyclesPerMinute);
+    const key = `werkbank/${head.id}`;
+    const make = (): FlowSource => ({ via: 'werkbank', recipe: head.id, machines: 0, perMinute: 0 });
+    for (const o of head.outputs) note(o.item, key, make, o.amount * cyclesPerMinute, 0);
+    for (const i of head.inputs) note(i.item, key, make, -i.amount * cyclesPerMinute, 0);
   }
 
   // Die Fahrt frisst Schienen und Brennstoff
   if (state.stop === 'faehrt') {
     const lk = currentLoco(state);
     const kmPerMinute = lk.speedKmh / 60;
-    add('schienen', -kmPerMinute * BALANCE.railsPerKm);
-    add(lk.fuel, -kmPerMinute * lk.fuelPerKm);
+    const make = (): FlowSource => ({ via: 'fahrt', machines: 0, perMinute: 0 });
+    note('schienen', 'fahrt', make, -kmPerMinute * BALANCE.railsPerKm, 0);
+    note(lk.fuel, 'fahrt', make, -kmPerMinute * lk.fuelPerKm, 0);
   }
 
+  return sources;
+}
+
+function sourceKey(s: FlowSource): string {
+  if (s.via === 'fahrt') return 'fahrt';
+  if (s.via === 'werkbank') return `werkbank/${s.recipe}`;
+  return `maschine/${s.wagonId}/${s.recipe ?? s.resource}`;
+}
+
+/**
+ * Was der Zug pro Minute bewegt, je Ware Herstellung minus Verbrauch. Gerechnet aus
+ * dem, was gerade eingestellt ist, nicht gemessen über die letzte Minute: So schlägt
+ * jede Änderung sofort durch, und die Zahl zittert nicht im Takt der Rezepte.
+ * Die Summe der Quellen aus `flowSources`.
+ */
+export function flowPerMinute(state: GameState): Record<ItemId, number> {
+  const flow: Record<ItemId, number> = {};
+  for (const [item, list] of Object.entries(flowSources(state))) {
+    flow[item] = list.reduce((sum, s) => sum + s.perMinute, 0);
+  }
   return flow;
 }
 

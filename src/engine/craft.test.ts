@@ -144,3 +144,36 @@ describe('Ergebnisse für die Anzeige', () => {
     expect(outputsOf(s, 'koks')).toEqual([{ item: 'koks', amount: 1, have: storeCap(s), full: true }]);
   });
 });
+
+describe('Mehrere Läufe auf einmal', () => {
+  it('plant die Zutaten für die ganze Menge und reiht das Ziel so oft ein', () => {
+    const s = createInitialState();
+    grant(s, { eisenerz: 40, kohle: 40 });
+    const plan = planCraft(s, 'eisenbarren', 5);
+    expect(plan.steps).toEqual([{ recipe: 'koks', runs: 5 }, { recipe: 'eisenbarren', runs: 5 }]);
+    expect(plan.orders).toBe(10);
+    expect(queueCraftChain(s, 'eisenbarren', 5).ok).toBe(true);
+    expect(s.workbench.queue.filter((id) => id === 'koks')).toHaveLength(5);
+    expect(s.workbench.queue.filter((id) => id === 'eisenbarren')).toHaveLength(5);
+  });
+
+  it('rechnet Bestand und Überschuss auch bei zehn Läufen an', () => {
+    const s = createInitialState();
+    grant(s, { eisenerz: 200, kohle: 200 });
+    s.store['holz'] = 3;
+    // Zehn Fahrgestelle brauchen 40 Bretter, also 20 Läufe zu je einem Holz; drei sind da
+    const plan = planCraft(s, 'fahrgestell', 10);
+    expect(plan.steps.find((step) => step.recipe === 'bretter')?.runs).toBe(20);
+    expect(plan.steps.at(-1)).toEqual({ recipe: 'fahrgestell', runs: 10 });
+    expect(plan.missing).toEqual([{ item: 'holz', amount: 17 }]);
+  });
+
+  it('meldet Rohstoffmangel für die ganze Menge, nicht nur für einen Lauf', () => {
+    const s = createInitialState();
+    s.store['kohle'] = 3;
+    const result = queueCraftChain(s, 'koks', 10);
+    expect(result).toMatchObject({ ok: false, code: 'material_fehlt' });
+    if (!result.ok) expect(result.missing).toEqual([{ item: 'kohle', amount: 7 }]);
+    expect(s.workbench.queue).toHaveLength(0);
+  });
+});
